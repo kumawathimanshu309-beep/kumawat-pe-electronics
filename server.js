@@ -13,6 +13,8 @@ const QRCode = require('qrcode');
 const { rateLimit } = require('express-rate-limit');
 const path = require('path');
 const fs = require('fs');
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
 
 const app = express();
 const server = http.createServer(app);
@@ -85,7 +87,7 @@ async function seedMongoDatabase() {
   try {
     const adminExists = await User.findOne({ email: DEFAULT_ADMIN_EMAIL });
     if (!adminExists) {
-      const salt = await bcrypt.genSalt(10);
+      const salt = await bcrypt.genSalt(12);
       const hashedPassword = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, salt);
       
       const adminUser = new User({
@@ -122,7 +124,7 @@ async function seedMongoDatabase() {
 }
 
 async function seedInMemoryDatabase() {
-  const salt = await bcrypt.genSalt(10);
+  const salt = await bcrypt.genSalt(12);
   const hashedPassword = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, salt);
 
   const adminUser = {
@@ -156,6 +158,8 @@ async function seedInMemoryDatabase() {
 }
 
 // ── EXPRESS MIDDLEWARES ──────────────────────────────────────────
+app.use(helmet({ contentSecurityPolicy: false })); // Disabled CSP for inline EJS scripts support
+app.use(mongoSanitize());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -187,7 +191,9 @@ app.use(
     saveUninitialized: false,
     cookie: {
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      secure: false // Set true if HTTPS
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      sameSite: 'strict'
     }
   })
 );
@@ -475,7 +481,7 @@ app.post('/auth/register', async (req, res) => {
     }
 
     // Hash Password
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(12);
     const hashedPassword = await bcrypt.hash(cleanedPassword, salt);
 
     // Generate unique User ID and Card number
@@ -745,7 +751,7 @@ app.post('/forgot-password/reset', async (req, res) => {
     }
 
     // Update password
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(12);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     if (isMongoConnected) {
