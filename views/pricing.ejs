@@ -1,0 +1,65 @@
+<%- include('partials/header', { title: 'Transparent Pricing | Kumawat P&E', activePage: 'pricing' }) %>
+
+<div class="container" style="padding: 80px 24px;">
+  <div class="pricing-inner">
+    <div>
+      <p class="section-label">Transparent Rates</p>
+      <h2>No surprises on the bill.</h2>
+      <p style="margin-top: 10px; color: var(--ink-light); font-size: 0.9rem;">We believe in transparent pricing. Below are the basic rates for typical maintenance works. A final estimate is always presented before commencing any repair.</p>
+
+      <div class="pricing-list">
+        <div class="pricing-row">
+          <div><div class="name">Visit / Inspection Charge</div><div class="desc">Credited toward final repair bill if you proceed</div></div>
+          <div class="price">₹99</div>
+        </div>
+        <div class="pricing-row">
+          <div><div class="name">Basic Tap / Valve Repair</div><div class="desc">Washer replacements, gland packaging, leak stops</div></div>
+          <div class="price">₹199–399</div>
+        </div>
+        <div class="pricing-row">
+          <div><div class="name">Pipe Repair / Replacement</div><div class="desc">Standard exposed PVC/PPR pipe repair. Concealed lines extra.</div></div>
+          <div class="price">₹399–799</div>
+        </div>
+        <div class="pricing-row">
+          <div><div class="name">New Electrical Point</div><div class="desc">Switch, 3-pin socket, ceiling rose, or light fixture mount</div></div>
+          <div class="price">₹299–599</div>
+        </div>
+        <div class="pricing-row">
+          <div><div class="name">MCB / Distribution Board Work</div><div class="desc">Replacement of faulty breakers, busbars, wiring updates</div></div>
+          <div class="price">₹499–1499</div>
+        </div>
+        <div class="pricing-row">
+          <div><div class="name">Geyser Repair</div><div class="desc">Thermostat checks, heating element replacements, leaks</div></div>
+          <div class="price">₹350–800</div>
+        </div>
+        <div class="pricing-row">
+          <div><div class="name">AC Installation (Split)</div><div class="desc">Indoor and outdoor mounting, basic piping line up to 3 meters</div></div>
+          <div class="price">₹1200–1800</div>
+        </div>
+        <div class="pricing-row">
+          <div><div class="name">Water Motor / Pump Service</div><div class="desc">Pressure switches, submersibles hookups, capacitor change</div></div>
+          <div class="price">₹599–1200</div>
+        </div>
+      </div>
+
+      <p class="pricing-note">Hardware and spare material costs are separate. You are free to provide your own materials, or we can deliver them to your home at actual retail cost. 30-day labor warranty included.</p>
+    </div>
+
+    <div class="pricing-right" style="padding-top: 40px;">
+      <div class="dashboard-block" style="background: var(--white);">
+        <p class="section-label">Supported Payments</p>
+        <h3 style="margin-bottom:14px;">Pay your way.</h3>
+        <p style="font-size: 0.9rem; margin-bottom: 20px;">We support major payment options, including cash, cards, and instant UPI transfers via Google Pay, PhonePe, and Paytm. Receipts are sent instantly to your registered email.</p>
+        <%- include('partials/payment_icons') %>
+      </div>
+
+      <div class="dashboard-block mt-4" style="background: var(--bg-dark); color: var(--white); border-color: rgba(255,255,255,0.1);">
+        <h3 style="color: var(--white); font-family: var(--font-display);">Need an estimate?</h3>
+        <p style="font-size: 0.85rem; opacity: 0.8; margin-top: 10px; margin-bottom: 20px;">Send a photo or short video describing the damage. We can usually tell you what it will cost before we arrive.</p>
+        <a href="https://wa.me/919462759965?text=Hi%20Himanshu%2C%20I%20want%20to%20get%20an%20estimate%20for%20a%20repair." target="_blank" class="btn btn-whatsapp"><i class="bi bi-whatsapp"></i> Chat for Estimate</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

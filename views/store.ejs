@@ -1,0 +1,275 @@
+<%- include('partials/header') %>
+
+<section class="hero-section" style="padding-top: 100px; padding-bottom: 50px; background: var(--bg-dark); color: var(--white);">
+  <div class="container text-center">
+    <h1 style="font-family: var(--font-display); font-size: 2.5rem; margin-bottom: 10px;">Store &amp; Inventory</h1>
+    <p style="color: rgba(255,255,255,0.7); font-size: 1.1rem;">Buy spare parts, tools, and accessories directly.</p>
+  </div>
+</section>
+
+<section class="py-5" style="background: var(--bg);">
+  <div class="container">
+    <% if (products.length === 0) { %>
+      <div class="text-center py-5" style="min-height: 50vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <i class="bi bi-shop text-muted" style="font-size: 5rem; margin-bottom: 20px;"></i>
+        <h2 style="font-family: var(--font-display); font-weight: 700;">Store Coming Soon</h2>
+        <p class="text-muted" style="font-size: 1.1rem; max-width: 500px; margin: 0 auto;">We are currently setting up our inventory. Please check back later for high-quality plumbing and electrical parts.</p>
+      </div>
+    <% } else { %>
+    <div class="row">
+      <!-- SIDEBAR FILTERS -->
+      <div class="col-lg-3 mb-4">
+        <div class="card p-4" style="position: sticky; top: 100px;">
+          <h4 style="font-family: var(--font-display); font-size: 1.1rem; margin-bottom: 20px;">Filters</h4>
+          
+          <div class="mb-4">
+            <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">Search Products</label>
+            <input type="text" id="store-search" class="form-control" placeholder="Search by name..." onkeyup="filterStore()" />
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">Categories</label>
+            <div class="d-flex flex-column gap-2" id="category-filters">
+              <label><input type="checkbox" value="Plumbing" onchange="filterStore()"> Plumbing</label>
+              <label><input type="checkbox" value="Electrical" onchange="filterStore()"> Electrical</label>
+              <label><input type="checkbox" value="AC & Appliances" onchange="filterStore()"> AC & Appliances</label>
+              <label><input type="checkbox" value="Motors & Pumps" onchange="filterStore()"> Motors & Pumps</label>
+              <label><input type="checkbox" value="Tools" onchange="filterStore()"> Tools</label>
+              <label><input type="checkbox" value="Spare Parts" onchange="filterStore()"> Spare Parts</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRODUCT GRID -->
+      <div class="col-lg-6 mb-4">
+        <div class="row g-4" id="store-products-grid">
+          <% products.forEach(p => { %>
+            <div class="col-md-6 store-item-card" data-category="<%= p.category %>" data-name="<%= p.name.toLowerCase() %>">
+              <div class="card h-100" style="border: 1px solid var(--rule); border-radius: var(--radius); overflow: hidden; cursor: pointer;" onclick="window.location.href='/product/<%= p.productId %>'">
+                <% if (p.images && p.images.length > 0) { %>
+                  <img src="<%= p.images[0] %>" style="width: 100%; height: 200px; object-fit: cover;" alt="<%= p.name %>" />
+                <% } else { %>
+                  <div style="width: 100%; height: 200px; background: #eee; display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-image text-muted" style="font-size: 2rem;"></i>
+                  </div>
+                <% } %>
+                
+                <div class="p-3 d-flex flex-column" style="flex: 1;">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="badge bg-light text-dark" style="font-size: 0.7rem;"><%= p.category %></span>
+                    <% if (p.stock <= 0 || p.status === 'Out Of Stock') { %>
+                      <span class="badge bg-danger">Out of Stock</span>
+                    <% } else if (p.stock <= 5) { %>
+                      <span class="badge bg-warning text-dark">Only <%= p.stock %> left</span>
+                    <% } else { %>
+                      <span class="badge bg-success">In Stock</span>
+                    <% } %>
+                  </div>
+                  <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 8px;"><%= p.name %></h3>
+                  
+                  <div class="d-flex justify-content-between align-items-center mt-auto pt-3">
+                    <div>
+                      <% if (p.discountPrice) { %>
+                        <div style="text-decoration:line-through; color:#999; font-size:0.8rem;">₹<%= p.price %></div>
+                        <strong style="color:var(--accent); font-size:1.1rem;">₹<%= p.discountPrice %></strong>
+                      <% } else { %>
+                        <strong style="font-size:1.1rem;">₹<%= p.price %></strong>
+                      <% } %>
+                    </div>
+                    
+                    <% if (p.stock > 0 && p.status !== 'Out Of Stock') { %>
+                      <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); addToCart('<%= escape(p.name) %>', <%= p.discountPrice || p.price %>)">Add <i class="bi bi-cart-plus"></i></button>
+                    <% } else { %>
+                      <button class="btn btn-outline btn-sm disabled" disabled>Sold Out</button>
+                    <% } %>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+
+      <!-- CART SIDEBAR -->
+      <div class="col-lg-3">
+        <div class="card p-4" style="position: sticky; top: 100px; background: var(--white); border: 2px solid var(--rule); border-radius: 16px; box-shadow: 0 10px 30px rgba(28,43,43,0.05);">
+          <h3 style="font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
+            Your Cart
+            <span class="badge bg-danger text-white" id="cart-count">0</span>
+          </h3>
+          
+          <div id="cart-empty-msg" class="text-center py-4 text-muted">
+            <i class="bi bi-cart3" style="font-size: 2.5rem; display: block; margin-bottom: 10px; color: var(--rule);"></i>
+            <p>Your cart is empty.</p>
+          </div>
+
+          <div id="cart-items-wrapper" style="display: none;">
+            <div id="cart-items-list" style="max-height: 250px; overflow-y: auto;"></div>
+            
+            <div class="cart-total-row" style="display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--rule); font-weight: bold; font-size: 1.1rem;">
+              <span>Total:</span>
+              <span id="cart-total-price">₹0</span>
+            </div>
+
+            <button class="btn btn-accent btn-full mt-4" onclick="proceedToCheckout()">Proceed to Checkout <i class="bi bi-arrow-right"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <% } %>
+  </div>
+</section>
+
+<!-- Socket.io for Real-time Updates -->
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+  let cart = [];
+
+  function loadCart() {
+    const saved = localStorage.getItem('kumawat_cart');
+    if (saved) {
+      try {
+        cart = JSON.parse(saved);
+        updateCartUI();
+      } catch (e) {
+        cart = [];
+      }
+    }
+  }
+
+  function saveCart() {
+    localStorage.setItem('kumawat_cart', JSON.stringify(cart));
+    updateCartUI();
+  }
+
+  function addToCart(escapedName, price) {
+    const name = unescape(escapedName);
+    const existing = cart.find(item => item.name === name);
+    if (existing) {
+      existing.quantity += 1;
+    } else {
+      cart.push({ name, price, quantity: 1 });
+    }
+    saveCart();
+    showToast(`Added ${name} to cart`);
+  }
+
+  function removeFromCart(name) {
+    cart = cart.filter(item => item.name !== name);
+    saveCart();
+  }
+
+  function adjustQty(name, amount) {
+    const item = cart.find(item => item.name === name);
+    if (item) {
+      item.quantity += amount;
+      if (item.quantity <= 0) {
+        removeFromCart(name);
+      } else {
+        saveCart();
+      }
+    }
+  }
+
+  function updateCartUI() {
+    const list = document.getElementById('cart-items-list');
+    const emptyMsg = document.getElementById('cart-empty-msg');
+    const wrapper = document.getElementById('cart-items-wrapper');
+    const countBadge = document.getElementById('cart-count');
+    const totalEl = document.getElementById('cart-total-price');
+
+    if (!list) return;
+
+    let count = 0;
+    let total = 0;
+
+    if (cart.length === 0) {
+      emptyMsg.style.display = 'block';
+      wrapper.style.display = 'none';
+      countBadge.textContent = '0';
+      return;
+    }
+
+    emptyMsg.style.display = 'none';
+    wrapper.style.display = 'block';
+
+    list.innerHTML = cart.map(item => {
+      count += item.quantity;
+      total += item.price * item.quantity;
+      return `
+        <div class="cart-item" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:10px;">
+          <div class="info" style="flex:1;">
+            <div class="title" style="font-size:0.85rem; font-weight:600;">${item.name}</div>
+            <div class="desc" style="font-size:0.75rem; color:#888;">₹${item.price} each</div>
+          </div>
+          <div class="d-flex align-items-center gap-1">
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-outline p-1 py-0" style="font-size: 0.75rem;" onclick="adjustQty('${item.name}', -1)">-</button>
+              <span class="px-2 font-weight-bold" style="font-size: 0.85rem;">${item.quantity}</span>
+              <button class="btn btn-outline p-1 py-0" style="font-size: 0.75rem;" onclick="adjustQty('${item.name}', 1)">+</button>
+            </div>
+            <button class="btn btn-link text-danger p-0 ms-2" onclick="removeFromCart('${item.name}')"><i class="bi bi-trash"></i></button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    countBadge.textContent = count;
+    totalEl.textContent = `₹${total}`;
+  }
+
+  function proceedToCheckout() {
+    if (cart.length === 0) return;
+    
+    fetch('/auth/check-status')
+      .then(res => res.json())
+      .then(data => {
+        if (data.loggedIn) {
+          window.location.href = '/checkout';
+        } else {
+          showToast('Please login first to proceed');
+          setTimeout(() => {
+            window.location.href = '/login?redirect=/checkout';
+          }, 1500);
+        }
+      });
+  }
+
+  function filterStore() {
+    const query = document.getElementById('store-search').value.toLowerCase();
+    
+    const checkboxes = Array.from(document.querySelectorAll('#category-filters input:checked'));
+    const selectedCats = checkboxes.map(cb => cb.value);
+    
+    document.querySelectorAll('.store-item-card').forEach(card => {
+      const name = card.dataset.name;
+      const cat = card.dataset.category;
+      
+      const matchSearch = !query || name.includes(query);
+      const matchCat = selectedCats.length === 0 || selectedCats.includes(cat);
+      
+      if (matchSearch && matchCat) {
+        card.style.display = 'block';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', loadCart);
+
+  // Real-time socket io
+  const socket = io();
+  socket.on('product_updated', (data) => {
+    // Show a toast that prompts the user to refresh
+    let msg = 'Store inventory updated! Refreshing...';
+    showToast(msg);
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000);
+  });
+</script>
+
+<%- include('partials/footer') %>

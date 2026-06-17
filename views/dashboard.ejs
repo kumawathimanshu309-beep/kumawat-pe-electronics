@@ -1,0 +1,232 @@
+<%- include('partials/header', { title: 'My Account Dashboard | Kumawat P&E', activePage: 'dashboard' }) %>
+
+<div class="container card-section">
+  <div class="services-header" style="margin-bottom: 40px;">
+    <p class="section-label">Customer Workspace</p>
+    <h2>Welcome, <%= user.name %></h2>
+    <p class="text-muted" style="margin-top: 5px;">Manage your digital loyalty card, track home deliveries, and review your service history.</p>
+  </div>
+
+  <div class="dashboard-grid">
+    <!-- Left: Digital Loyalty Card & Actions -->
+    <div>
+      <div class="dashboard-block">
+        <h3 style="margin-bottom: 20px;">Digital Customer Card</h3>
+        
+        <!-- WALLET CARD DESIGN -->
+        <div class="wallet-card" id="printableCard">
+          <div class="wallet-card-header">
+            <div class="brand">
+              Kumawat P&amp;E
+              <span>Plumbing &amp; Electricals</span>
+            </div>
+            <div class="card-type">LOYALTY MEMBER</div>
+          </div>
+          
+          <div class="wallet-card-body">
+            <div class="wallet-card-details">
+              <div class="name"><%= user.name %></div>
+              <div class="phone"><i class="bi bi-phone"></i> <%= user.mobile %></div>
+              <div class="uid">ID: <%= user.userId %></div>
+            </div>
+            
+            <div class="qr-box">
+              <!-- Renders generated QR code from DB card object -->
+              <img src="<%= typeof card !== 'undefined' && card ? card.qrCodeData : '/images/qr-placeholder.png' %>" alt="Member QR Code" />
+            </div>
+          </div>
+          
+          <div class="wallet-card-footer">
+            <div class="number"><%= typeof card !== 'undefined' && card ? card.cardNumber : 'CARD-0000-0000' %></div>
+            <div class="joined">
+              Joined<br>
+              <strong><%= new Date(user.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) %></strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card Actions -->
+        <div class="card-actions">
+          <button class="btn btn-outline" onclick="printCard()"><i class="bi bi-printer"></i> Print Card</button>
+          <a href="/dashboard/download-card" class="btn btn-accent"><i class="bi bi-download"></i> Download Card</a>
+        </div>
+      </div>
+
+      <!-- Quick Contact Info -->
+      <div class="dashboard-block mt-4">
+        <h3>Need Quick Help?</h3>
+        <p style="font-size: 0.85rem; color: var(--ink-light); margin-bottom: 15px;">Our team is active 24/7 in Govindgarh for emergencies. Reach Himanshu directly via WhatsApp.</p>
+        <a href="https://wa.me/919462759965?text=Hi%20Himanshu%2C%20I%20need%20urgent%20service." target="_blank" class="btn btn-whatsapp btn-full"><i class="bi bi-whatsapp"></i> Chat on WhatsApp</a>
+      </div>
+    </div>
+
+    <!-- Right: Order History & Tracking -->
+    <div class="col-lg-8 col-md-12 mt-4 mt-lg-0">
+      <div class="dashboard-block" style="min-height: 400px; margin-bottom: 30px;">
+        <h3 style="margin-bottom: 20px;">Notification Center</h3>
+        <div id="notification-center" style="background: var(--bg); padding: 15px; border-radius: 8px; border: 1px solid var(--rule); margin-bottom: 24px; max-height: 150px; overflow-y: auto;">
+          <div class="text-muted text-center" id="empty-notifications" style="font-size: 0.85rem; padding: 10px;">No new notifications</div>
+        </div>
+
+        <h3 style="margin-bottom: 20px;">Order &amp; Booking History</h3>
+        
+        <% if (typeof orders === 'undefined' || orders.length === 0) { %>
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-journal-text" style="font-size: 3rem; color: var(--rule); display: block; margin-bottom: 12px;"></i>
+            <p>You haven't made any bookings yet.</p>
+            <a href="/services" class="btn btn-accent btn-sm mt-3">Browse Services</a>
+          </div>
+        <% } else { %>
+          <div class="table-wrap">
+            <table class="table align-middle">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Date</th>
+                  <th>Total</th>
+                  <th>Method</th>
+                  <th>Delivery Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% orders.reverse().forEach(ord => { %>
+                  <tr>
+                    <td><code style="font-size: 0.78rem; font-weight: bold;"><%= ord.orderId %></code></td>
+                    <td><%= new Date(ord.createdAt).toLocaleDateString('en-IN') %></td>
+                    <td><strong style="color: var(--accent);">₹<%= ord.totalAmount %></strong></td>
+                    <td><%= ord.paymentMethod %></td>
+                    <td>
+                      <span class="badge" id="badge-status-<%= ord.orderId %>" data-status="<%= ord.deliveryStatus %>" style="font-weight: 600;"><%= ord.deliveryStatus %></span>
+                    </td>
+                    <td>
+                      <a href="/order-success/<%= ord.orderId %>" class="btn btn-outline btn-xs"><i class="bi bi-eye"></i> Track</a>
+                    </td>
+                  </tr>
+                  <tr id="timeline-row-<%= ord.orderId %>" style="border-bottom: 2px solid var(--rule);">
+                    <td colspan="6" style="padding: 16px 20px; background: #fafbfc;">
+                      <div class="order-timeline" id="timeline-<%= ord.orderId %>" data-status="<%= ord.deliveryStatus %>"></div>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function printCard() {
+    window.print();
+  }
+</script>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  function getStatusColor(status) {
+    switch(status) {
+      case 'Pending': return { bg: '#fff3cd', text: '#856404' }; // Yellow
+      case 'Confirmed': return { bg: '#cce5ff', text: '#004085' }; // Blue
+      case 'Processing': return { bg: '#ffe8cc', text: '#d97706' }; // Orange
+      case 'Packed': return { bg: '#e2d9f3', text: '#5a32a3' }; // Purple
+      case 'Out For Delivery': return { bg: '#cff4fc', text: '#055160' }; // Cyan
+      case 'Delivered': return { bg: '#d1e7dd', text: '#0f5132' }; // Green
+      case 'Cancelled': return { bg: '#f8d7da', text: '#842029' }; // Red
+      default: return { bg: '#e2e8f0', text: '#475569' };
+    }
+  }
+
+  function renderTimeline(status, container) {
+    if (status === 'Cancelled') {
+      container.innerHTML = '<div style="color: #dc3545; font-weight: 700; text-align: center; padding: 10px 0;"><i class="bi bi-x-circle-fill"></i> Order Cancelled</div>';
+      return;
+    }
+    
+    const steps = ['Pending', 'Confirmed', 'Processing', 'Packed', 'Out For Delivery', 'Delivered'];
+    let html = '<div style="display: flex; justify-content: space-between; align-items: center; position: relative;">';
+    html += '<div style="position: absolute; top: 12px; left: 0; right: 0; height: 3px; background: #e0e0e0; z-index: 1;"></div>';
+    
+    let passed = true;
+    steps.forEach(step => {
+      const isCurrent = step === status;
+      const color = passed ? '#2ecc71' : '#e0e0e0';
+      const textColor = passed ? '#2ecc71' : '#999';
+      const icon = passed ? '<i class="bi bi-check text-white" style="font-size:1.1rem; line-height: 1;"></i>' : '';
+      
+      html += `
+        <div style="position: relative; z-index: 2; text-align: center; width: 16%;">
+          <div style="width: 28px; height: 28px; background: ${color}; border-radius: 50%; margin: 0 auto; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            ${icon}
+          </div>
+          <div style="font-size: 0.65rem; font-weight: 700; color: ${textColor}; margin-top: 8px; text-transform: uppercase;">${step}</div>
+        </div>
+      `;
+      if (step === status) passed = false;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    // Initial render of badges and timelines
+    document.querySelectorAll('[id^="badge-status-"]').forEach(badge => {
+      const status = badge.getAttribute('data-status');
+      badge.style.backgroundColor = getStatusColor(status).bg;
+      badge.style.color = getStatusColor(status).text;
+    });
+
+    document.querySelectorAll('.order-timeline').forEach(timeline => {
+      const status = timeline.getAttribute('data-status');
+      renderTimeline(status, timeline);
+    });
+  });
+
+  const socket = io();
+  
+  // Listen for real-time status updates
+  socket.on('order_status_updated', (data) => {
+    const { orderId, status, message } = data;
+    
+    // Update Badge
+    const badge = document.getElementById('badge-status-' + orderId);
+    if (badge) {
+      badge.textContent = status;
+      badge.setAttribute('data-status', status);
+      badge.style.backgroundColor = getStatusColor(status).bg;
+      badge.style.color = getStatusColor(status).text;
+    }
+    
+    // Update Timeline
+    const timeline = document.getElementById('timeline-' + orderId);
+    if (timeline) {
+      timeline.setAttribute('data-status', status);
+      renderTimeline(status, timeline);
+    }
+    
+    // Add Notification
+    const emptyMsg = document.getElementById('empty-notifications');
+    if (emptyMsg) emptyMsg.style.display = 'none';
+    
+    const notifCenter = document.getElementById('notification-center');
+    const notif = document.createElement('div');
+    notif.style.padding = '12px';
+    notif.style.borderBottom = '1px solid var(--rule)';
+    notif.style.fontSize = '0.9rem';
+    notif.style.display = 'flex';
+    notif.style.alignItems = 'flex-start';
+    notif.style.gap = '10px';
+    notif.innerHTML = `
+      <i class="bi bi-bell-fill text-accent" style="margin-top:2px;"></i>
+      <div>
+        <div style="font-weight: 600; color: var(--ink);">${message}</div>
+        <div style="font-size: 0.75rem; color: var(--ink-light); margin-top: 4px;">Just now</div>
+      </div>
+    `;
+    notifCenter.prepend(notif);
+  });
+</script>
+
+<%- include('partials/footer') %>

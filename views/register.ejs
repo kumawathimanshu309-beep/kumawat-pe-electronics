@@ -1,0 +1,97 @@
+<%- include('partials/header', { title: 'Register Account | Kumawat P&E', activePage: 'register' }) %>
+
+<div class="auth-page blueprint-bg">
+  <div class="auth-card" style="max-width: 520px;">
+    <div class="auth-title">Create Account</div>
+    <div class="auth-subtitle">Register to unlock your Digital Customer Card and track deliveries</div>
+    
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="alert alert-danger" role="alert" style="font-size: 0.85rem; padding: 10px 14px;">
+        <i class="bi bi-exclamation-triangle-fill"></i> <%= error %>
+      </div>
+    <% } %>
+
+    <form action="/auth/register" method="POST" onsubmit="return validatePasswords()">
+      <input type="hidden" name="redirect" value="<%= typeof redirect !== 'undefined' ? redirect : '' %>" />
+      
+      <div class="field">
+        <label for="name">Full Name *</label>
+        <input type="text" id="name" name="name" placeholder="Himanshu Kumawat" required />
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 col-12">
+          <div class="field">
+            <label for="mobile">Mobile Number *</label>
+            <input type="tel" id="mobile" name="mobile" placeholder="+91 94627 59965" required />
+          </div>
+        </div>
+        <div class="col-md-6 col-12">
+          <div class="field">
+            <label for="email">Email Address *</label>
+            <input type="email" id="email" name="email" placeholder="name@email.com" required />
+          </div>
+        </div>
+      </div>
+      
+      <div class="field">
+        <label for="address">Full Delivery Address *</label>
+        <textarea id="address" name="address" placeholder="Adda Ball, Kui Ke Pass, Station Road, Govindgarh" rows="2" required></textarea>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 col-12">
+          <div class="field">
+            <label for="password">Password *</label>
+            <input type="password" id="password" name="password" placeholder="••••••••" required />
+            <span class="hint">At least 8 characters.</span>
+          </div>
+        </div>
+        <div class="col-md-6 col-12">
+          <div class="field">
+            <label for="confirmPassword">Confirm Password *</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" placeholder="••••••••" required />
+          </div>
+        </div>
+      </div>
+      
+      <div id="pass-match-error" class="alert alert-danger" style="display: none; font-size: 0.8rem; padding: 6px 12px; margin-bottom: 15px;">
+        Passwords do not match!
+      </div>
+      
+      <button type="submit" class="btn btn-accent btn-full">Register Account <i class="bi bi-person-plus"></i></button>
+      
+      <div class="auth-divider">or</div>
+      
+      <div class="text-center">
+        <span style="font-size: 0.85rem; color: var(--ink-light);">Already have an account?</span>
+        <a href="/login<%= typeof redirect !== 'undefined' && redirect ? '?redirect=' + redirect : '' %>" style="font-weight: 700; color: var(--accent); font-size: 0.85rem; margin-left: 4px;">Log In</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function validatePasswords() {
+    const p1 = document.getElementById('password').value;
+    const p2 = document.getElementById('confirmPassword').value;
+    const errorEl = document.getElementById('pass-match-error');
+    
+    if (p1.length < 8) {
+      errorEl.textContent = 'Password must be at least 8 characters long.';
+      errorEl.style.display = 'block';
+      return false;
+    }
+    
+    if (p1 !== p2) {
+      errorEl.textContent = 'Passwords do not match.';
+      errorEl.style.display = 'block';
+      return false;
+    }
+    
+    errorEl.style.display = 'none';
+    return true;
+  }
+</script>
+
+<%- include('partials/footer') %>

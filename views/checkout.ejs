@@ -1,0 +1,400 @@
+<%- include('partials/header', { title: 'Checkout Order | Kumawat P&E', activePage: 'services' }) %>
+
+<div class="container" style="padding: 60px 24px;">
+  <div class="services-header" style="margin-bottom: 40px;">
+    <p class="section-label">Order Booking</p>
+    <h2>Complete Your Checkout</h2>
+    <span class="badge-delivery mt-2" style="position: static;"><i class="bi bi-truck"></i> Home Delivery Available</span>
+  </div>
+
+  <div class="row checkout-grid">
+    <!-- Checkout Form -->
+    <div class="col-lg-7 col-md-12">
+      <div class="dashboard-block">
+        <h3 style="margin-bottom: 20px;">Customer &amp; Scheduling Details</h3>
+        
+        <form action="/checkout" method="POST" id="checkoutForm" onsubmit="return populateCartInput()">
+          <!-- Hidden inputs for cart data -->
+          <input type="hidden" name="cartData" id="cartDataInput" value="" />
+          <input type="hidden" name="totalAmount" id="totalAmountInput" value="0" />
+
+          <div class="field">
+            <label for="customerName">Full Name</label>
+            <input type="text" id="customerName" name="customerName" value="<%= user.name %>" readonly style="background-color: var(--rule); opacity: 0.8;" />
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 col-12">
+              <div class="field">
+                <label for="customerPhone">Mobile Number</label>
+                <input type="tel" id="customerPhone" name="customerPhone" value="<%= user.mobile %>" readonly style="background-color: var(--rule); opacity: 0.8;" />
+              </div>
+            </div>
+            <div class="col-md-6 col-12">
+              <div class="field">
+                <label for="customerEmail">Email Address</label>
+                <input type="email" id="customerEmail" name="customerEmail" value="<%= user.email %>" readonly style="background-color: var(--rule); opacity: 0.8;" />
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="deliveryAddress">Delivery / Service Address *</label>
+            <textarea id="deliveryAddress" name="deliveryAddress" rows="2" required><%= user.address %></textarea>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 col-12">
+              <div class="field">
+                <label for="preferredDate">Preferred Date *</label>
+                <input type="date" id="preferredDate" name="preferredDate" required />
+              </div>
+            </div>
+            <div class="col-md-6 col-12">
+              <div class="field">
+                <label for="timeSlot">Preferred Time Slot *</label>
+                <select id="timeSlot" name="timeSlot" required>
+                  <option value="">Select slot...</option>
+                  <option value="Morning (8am – 12pm)">Morning (8am – 12pm)</option>
+                  <option value="Afternoon (12pm – 4pm)">Afternoon (12pm – 4pm)</option>
+                  <option value="Evening (4pm – 9pm)">Evening (4pm – 9pm)</option>
+                  <option value="Urgent / ASAP">Urgent / ASAP</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="notes">Special Notes / Description of problem</label>
+            <textarea id="notes" name="notes" rows="2" placeholder="e.g. Bring a new 15-amp switch board, faucet is leaking from the neck, etc."></textarea>
+          </div>
+
+          <!-- Payment Methods -->
+          <div style="margin-top: 28px;">
+            <label class="section-label" style="display: block; margin-bottom: 10px;">Select Payment Method</label>
+            
+            <div class="payment-methods">
+              <div class="payment-method-card selected" onclick="selectPayment('Cash')">
+                <input type="radio" name="paymentMethod" value="Cash" checked id="pay-cash" />
+                <label for="pay-cash">
+                  <strong>Cash on Delivery</strong>
+                  <div style="font-size: 0.75rem; color: var(--ink-light);">Pay in cash after repair/delivery</div>
+                </label>
+              </div>
+
+              <div class="payment-method-card" onclick="selectPayment('UPI')">
+                <input type="radio" name="paymentMethod" value="UPI" id="pay-upi" />
+                <label for="pay-upi">
+                  <strong>Instant UPI (QR Scan)</strong>
+                  <div style="font-size: 0.75rem; color: var(--ink-light);">GPay, PhonePe, Paytm QR scanner</div>
+                </label>
+              </div>
+
+              <div class="payment-method-card" onclick="selectPayment('Google Pay')">
+                <input type="radio" name="paymentMethod" value="Google Pay" id="pay-gpay" />
+                <label for="pay-gpay">
+                  <strong>Google Pay</strong>
+                  <div style="font-size: 0.75rem; color: var(--ink-light);">Direct pay via Google Pay app</div>
+                </label>
+              </div>
+
+              <div class="payment-method-card" onclick="selectPayment('PhonePe')">
+                <input type="radio" name="paymentMethod" value="PhonePe" id="pay-phonepe" />
+                <label for="pay-phonepe">
+                  <strong>PhonePe</strong>
+                  <div style="font-size: 0.75rem; color: var(--ink-light);">Pay using PhonePe application</div>
+                </label>
+              </div>
+
+              <div class="payment-method-card" onclick="selectPayment('Paytm')">
+                <input type="radio" name="paymentMethod" value="Paytm" id="pay-paytm" />
+                <label for="pay-paytm">
+                  <strong>Paytm Wallet / UPI</strong>
+                  <div style="font-size: 0.75rem; color: var(--ink-light);">Direct pay via Paytm app</div>
+                </label>
+              </div>
+
+              <div class="payment-method-card" onclick="selectPayment('Credit Card')">
+                <input type="radio" name="paymentMethod" value="Credit Card" id="pay-credit" />
+                <label for="pay-credit">
+                  <strong>Credit Card</strong>
+                  <div style="font-size: 0.75rem; color: var(--ink-light);">Visa, MasterCard, RuPay</div>
+                </label>
+              </div>
+            </div>
+            
+            <div style="margin-top: 15px;">
+              <%- include('partials/payment_icons') %>
+            </div>
+          </div>
+
+          <div style="margin-top: 32px;">
+            <button type="submit" class="btn btn-accent btn-full" style="font-size: 1.05rem; padding: 14px 20px;">Confirm &amp; Place Order <i class="bi bi-check-lg"></i></button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Contact Support moved outside of Booking Summary -->
+      <div style="background-color: var(--bg); border: 1.5px solid var(--rule); border-radius: 8px; padding: 18px; margin-top: 24px;">
+        <h4 style="font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; margin-bottom: 6px;">Need Help?</h4>
+        <p style="font-size: 0.8rem; color: var(--ink-light); line-height: 1.5; margin-bottom: 12px;">Need to change delivery location or ask about parts availability? Contact Himanshu Kumawat directly on WhatsApp.</p>
+        <a href="https://wa.me/919462759965" target="_blank" class="btn btn-whatsapp btn-sm" style="display: inline-block; width: auto; padding: 8px 16px;"><i class="bi bi-whatsapp"></i> Chat with Himanshu</a>
+      </div>
+    </div>
+
+    <!-- Cart Summary Sidebar -->
+    <div class="col-lg-5 col-md-12 mt-4 mt-lg-0">
+      <div class="cart-summary-card">
+        <h3>Booking Summary</h3>
+        <hr style="border-top: 1px solid var(--rule); margin: 12px 0;" />
+        
+        <div id="checkout-items-list"></div>
+        
+        <hr style="border-top: 1px solid var(--rule); margin: 16px 0;" />
+
+        <!-- Price Breakdown -->
+        <div style="font-size: 0.95rem; color: var(--ink); margin-bottom: 8px; display: flex; justify-content: space-between;">
+          <span>Items Total:</span>
+          <strong id="summary-items-total">₹0</strong>
+        </div>
+        <div style="font-size: 0.95rem; color: #25D366; margin-bottom: 8px; display: flex; justify-content: space-between;">
+          <span>Discount:</span>
+          <strong id="summary-discount">- ₹0</strong>
+        </div>
+        <div style="font-size: 0.95rem; color: var(--ink); margin-bottom: 8px; display: flex; justify-content: space-between;">
+          <span>Delivery Charge:</span>
+          <strong id="summary-delivery">₹0</strong>
+        </div>
+        <div style="font-size: 0.95rem; color: var(--ink); margin-bottom: 8px; display: flex; justify-content: space-between;">
+          <span>Platform Charge:</span>
+          <strong>₹0</strong>
+        </div>
+        <div style="font-size: 0.95rem; color: var(--ink); margin-bottom: 16px; display: flex; justify-content: space-between;">
+          <span>GST:</span>
+          <strong>₹0</strong>
+        </div>
+
+        <hr style="border-top: 1px dashed var(--rule); margin: 16px 0;" />
+
+        <div class="cart-total-row" style="font-size: 1.3rem; font-weight: 700; color: var(--accent); display: flex; justify-content: space-between; align-items: center;">
+          <span>Grand Total:</span>
+          <span id="checkout-total-price">₹0</span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let checkoutCart = [];
+
+  function loadCheckoutCart() {
+    const saved = localStorage.getItem('kumawat_cart');
+    if (saved) {
+      try {
+        checkoutCart = JSON.parse(saved);
+      } catch (e) {
+        checkoutCart = [];
+      }
+    }
+    
+    if (checkoutCart.length === 0) {
+      showToast("Your cart is empty. Redirecting to catalog...");
+      setTimeout(() => {
+        window.location.href = '/services';
+      }, 1500);
+      return;
+    }
+    
+    renderCheckoutCart();
+  }
+
+  function renderCheckoutCart() {
+    const list = document.getElementById('checkout-items-list');
+    const itemsTotalEl = document.getElementById('summary-items-total');
+    const discountEl = document.getElementById('summary-discount');
+    const deliveryEl = document.getElementById('summary-delivery');
+    const grandTotalEl = document.getElementById('checkout-total-price');
+    
+    if (checkoutCart.length === 0) {
+      list.innerHTML = `
+        <div class="text-center py-4 text-muted">
+          <i class="bi bi-cart3" style="font-size: 2.5rem; display: block; margin-bottom: 10px; color: var(--rule);"></i>
+          <p style="font-weight: 600;">🛒 Your cart is empty</p>
+          <a href="/services" class="btn btn-outline btn-sm mt-3">Continue Shopping</a>
+        </div>
+      `;
+      itemsTotalEl.textContent = `₹0`;
+      discountEl.textContent = `- ₹0`;
+      deliveryEl.textContent = `₹0`;
+      grandTotalEl.textContent = `₹0`;
+      document.querySelector('button[type="submit"]').disabled = true;
+      return;
+    }
+    
+    document.querySelector('button[type="submit"]').disabled = false;
+
+    let itemsTotal = 0;
+    let totalDiscount = 0;
+    let hasProduct = false;
+    
+    list.innerHTML = checkoutCart.map(item => {
+      const isProduct = item.type === 'product';
+      if (isProduct) hasProduct = true;
+      
+      const origPrice = item.originalPrice ? parseFloat(item.originalPrice) : parseFloat(item.price);
+      const sellPrice = parseFloat(item.price);
+      const qty = parseInt(item.quantity);
+      
+      const itemOrigTotal = origPrice * qty;
+      const itemSellTotal = sellPrice * qty;
+      const itemDiscount = itemOrigTotal - itemSellTotal;
+      
+      itemsTotal += itemOrigTotal;
+      totalDiscount += itemDiscount;
+
+      if (isProduct) {
+        return `
+          <div style="display: flex; gap: 15px; margin-bottom: 16px; border-bottom: 1px solid var(--rule); padding-bottom: 16px;">
+            <div style="width: 70px; height: 70px; border-radius: 8px; border: 1px solid var(--rule); overflow: hidden; background: #fff; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+              ${item.image ? `<img src="${item.image}" style="max-width: 100%; max-height: 100%; object-fit: contain;">` : `<i class="bi bi-image text-muted" style="font-size: 2rem;"></i>`}
+            </div>
+            <div style="flex-grow: 1;">
+              <div style="font-weight: 700; font-family: var(--font-display); font-size: 0.95rem; color: var(--ink); line-height: 1.2;">${item.name}</div>
+              <div style="font-size: 0.75rem; color: var(--ink-light); margin-top: 4px;">
+                ${item.sku && item.sku !== 'N/A' ? `SKU: ${item.sku} &bull; ` : ''}${item.category || 'Product'}
+              </div>
+              <div style="margin-top: 6px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  ${itemDiscount > 0 ? `<span style="text-decoration: line-through; color: #999; font-size: 0.8rem; margin-right: 6px;">₹${origPrice}</span>` : ''}
+                  <strong style="color: var(--accent); font-size: 1.05rem;">₹${sellPrice}</strong>
+                </div>
+                <div style="font-size: 0.95rem; font-weight: 700; color: var(--ink);">₹${itemSellTotal}</div>
+              </div>
+              <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px; background: var(--bg); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--rule);">
+                  <button type="button" onclick="updateQty('${escape(item.name)}', -1)" style="border: none; background: none; font-size: 1.2rem; line-height: 1; cursor: pointer; color: var(--accent); padding: 0 4px;">-</button>
+                  <span style="font-weight: 700; min-width: 20px; text-align: center; font-size: 0.9rem;">${qty}</span>
+                  <button type="button" onclick="updateQty('${escape(item.name)}', 1)" style="border: none; background: none; font-size: 1.2rem; line-height: 1; cursor: pointer; color: var(--accent); padding: 0 4px;">+</button>
+                </div>
+                <button type="button" onclick="removeItem('${escape(item.name)}')" style="border: none; background: none; color: #dc3545; font-size: 0.85rem; font-weight: 600; cursor: pointer;"><i class="bi bi-trash3"></i> Remove</button>
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        return `
+          <div style="margin-bottom: 16px; border-bottom: 1px solid var(--rule); padding-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between;">
+              <div style="font-weight: 700; font-family: var(--font-display); font-size: 0.95rem; color: var(--ink); line-height: 1.2;">${item.name}</div>
+              <div style="font-size: 0.95rem; font-weight: 700; color: var(--ink);">₹${itemSellTotal}</div>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--ink-light); margin-top: 4px;">Service</div>
+            
+            <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong style="color: var(--accent); font-size: 0.95rem;">₹${sellPrice}</strong> <span style="font-size: 0.8rem; color: var(--ink-light);">each</span>
+              </div>
+              <div style="display: flex; gap: 16px; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px; background: var(--bg); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--rule);">
+                  <button type="button" onclick="updateQty('${escape(item.name)}', -1)" style="border: none; background: none; font-size: 1.2rem; line-height: 1; cursor: pointer; color: var(--accent); padding: 0 4px;">-</button>
+                  <span style="font-weight: 700; min-width: 20px; text-align: center; font-size: 0.9rem;">${qty}</span>
+                  <button type="button" onclick="updateQty('${escape(item.name)}', 1)" style="border: none; background: none; font-size: 1.2rem; line-height: 1; cursor: pointer; color: var(--accent); padding: 0 4px;">+</button>
+                </div>
+                <button type="button" onclick="removeItem('${escape(item.name)}')" style="border: none; background: none; color: #dc3545; font-size: 0.85rem; font-weight: 600; cursor: pointer;"><i class="bi bi-trash3"></i> Remove</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }).join('');
+    
+    let delivery = hasProduct ? 50 : 0;
+    let grandTotal = (itemsTotal - totalDiscount) + delivery;
+    
+    itemsTotalEl.textContent = `₹${itemsTotal}`;
+    discountEl.textContent = `- ₹${totalDiscount}`;
+    deliveryEl.textContent = `₹${delivery}`;
+    grandTotalEl.textContent = `₹${grandTotal}`;
+  }
+
+  function updateQty(escapedName, change) {
+    const name = unescape(escapedName);
+    const item = checkoutCart.find(i => i.name === name);
+    if (item) {
+      item.quantity += change;
+      if (item.quantity <= 0) {
+        removeItem(escapedName);
+      } else {
+        localStorage.setItem('kumawat_cart', JSON.stringify(checkoutCart));
+        renderCheckoutCart();
+      }
+    }
+  }
+
+  function removeItem(escapedName) {
+    const name = unescape(escapedName);
+    checkoutCart = checkoutCart.filter(i => i.name !== name);
+    localStorage.setItem('kumawat_cart', JSON.stringify(checkoutCart));
+    renderCheckoutCart();
+  }
+
+  function selectPayment(method) {
+    document.querySelectorAll('.payment-method-card').forEach(card => {
+      card.classList.remove('selected');
+      const radio = card.querySelector('input[type="radio"]');
+      if (radio.value === method) {
+        card.classList.add('selected');
+        radio.checked = true;
+      }
+    });
+  }
+
+  // Bind clicks on cards to payment select
+  document.addEventListener('DOMContentLoaded', () => {
+    loadCheckoutCart();
+    
+    document.querySelectorAll('.payment-method-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const radio = card.querySelector('input[type="radio"]');
+        selectPayment(radio.value);
+      });
+    });
+
+    // Set minimum date for preferred Date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('preferredDate').min = today;
+  });
+
+  function populateCartInput() {
+    if (checkoutCart.length === 0) {
+      showToast("Cannot place booking with empty cart");
+      return false;
+    }
+
+    let itemsTotal = 0;
+    let totalDiscount = 0;
+    let hasProduct = false;
+    checkoutCart.forEach(item => {
+      if (item.type === 'product') hasProduct = true;
+      const orig = item.originalPrice ? parseFloat(item.originalPrice) : parseFloat(item.price);
+      const sell = parseFloat(item.price);
+      itemsTotal += orig * item.quantity;
+      totalDiscount += (orig - sell) * item.quantity;
+    });
+    
+    let delivery = hasProduct ? 50 : 0;
+    let grandTotal = (itemsTotal - totalDiscount) + delivery;
+
+    document.getElementById('cartDataInput').value = JSON.stringify(checkoutCart);
+    document.getElementById('totalAmountInput').value = grandTotal;
+    
+    // Clear cart in local storage
+    localStorage.removeItem('kumawat_cart');
+    
+    return true;
+  }
+</script>
+
+<%- include('partials/footer') %>

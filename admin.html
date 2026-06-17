@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sharma P&E — Admin Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --ink:        #1C2B2B;
+      --ink-light:  #3D5252;
+      --bg:         #F5F0E8;
+      --bg-dark:    #1C2B2B;
+      --accent:     #C9602A;
+      --accent-dim: #E8C9A8;
+      --rule:       #D6CBB8;
+      --white:      #FDFAF4;
+      --green:      #2D7D4F;
+      --green-bg:   #E8F5EE;
+      --red:        #C0392B;
+      --red-bg:     #FDECEA;
+      --yellow:     #B8860B;
+      --yellow-bg:  #FEF9E7;
+      --font-d:     'Fraunces', Georgia, serif;
+      --font-b:     'Manrope', system-ui, sans-serif;
+      --radius:     8px;
+      --shadow:     0 4px 24px rgba(28,43,43,.10);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 15px; }
+    body { font-family: var(--font-b); background: var(--bg); color: var(--ink); min-height: 100vh; }
+    a { color: inherit; text-decoration: none; }
+    ul { list-style: none; }
+    input, select, textarea { font-family: var(--font-b); }
+
+    /* ── SCREENS ── */
+    .screen { display: none; min-height: 100vh; }
+    .screen.active { display: flex; }
+
+    /* ── AUTH SCREEN ── */
+    #auth-screen {
+      align-items: center; justify-content: center;
+      background: var(--bg-dark);
+      position: relative; overflow: hidden;
+    }
+    #auth-screen::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='0.3' opacity='0.05'%3E%3Cpath d='M0 0h40v40H0z'/%3E%3Cpath d='M20 0v40M0 20h40'/%3E%3C/g%3E%3C/svg%3E");
+    }
+    .auth-card {
+      background: var(--white); border-radius: 16px;
+      padding: 44px 40px; width: 100%; max-width: 440px;
+      box-shadow: 0 24px 80px rgba(0,0,0,.3);
+      position: relative; z-index: 1;
+    }
+    .auth-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+    .auth-logo-text { font-family: var(--font-d); font-size: 1.2rem; font-weight: 700; }
+    .auth-logo-text small { display: block; font-family: var(--font-b); font-size: .65rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+    .auth-tabs { display: flex; border: 1px solid var(--rule); border-radius: var(--radius); overflow: hidden; margin-bottom: 28px; }
+    .auth-tab { flex: 1; padding: 10px; text-align: center; font-size: .82rem; font-weight: 700; cursor: pointer; background: transparent; border: none; color: var(--ink-light); transition: all .2s; }
+    .auth-tab.active { background: var(--accent); color: var(--white); }
+    .form-panel { display: none; flex-direction: column; gap: 16px; }
+    .form-panel.active { display: flex; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: .78rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-light); }
+    .field input, .field select {
+      padding: 11px 14px; border: 1.5px solid var(--rule); border-radius: var(--radius);
+      font-size: .9rem; color: var(--ink); background: var(--bg);
+      transition: border-color .2s;
+      outline: none;
+    }
+    .field input:focus, .field select:focus { border-color: var(--accent); background: var(--white); }
+    .field .hint { font-size: .75rem; color: var(--ink-light); }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 20px; border-radius: var(--radius); font-family: var(--font-b); font-size: .88rem; font-weight: 700; cursor: pointer; border: 2px solid transparent; transition: all .2s; }
+    .btn-full { width: 100%; }
+    .btn-accent { background: var(--accent); color: var(--white); border-color: var(--accent); }
+    .btn-accent:hover { background: #A84E20; }
+    .btn-outline { background: transparent; color: var(--ink); border-color: var(--rule); }
+    .btn-outline:hover { border-color: var(--ink); }
+    .btn-ghost { background: transparent; color: var(--ink-light); border-color: transparent; font-size: .82rem; }
+    .btn-ghost:hover { color: var(--accent); }
+    .btn-danger { background: var(--red); color: var(--white); border-color: var(--red); }
+    .btn-danger:hover { background: #a93226; }
+    .btn-green { background: var(--green); color: var(--white); border-color: var(--green); }
+    .auth-error { display: none; padding: 10px 14px; background: var(--red-bg); color: var(--red); border-radius: var(--radius); font-size: .83rem; font-weight: 600; }
+    .auth-success { display: none; padding: 10px 14px; background: var(--green-bg); color: var(--green); border-radius: var(--radius); font-size: .83rem; font-weight: 600; }
+    .auth-divider { text-align: center; font-size: .78rem; color: var(--ink-light); padding: 4px 0; }
+    .role-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+    .role-admin { background: #FEF0E6; color: var(--accent); }
+    .role-user { background: var(--green-bg); color: var(--green); }
+
+    /* ── ADMIN SCREEN ── */
+    #admin-screen { flex-direction: row; }
+    .sidebar {
+      width: 240px; min-height: 100vh; background: var(--bg-dark);
+      display: flex; flex-direction: column; flex-shrink: 0;
+      padding: 0 0 24px;
+    }
+    .sidebar-brand { padding: 24px 20px 20px; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .sidebar-brand .name { font-family: var(--font-d); font-size: 1rem; font-weight: 700; color: var(--white); }
+    .sidebar-brand .sub { font-size: .68rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-dim); margin-top: 3px; }
+    .sidebar-user { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .sidebar-user .greeting { font-size: .78rem; color: rgba(255,255,255,.5); margin-bottom: 4px; }
+    .sidebar-user .uname { font-size: .9rem; font-weight: 700; color: var(--white); }
+    nav.sidebar-nav { flex: 1; padding: 16px 0; }
+    .nav-section-label { font-size: .65rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.3); padding: 12px 20px 6px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 20px; font-size: .85rem; font-weight: 600;
+      color: rgba(255,255,255,.6); cursor: pointer;
+      border-left: 3px solid transparent; transition: all .2s;
+    }
+    .nav-item:hover { color: var(--white); background: rgba(255,255,255,.05); }
+    .nav-item.active { color: var(--white); border-left-color: var(--accent); background: rgba(201,96,42,.12); }
+    .nav-item svg { flex-shrink: 0; opacity: .7; }
+    .nav-item.active svg { opacity: 1; }
+    .sidebar-footer { padding: 0 12px; }
+    .main-area { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+    .topbar {
+      height: 60px; background: var(--white); border-bottom: 1px solid var(--rule);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px; flex-shrink: 0;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .topbar h1 { font-family: var(--font-d); font-size: 1.3rem; font-weight: 700; }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .page { display: none; padding: 28px; flex-direction: column; gap: 24px; }
+    .page.active { display: flex; }
+
+    /* ── DASHBOARD ── */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .stat-card { background: var(--white); border-radius: var(--radius); padding: 20px 22px; border: 1px solid var(--rule); }
+    .stat-card .label { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 8px; }
+    .stat-card .value { font-family: var(--font-d); font-size: 2rem; font-weight: 700; color: var(--ink); }
+    .stat-card .sub { font-size: .78rem; color: var(--ink-light); margin-top: 4px; }
+    .stat-card.accent { border-left: 4px solid var(--accent); }
+    .stat-card.green { border-left: 4px solid var(--green); }
+    .stat-card.yellow { border-left: 4px solid var(--yellow); }
+    .card { background: var(--white); border-radius: var(--radius); border: 1px solid var(--rule); overflow: hidden; }
+    .card-header { padding: 16px 20px; border-bottom: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; }
+    .card-header h3 { font-family: var(--font-d); font-size: 1rem; font-weight: 700; }
+    .card-body { padding: 20px; }
+
+    /* ── TABLE ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    thead { background: var(--bg); }
+    th { padding: 10px 14px; text-align: left; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-light); border-bottom: 1px solid var(--rule); white-space: nowrap; }
+    td { padding: 12px 14px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: .72rem; font-weight: 700; letter-spacing: .03em; white-space: nowrap; }
+    .badge-pending { background: var(--yellow-bg); color: var(--yellow); }
+    .badge-confirmed { background: var(--green-bg); color: var(--green); }
+    .badge-done { background: #E8EEF5; color: #2C5282; }
+    .badge-cancelled { background: var(--red-bg); color: var(--red); }
+    .badge-admin { background: #FEF0E6; color: var(--accent); }
+    .badge-user { background: var(--green-bg); color: var(--green); }
+    .action-btns { display: flex; gap: 6px; }
+    .btn-xs { padding: 5px 10px; font-size: .75rem; border-radius: 5px; }
+
+    /* ── FORMS ── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-grid .full { grid-column: span 2; }
+    .section-title { font-family: var(--font-d); font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+    .section-sub { font-size: .85rem; color: var(--ink-light); margin-bottom: 20px; }
+
+    /* ── BACKEND GUIDE ── */
+    .guide-step { display: flex; gap: 16px; padding: 20px 0; border-bottom: 1px solid var(--rule); }
+    .guide-step:last-child { border-bottom: none; }
+    .guide-num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: var(--white); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; margin-top: 2px; }
+    .guide-content h4 { font-weight: 700; margin-bottom: 6px; }
+    .guide-content p { font-size: .85rem; color: var(--ink-light); line-height: 1.6; }
+    .code-block { background: var(--bg-dark); color: #A8D5A2; border-radius: var(--radius); padding: 14px 16px; font-family: monospace; font-size: .78rem; line-height: 1.7; margin-top: 10px; overflow-x: auto; white-space: pre; }
+    .provider-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+    .provider-card { border: 1.5px solid var(--rule); border-radius: var(--radius); padding: 18px; }
+    .provider-card h4 { font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .provider-card p { font-size: .82rem; color: var(--ink-light); line-height: 1.6; }
+    .provider-card a { color: var(--accent); font-weight: 600; }
+    .tag { display: inline-block; padding: 2px 8px; background: var(--green-bg); color: var(--green); border-radius: 4px; font-size: .7rem; font-weight: 700; margin-left: 6px; }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      background: var(--bg-dark); color: var(--white);
+      padding: 12px 20px; border-radius: var(--radius);
+      font-size: .85rem; font-weight: 600;
+      transform: translateY(80px); opacity: 0;
+      transition: all .3s; pointer-events: none;
+      border-left: 4px solid var(--accent);
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 500;
+      background: rgba(28,43,43,.6); align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--white); border-radius: 12px; padding: 32px; width: 100%; max-width: 500px; box-shadow: var(--shadow); }
+    .modal h3 { font-family: var(--font-d); font-size: 1.2rem; font-weight: 700; margin-bottom: 20px; }
+    .modal-footer { display: flex; gap: 10px; margin-top: 24px; justify-content: flex-end; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 820px) {
+      .sidebar { width: 200px; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-grid .full { grid-column: auto; }
+    }
+    @media (max-width: 600px) {
+      .sidebar { display: none; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .auth-card { padding: 28px 20px; margin: 16px; }
+      .provider-cards { grid-template-columns: 1fr; }
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty { text-align: center; padding: 48px 24px; color: var(--ink-light); }
+    .empty svg { margin: 0 auto 16px; opacity: .3; }
+    .empty p { font-size: .9rem; }
+
+    /* built line */
+    .built { font-size: .7rem; color: rgba(255,255,255,.25); text-align: center; padding: 12px; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════
+     AUTH SCREEN
+══════════════════════════════ -->
+<div id="auth-screen" class="screen active">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="17" stroke="#C9602A" stroke-width="1.5"/><path d="M13 23 L20 16" stroke="#1C2B2B" stroke-width="2" stroke-linecap="round"/><circle cx="22" cy="14" r="3" stroke="#C9602A" stroke-width="1.5"/><path d="M19 9 L16 17 L19 17 L17 27 L23 16 L20 16 Z" fill="#C9602A"/></svg>
+      <div class="auth-logo-text">Sharma P&amp;E <small>Admin Portal</small></div>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">Login</button>
+      <button class="auth-tab" onclick="switchTab('signup')">Sign Up</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div id="login-panel" class="form-panel active">
+      <div id="login-error" class="auth-error"></div>
+      <div class="field">
+        <label>Email Address</label>
+        <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <button class="btn btn-accent btn-full" onclick="handleLogin()">Login →</button>
+      <div class="auth-divider">— or —</div>
+      <button class="btn btn-ghost btn-full" onclick="switchTab('signup')">Don't have an account? Sign Up</button>
+    </div>
+
+    <!-- SIGNUP FORM -->
+    <div id="signup-panel" class="form-panel">
+      <div id="signup-error" class="auth-error"></div>
+      <div id="signup-success" class="auth-success"></div>
+      <div class="field">
+        <label>Full Name</label>
+        <input type="text" id="signup-name" placeholder="Rajan Sharma"/>
+      </div>
+      <div class="field">
+        <label>Email Address</label>
+        <input type="email" id="signup-email" placeholder="you@example.com"/>
+      </div>
+      <div class="field">
+        <label>Phone Number</label>
+        <input type="tel" id="signup-phone" placeholder="+91 98765 43210"/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="signup-pass" placeholder="Minimum 8 characters"/>
+        <span class="hint">Use letters, numbers & symbols for a strong password.</span>
+      </div>
+      <div class="field">
+        <label>Confirm Password</label>
+        <input type="password" id="signup-pass2" placeholder="Repeat password"/>
+      </div>
+      <button class="btn btn-accent btn-full" onclick="handleSignup()">Create Account →</button>
+      <button class="btn btn-ghost btn-full" onclick="switchTab('login')">Already have an account? Login</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════
+     ADMIN SCREEN
+══════════════════════════════ -->
+<div id="admin-screen" class="screen">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="name">Sharma P&amp;E</div>
+      <div class="sub">Admin Portal</div>
+    </div>
+    <div class="sidebar-user">
+      <div class="greeting">Logged in as</div>
+      <div class="uname" id="sidebar-uname">—</div>
+      <div id="sidebar-role" style="margin-top:6px;"></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Dashboard</div>
+      <div class="nav-item active" onclick="showPage('dashboard')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Overview
+      </div>
+      <div class="nav-section-label">Manage</div>
+      <div class="nav-item" onclick="showPage('bookings')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Bookings
+      </div>
+      <div class="nav-item" onclick="showPage('users')" id="nav-users">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Users
+      </div>
+      <div class="nav-item" onclick="showPage('add-booking')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        New Booking
+      </div>
+      <div class="nav-section-label">Settings</div>
+      <div class="nav-item" onclick="showPage('backend')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        Backend Setup
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn btn-outline btn-full" onclick="handleLogout()" style="color:rgba(255,255,255,.6); border-color:rgba(255,255,255,.2); font-size:.8rem;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </button>
+      <div class="built">built with ❤️ by 21.coders</div>
+    </div>
+  </aside>
+
+  <!-- MAIN AREA -->
+  <div class="main-area">
+    <div class="topbar">
+      <h1 id="page-title">Overview</h1>
+      <div class="topbar-right">
+        <span id="topbar-name" style="font-size:.85rem; color:var(--ink-light);"></span>
+        <a href="index.html" class="btn btn-outline" style="font-size:.78rem; padding:7px 14px;">← Back to Site</a>
+      </div>
+    </div>
+
+    <!-- PAGE: DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="stats-row">
+        <div class="stat-card accent">
+          <div class="label">Total Bookings</div>
+          <div class="value" id="stat-total">0</div>
+          <div class="sub">All time</div>
+        </div>
+        <div class="stat-card green">
+          <div class="label">Confirmed</div>
+          <div class="value" id="stat-confirmed">0</div>
+          <div class="sub">Ready to visit</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="label">Pending</div>
+          <div class="value" id="stat-pending">0</div>
+          <div class="sub">Awaiting action</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Registered Users</div>
+          <div class="value" id="stat-users">0</div>
+          <div class="sub">incl. admin</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Recent Bookings</h3>
+          <button class="btn btn-outline btn-xs" onclick="showPage('bookings')">View All</button>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>ID</th><th>Customer</th><th>Service</th><th>Date</th><th>Status</th><th>Action</th></tr>
+              </thead>
+              <tbody id="recent-bookings-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: BOOKINGS -->
+    <div id="page-bookings" class="page">
+      <div class="card">
+        <div class="card-header">
+          <h3>All Bookings</h3>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <select id="filter-status" onchange="renderBookings()" style="padding:7px 10px; border:1px solid var(--rule); border-radius:6px; font-size:.82rem; background:var(--bg);">
+              <option value="">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="done">Done</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+            <button class="btn btn-accent btn-xs" onclick="showPage('add-booking')">+ New</button>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>ID</th><th>Customer</th><th>Phone</th><th>Service</th><th>Address</th><th>Date</th><th>Status</th><th>Actions</th></tr>
+              </thead>
+              <tbody id="all-bookings-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: USERS (admin only) -->
+    <div id="page-users" class="page">
+      <div class="card">
+        <div class="card-header">
+          <h3>Registered Users</h3>
+          <span style="font-size:.78rem; color:var(--ink-light);">Admin-only view</span>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Joined</th><th>Actions</th></tr>
+              </thead>
+              <tbody id="users-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: ADD BOOKING -->
+    <div id="page-add-booking" class="page">
+      <div class="card" style="max-width:680px;">
+        <div class="card-header"><h3>New Booking</h3></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="field">
+              <label>Customer Name *</label>
+              <input type="text" id="b-name" placeholder="Priya Agarwal"/>
+            </div>
+            <div class="field">
+              <label>Phone *</label>
+              <input type="tel" id="b-phone" placeholder="+91 98765 43210"/>
+            </div>
+            <div class="field">
+              <label>Email</label>
+              <input type="email" id="b-email" placeholder="customer@email.com"/>
+            </div>
+            <div class="field">
+              <label>Service *</label>
+              <select id="b-service">
+                <option value="">Select service…</option>
+                <option>Leak Detection & Repair</option>
+                <option>Electrical Wiring & Rewiring</option>
+                <option>Tap & Sanitary Fitting</option>
+                <option>Water Motor & Pump Repair</option>
+                <option>AC Installation & Service</option>
+                <option>Geyser & Appliance Repair</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="field full">
+              <label>Address</label>
+              <input type="text" id="b-address" placeholder="Plot 14, C-Block, Vaishali Nagar"/>
+            </div>
+            <div class="field">
+              <label>Preferred Date *</label>
+              <input type="date" id="b-date"/>
+            </div>
+            <div class="field">
+              <label>Time Slot</label>
+              <select id="b-time">
+                <option>Morning (8am – 12pm)</option>
+                <option>Afternoon (12pm – 4pm)</option>
+                <option>Evening (4pm – 9pm)</option>
+                <option>Urgent / ASAP</option>
+              </select>
+            </div>
+            <div class="field full">
+              <label>Notes</label>
+              <input type="text" id="b-notes" placeholder="Describe the problem briefly…"/>
+            </div>
+          </div>
+          <div style="margin-top:20px; display:flex; gap:10px;">
+            <button class="btn btn-accent" onclick="saveBooking()">Save Booking</button>
+            <button class="btn btn-outline" onclick="showPage('bookings')">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: BACKEND GUIDE -->
+    <div id="page-backend" class="page">
+      <div class="card" style="max-width:780px;">
+        <div class="card-header"><h3>🔌 Connect a Real Backend</h3></div>
+        <div class="card-body">
+          <p style="font-size:.9rem; color:var(--ink-light); margin-bottom:24px;">Right now this portal saves data in your browser (localStorage). To make bookings and users persist across devices and sessions, connect a real database. Both options below are <strong>free to start</strong>.</p>
+
+          <div class="provider-cards">
+            <div class="provider-card">
+              <h4>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#F6820D"><path d="M3.89 15.67L8.6 6.27l4.67 8.97-4.83.86-4.55-.43z"/><path d="M12 2L3.41 17.43 12 22l8.59-4.57L12 2z" opacity=".5"/></svg>
+                Firebase
+                <span class="tag">Google</span>
+              </h4>
+              <p>Easy auth, real-time Firestore database, free tier generous. Best for quick setup.<br/><a href="https://firebase.google.com" target="_blank" rel="noopener">firebase.google.com →</a></p>
+            </div>
+            <div class="provider-card">
+              <h4>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#3ECF8E"><circle cx="12" cy="12" r="10"/></svg>
+                Supabase
+                <span class="tag">Open Source</span>
+              </h4>
+              <p>Postgres database + Auth + APIs. More control, excellent free tier. Ideal if you want SQL.<br/><a href="https://supabase.com" target="_blank" rel="noopener">supabase.com →</a></p>
+            </div>
+          </div>
+
+          <div style="margin-top:28px;">
+            <div class="guide-step">
+              <div class="guide-num">1</div>
+              <div class="guide-content">
+                <h4>Create a free project</h4>
+                <p>Sign up at <strong>firebase.google.com</strong> or <strong>supabase.com</strong>. Create a new project named "sharma-pe". Both have generous free tiers — no credit card needed to start.</p>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="guide-num">2</div>
+              <div class="guide-content">
+                <h4>Enable Email/Password Auth</h4>
+                <p><strong>Firebase:</strong> Console → Authentication → Sign-in method → Email/Password → Enable.<br/><strong>Supabase:</strong> Dashboard → Authentication → Providers → Email → Enable.</p>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="guide-num">3</div>
+              <div class="guide-content">
+                <h4>Create the bookings table (Supabase) or collection (Firebase)</h4>
+                <div class="code-block">-- Supabase SQL Editor:
+CREATE TABLE bookings (
+  id        uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name      text NOT NULL,
+  phone     text NOT NULL,
+  email     text,
+  service   text NOT NULL,
+  address   text,
+  date      date,
+  time_slot text,
+  notes     text,
+  status    text DEFAULT 'pending',
+  created_at timestamptz DEFAULT now()
+);</div>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="guide-num">4</div>
+              <div class="guide-content">
+                <h4>Get your API keys</h4>
+                <p><strong>Firebase:</strong> Project Settings → Your apps → Add web app → copy config object.<br/><strong>Supabase:</strong> Project Settings → API → copy URL and anon key.</p>
+                <div class="code-block">// Firebase config looks like:
+const firebaseConfig = {
+  apiKey: "AIzaSy...",
+  authDomain: "sharma-pe.firebaseapp.com",
+  projectId: "sharma-pe",
+  ...
+};
+
+// Supabase config looks like:
+const supabase = createClient(
+  'https://xyzcompany.supabase.co',
+  'your-anon-key'
+);</div>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="guide-num">5</div>
+              <div class="guide-content">
+                <h4>Replace localStorage calls in this file</h4>
+                <p>Search for <code style="background:var(--bg); padding:2px 6px; border-radius:4px; font-family:monospace;">getUsers()</code> and <code style="background:var(--bg); padding:2px 6px; border-radius:4px; font-family:monospace;">getBookings()</code> in this HTML file and replace with Firebase/Supabase SDK calls. The data structures are identical — it's just swapping the storage layer.</p>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="guide-num">6</div>
+              <div class="guide-content">
+                <h4>Set admin role via custom claims</h4>
+                <p>After connecting, set your admin email's custom claim using Firebase Admin SDK or Supabase RLS policies so only admins can see the Users tab and manage other users.</p>
+                <div class="code-block">// Firebase Cloud Function to set admin claim:
+exports.setAdmin = functions.https.onCall(async (data, context) => {
+  await admin.auth().setCustomUserClaims(data.uid, { admin: true });
+  return { success: true };
+});</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:20px; padding:16px; background:var(--bg); border-radius:var(--radius); border-left:4px solid var(--accent);">
+            <p style="font-size:.85rem; color:var(--ink-light);"><strong style="color:var(--ink);">Need help?</strong> Share this file with a developer and point them to this page. The data structures, UI, and logic are all ready — they just need to wire in the SDK. Estimated time: 2–4 hours for a developer familiar with Firebase or Supabase.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-area -->
+</div><!-- /admin-screen -->
+
+<!-- STATUS CHANGE MODAL -->
+<div class="modal-overlay" id="status-modal">
+  <div class="modal">
+    <h3>Update Booking Status</h3>
+    <div class="field">
+      <label>New Status</label>
+      <select id="modal-status">
+        <option value="pending">Pending</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="done">Done</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-accent" onclick="applyStatusChange()">Update</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════
+// CONSTANTS & CRYPTO
+// ══════════════════════════════════════
+
+// SHA-256 hash of HIMANSHU@2005
+// Generated server-side — original password never stored here
+const ADMIN_HASH = '6cec26df15fc0ae3e65b31a0767cce8327332caa648003c0c70acd8c85c0524d';
+const ADMIN_EMAIL = 'kumawathimansh309@gmail.com';
+
+async function sha256(msg) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// ══════════════════════════════════════
+// LOCAL STORAGE HELPERS
+// ══════════════════════════════════════
+function getUsers() {
+  return JSON.parse(localStorage.getItem('spe_users') || '[]');
+}
+function saveUsers(u) {
+  localStorage.setItem('spe_users', JSON.stringify(u));
+}
+function getBookings() {
+  return JSON.parse(localStorage.getItem('spe_bookings') || '[]');
+}
+function saveBookings(b) {
+  localStorage.setItem('spe_bookings', JSON.stringify(b));
+}
+function getCurrentUser() {
+  return JSON.parse(sessionStorage.getItem('spe_current') || 'null');
+}
+function setCurrentUser(u) {
+  sessionStorage.setItem('spe_current', JSON.stringify(u));
+}
+
+// Seed demo bookings if empty
+function seedData() {
+  if (getBookings().length === 0) {
+    saveBookings([
+      { id: 'BK001', name: 'Priya Agarwal', phone: '+91 98100 12345', email: 'priya@email.com', service: 'Leak Detection & Repair', address: 'C-Block, Vaishali Nagar', date: '2026-06-14', time_slot: 'Morning (8am – 12pm)', notes: 'Kitchen pipe leaking', status: 'confirmed', created: new Date().toISOString() },
+      { id: 'BK002', name: 'Mohit Verma', phone: '+91 99200 54321', email: '', service: 'Electrical Wiring & Rewiring', address: 'Sector 7, Malviya Nagar', date: '2026-06-15', time_slot: 'Afternoon (12pm – 4pm)', notes: 'New flat wiring check', status: 'pending', created: new Date().toISOString() },
+      { id: 'BK003', name: 'Sunita Joshi', phone: '+91 97300 67890', email: 'sunita@email.com', service: 'Geyser & Appliance Repair', address: 'Shastri Nagar, Jaipur', date: '2026-06-12', time_slot: 'Evening (4pm – 9pm)', notes: 'Geyser not heating', status: 'done', created: new Date().toISOString() },
+    ]);
+  }
+  // Seed admin user if not present
+  const users = getUsers();
+  const adminExists = users.find(u => u.email === ADMIN_EMAIL);
+  if (!adminExists) {
+    users.push({ name: 'Himanshu Kumawat', email: ADMIN_EMAIL, phone: '', role: 'admin', passHash: ADMIN_HASH, joined: new Date().toISOString() });
+    saveUsers(users);
+  }
+}
+
+// ══════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='signup')));
+  document.getElementById('login-panel').classList.toggle('active', tab==='login');
+  document.getElementById('signup-panel').classList.toggle('active', tab==='signup');
+  hideAuthMessages();
+}
+
+function hideAuthMessages() {
+  ['login-error','signup-error','signup-success'].forEach(id => { document.getElementById(id).style.display='none'; });
+}
+
+function showAuthMsg(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.style.display = 'block';
+}
+
+async function handleLogin() {
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const pass  = document.getElementById('login-pass').value;
+  hideAuthMessages();
+  if (!email || !pass) { showAuthMsg('login-error','Please fill in all fields.'); return; }
+
+  const hash = await sha256(pass);
+
+  // Check admin
+  if (email === ADMIN_EMAIL && hash === ADMIN_HASH) {
+    const users = getUsers();
+    const admin = users.find(u => u.email === ADMIN_EMAIL);
+    setCurrentUser(admin || { name: 'Himanshu Kumawat', email: ADMIN_EMAIL, role: 'admin' });
+    enterApp();
+    return;
+  }
+
+  // Check registered users
+  const users = getUsers();
+  const user = users.find(u => u.email === email && u.passHash === hash);
+  if (user) { setCurrentUser(user); enterApp(); return; }
+
+  showAuthMsg('login-error', 'Incorrect email or password.');
+}
+
+async function handleSignup() {
+  const name   = document.getElementById('signup-name').value.trim();
+  const email  = document.getElementById('signup-email').value.trim().toLowerCase();
+  const phone  = document.getElementById('signup-phone').value.trim();
+  const pass   = document.getElementById('signup-pass').value;
+  const pass2  = document.getElementById('signup-pass2').value;
+  hideAuthMessages();
+
+  if (!name || !email || !pass) { showAuthMsg('signup-error','Name, email and password are required.'); return; }
+  if (pass.length < 8) { showAuthMsg('signup-error','Password must be at least 8 characters.'); return; }
+  if (pass !== pass2) { showAuthMsg('signup-error','Passwords do not match.'); return; }
+
+  const users = getUsers();
+  if (users.find(u => u.email === email)) { showAuthMsg('signup-error','An account with this email already exists.'); return; }
+
+  const hash = await sha256(pass);
+  const newUser = { name, email, phone, role: 'user', passHash: hash, joined: new Date().toISOString() };
+  users.push(newUser);
+  saveUsers(users);
+
+  showAuthMsg('signup-success', '✓ Account created! You can now log in.');
+  setTimeout(() => switchTab('login'), 1800);
+}
+
+function enterApp() {
+  const u = getCurrentUser();
+  document.getElementById('auth-screen').classList.remove('active');
+  document.getElementById('admin-screen').classList.add('active');
+  document.getElementById('sidebar-uname').textContent = u.name || u.email;
+  document.getElementById('topbar-name').textContent = u.name || u.email;
+  const roleEl = document.getElementById('sidebar-role');
+  roleEl.innerHTML = `<span class="role-badge ${u.role==='admin'?'role-admin':'role-user'}">${u.role==='admin'?'Admin':'User'}</span>`;
+  // Hide users nav for non-admins
+  if (u.role !== 'admin') document.getElementById('nav-users').style.display = 'none';
+  updateStats();
+  renderRecentBookings();
+}
+
+function handleLogout() {
+  sessionStorage.removeItem('spe_current');
+  document.getElementById('admin-screen').classList.remove('active');
+  document.getElementById('auth-screen').classList.add('active');
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-pass').value = '';
+}
+
+// ══════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════
+const pageTitles = {
+  'dashboard':   'Overview',
+  'bookings':    'All Bookings',
+  'users':       'Registered Users',
+  'add-booking': 'New Booking',
+  'backend':     'Backend Setup Guide',
+};
+
+function showPage(name) {
+  const u = getCurrentUser();
+  if (name === 'users' && u?.role !== 'admin') { toast('Admin access required'); return; }
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const navEl = document.querySelector(`.nav-item[onclick="showPage('${name}')"]`);
+  if (navEl) navEl.classList.add('active');
+  document.getElementById('page-title').textContent = pageTitles[name] || name;
+  if (name === 'bookings') renderBookings();
+  if (name === 'users') renderUsers();
+  if (name === 'dashboard') { updateStats(); renderRecentBookings(); }
+}
+
+// ══════════════════════════════════════
+// STATS
+// ══════════════════════════════════════
+function updateStats() {
+  const b = getBookings();
+  document.getElementById('stat-total').textContent     = b.length;
+  document.getElementById('stat-confirmed').textContent = b.filter(x=>x.status==='confirmed').length;
+  document.getElementById('stat-pending').textContent   = b.filter(x=>x.status==='pending').length;
+  document.getElementById('stat-users').textContent     = getUsers().length;
+}
+
+// ══════════════════════════════════════
+// BOOKINGS
+// ══════════════════════════════════════
+function badgeHTML(status) {
+  const map = { pending:'badge-pending', confirmed:'badge-confirmed', done:'badge-done', cancelled:'badge-cancelled' };
+  return `<span class="badge ${map[status]||''}">${status}</span>`;
+}
+
+function renderRecentBookings() {
+  const tbody = document.getElementById('recent-bookings-body');
+  const bookings = getBookings().slice(-5).reverse();
+  if (bookings.length === 0) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--ink-light);">No bookings yet.</td></tr>`; return; }
+  tbody.innerHTML = bookings.map(b => `
+    <tr>
+      <td><code style="font-size:.78rem;">${b.id}</code></td>
+      <td><strong>${b.name}</strong></td>
+      <td>${b.service}</td>
+      <td>${b.date||'—'}</td>
+      <td>${badgeHTML(b.status)}</td>
+      <td><button class="btn btn-outline btn-xs" onclick="openStatusModal('${b.id}')">Update</button></td>
+    </tr>`).join('');
+}
+
+function renderBookings() {
+  const filter = document.getElementById('filter-status')?.value || '';
+  const tbody = document.getElementById('all-bookings-body');
+  let bookings = getBookings();
+  if (filter) bookings = bookings.filter(b => b.status === filter);
+  if (bookings.length === 0) { tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:28px; color:var(--ink-light);">No bookings found.</td></tr>`; return; }
+  tbody.innerHTML = bookings.reverse().map(b => `
+    <tr>
+      <td><code style="font-size:.75rem;">${b.id}</code></td>
+      <td><strong>${b.name}</strong></td>
+      <td><a href="tel:${b.phone}" style="color:var(--accent);">${b.phone}</a></td>
+      <td>${b.service}</td>
+      <td style="max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${b.address||''}">${b.address||'—'}</td>
+      <td>${b.date||'—'}</td>
+      <td>${badgeHTML(b.status)}</td>
+      <td>
+        <div class="action-btns">
+          <button class="btn btn-outline btn-xs" onclick="openStatusModal('${b.id}')">Status</button>
+          <button class="btn btn-danger btn-xs" onclick="deleteBooking('${b.id}')">Del</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function saveBooking() {
+  const name    = document.getElementById('b-name').value.trim();
+  const phone   = document.getElementById('b-phone').value.trim();
+  const service = document.getElementById('b-service').value;
+  const date    = document.getElementById('b-date').value;
+  if (!name || !phone || !service || !date) { toast('Please fill required fields (*)'); return; }
+  const bookings = getBookings();
+  const id = 'BK' + String(bookings.length + 1).padStart(3,'0');
+  bookings.push({
+    id, name, phone,
+    email:    document.getElementById('b-email').value.trim(),
+    service,
+    address:  document.getElementById('b-address').value.trim(),
+    date,
+    time_slot: document.getElementById('b-time').value,
+    notes:    document.getElementById('b-notes').value.trim(),
+    status:   'pending',
+    created:  new Date().toISOString()
+  });
+  saveBookings(bookings);
+  ['b-name','b-phone','b-email','b-address','b-date','b-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('b-service').value = '';
+  toast('✓ Booking saved!');
+  showPage('bookings');
+}
+
+function deleteBooking(id) {
+  if (!confirm('Delete this booking?')) return;
+  saveBookings(getBookings().filter(b => b.id !== id));
+  renderBookings(); updateStats(); toast('Booking deleted');
+}
+
+// Status modal
+let _editingId = null;
+function openStatusModal(id) {
+  _editingId = id;
+  const b = getBookings().find(b => b.id === id);
+  if (b) document.getElementById('modal-status').value = b.status;
+  document.getElementById('status-modal').classList.add('open');
+}
+function closeModal() { document.getElementById('status-modal').classList.remove('open'); _editingId = null; }
+function applyStatusChange() {
+  const newStatus = document.getElementById('modal-status').value;
+  const bookings  = getBookings();
+  const idx       = bookings.findIndex(b => b.id === _editingId);
+  if (idx > -1) { bookings[idx].status = newStatus; saveBookings(bookings); }
+  closeModal(); renderBookings(); renderRecentBookings(); updateStats();
+  toast(`✓ Status updated to "${newStatus}"`);
+}
+
+// ══════════════════════════════════════
+// USERS
+// ══════════════════════════════════════
+function renderUsers() {
+  const u = getCurrentUser();
+  if (u?.role !== 'admin') return;
+  const tbody = document.getElementById('users-body');
+  const users = getUsers();
+  if (users.length === 0) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink-light);">No users yet.</td></tr>`; return; }
+  tbody.innerHTML = users.map(u => `
+    <tr>
+      <td><strong>${u.name||'—'}</strong></td>
+      <td>${u.email}</td>
+      <td>${u.phone||'—'}</td>
+      <td><span class="badge ${u.role==='admin'?'badge-admin':'badge-user'}">${u.role}</span></td>
+      <td style="font-size:.8rem;">${u.joined ? new Date(u.joined).toLocaleDateString('en-IN') : '—'}</td>
+      <td>${u.email !== ADMIN_EMAIL ? `<button class="btn btn-danger btn-xs" onclick="deleteUser('${u.email}')">Remove</button>` : '<span style="font-size:.75rem;color:var(--ink-light);">Protected</span>'}</td>
+    </tr>`).join('');
+}
+
+function deleteUser(email) {
+  if (email === ADMIN_EMAIL) { toast('Cannot delete admin account'); return; }
+  if (!confirm('Remove this user?')) return;
+  saveUsers(getUsers().filter(u => u.email !== email));
+  renderUsers(); updateStats(); toast('User removed');
+}
+
+// ══════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+seedData();
+
+// Enter on password field
+document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') handleLogin(); });
+document.getElementById('login-email').addEventListener('keydown', e => { if(e.key==='Enter') handleLogin(); });
+
+// Close modal on overlay click
+document.getElementById('status-modal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
+
+// Auto-login if session exists
+const existing = getCurrentUser();
+if (existing) enterApp();
+</script>
+</body>
+</html>

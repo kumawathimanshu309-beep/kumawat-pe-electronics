@@ -1,0 +1,292 @@
+<%- include('partials/header', { title: 'Kumawat Plumbing & Electricals | Govindgarh', activePage: 'home' }) %>
+
+<!-- ── HERO ────────────────────────────────────────────── -->
+<section class="hero blueprint-bg" id="home">
+  <div class="hero-content">
+    <p class="hero-eyebrow">Station Road · Govindgarh</p>
+    <h1>When plumbing or wiring breaks, <em>Himanshu</em> is there.</h1>
+    <p class="hero-proof">Over 850 homes trusted, prompt and professional services.</p>
+    <div class="hero-ctas">
+      <a href="/services" class="btn btn-accent">
+        <i class="bi bi-cart"></i> Book Service / Order Parts
+      </a>
+      <a href="tel:+919462759965" class="btn btn-outline">
+        <i class="bi bi-telephone"></i> Call +91 94627 59965
+      </a>
+    </div>
+    
+    <div style="margin-top: 30px;">
+      <p style="font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 8px;">Accepted Payments:</p>
+      <%- include('partials/payment_icons') %>
+    </div>
+  </div>
+
+  <div class="hero-image" style="position:relative;">
+    <img src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&auto=format&fit=crop" alt="Plumber working on fixtures" loading="eager" />
+    <div class="stat-badge" aria-hidden="true">
+      <strong>12+</strong>
+      <span>Years<br>Serving<br>Govindgarh</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── TRUST STRIP ─────────────────────────────────────── -->
+<div class="trust-strip blueprint-dark-bg">
+  <div class="container">
+    <div class="trust-inner">
+      <div class="trust-item">
+        <strong>850+</strong>
+        <span>Homes Served</span>
+      </div>
+      <div class="trust-item">
+        <strong>12 yrs</strong>
+        <span>In Business</span>
+      </div>
+      <div class="trust-item">
+        <strong>Same Day</strong>
+        <span>Delivery &amp; Visit</span>
+      </div>
+      <div class="trust-item">
+        <strong>4.9 ★</strong>
+        <span>Google Rating</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SERVICES SECTION PREVIEW ────────────────────────── -->
+<section class="services-section" id="services">
+  <div class="container">
+    <div class="services-header d-flex justify-content-between align-items-end flex-wrap gap-3">
+      <div>
+        <p class="section-label">What We Offer</p>
+        <h2>Reliable installation and home delivery.</h2>
+        <p>Complete home services and parts delivered right to your doorstep.</p>
+      </div>
+      <a href="/services" class="btn btn-outline">View All &amp; Order <i class="bi bi-arrow-right"></i></a>
+    </div>
+
+    <div class="services-grid">
+      <!-- Card 1 -->
+      <div class="service-card">
+        <span class="badge-delivery"><i class="bi bi-truck"></i> Home Delivery</span>
+        <div class="service-icon" style="color: var(--accent); font-size: 2.2rem; display: flex; align-items: center; justify-content: center;">
+          <i class="bi bi-droplet"></i>
+        </div>
+        <h3>Leak Detection &amp; Repair</h3>
+        <p>Wall seepage, pipe bursts, hidden leaks. We locate and resolve it fast without unnecessary demolition.</p>
+        <div class="service-price">₹299 <small>onwards</small></div>
+        <a href="/services" class="btn btn-accent btn-xs" style="margin-top:auto;">Book / Order</a>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="service-card">
+        <span class="badge-delivery"><i class="bi bi-truck"></i> Home Delivery</span>
+        <div class="service-icon" style="color: var(--accent); font-size: 2.2rem; display: flex; align-items: center; justify-content: center;">
+          <i class="bi bi-lightning-charge"></i>
+        </div>
+        <h3>Electrical Wiring &amp; Rewiring</h3>
+        <p>Tripping MCBs, sparking switches, points installation. Done to safety standards.</p>
+        <div class="service-price">₹499 <small>onwards</small></div>
+        <a href="/services" class="btn btn-accent btn-xs" style="margin-top:auto;">Book / Order</a>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="service-card">
+        <span class="badge-delivery"><i class="bi bi-truck"></i> Home Delivery</span>
+        <div class="service-icon" style="color: var(--accent); font-size: 2.2rem; display: flex; align-items: center; justify-content: center;">
+          <i class="bi bi-tools"></i>
+        </div>
+        <h3>Tap &amp; Sanitary Fitting</h3>
+        <p>New taps, showers, washbasins, cisterns. We carry parts with us to ensure same-day fixes.</p>
+        <div class="service-price">₹199 <small>onwards</small></div>
+        <a href="/services" class="btn btn-accent btn-xs" style="margin-top:auto;">Book / Order</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURED PRODUCTS ───────────────────────────────── -->
+<section class="featured-products-section" id="featured-products" style="padding: 80px 0; background-color: var(--white);">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-end flex-wrap gap-3" style="margin-bottom: 40px;">
+      <div>
+        <p class="section-label">Our Catalog</p>
+        <h2 style="font-family: var(--font-display); font-size: 2.2rem; font-weight: 700; color: var(--ink);">Featured Products</h2>
+        <p style="color: var(--ink-light); margin-top: 10px;">High-quality plumbing and electrical supplies delivered right to you.</p>
+      </div>
+    </div>
+
+    <% if (typeof products !== 'undefined' && products.length > 0) { %>
+      <div class="services-grid">
+        <% products.forEach(p => { %>
+          <div class="service-card" style="padding: 24px;">
+            
+            <% if (p.deliveryAvailable !== false) { %>
+              <span class="badge-delivery" style="top: 12px; right: 12px;"><i class="bi bi-truck"></i> Home Delivery</span>
+            <% } %>
+            
+            <!-- Product Image -->
+            <div style="width: 100%; height: 200px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #fff; border-radius: 6px; margin-bottom: 16px; border: 1px solid rgba(0,0,0,0.05);">
+              <% if (p.images && p.images.length > 0) { %>
+                <img src="<%= p.images[0] %>" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="<%= p.name %>" />
+              <% } else { %>
+                <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+              <% } %>
+            </div>
+            
+            <!-- Product Info -->
+            <h3 style="font-size: 1.15rem; margin-bottom: 8px;"><%= p.name %></h3>
+            
+            <p style="font-size: 0.85rem; margin-bottom: 15px; flex-grow: 1;">
+              <%= p.description ? (p.description.length > 60 ? p.description.substring(0, 60) + '...' : p.description) : '' %>
+            </p>
+            
+            <div class="service-price" style="margin-bottom: 16px;">
+              <% if (p.discountPrice) { %>
+                <span style="text-decoration:line-through; color:#999; font-size:0.9rem; margin-right: 8px;">₹<%= p.price %></span>
+                ₹<%= p.discountPrice %>
+              <% } else { %>
+                ₹<%= p.price %>
+              <% } %>
+            </div>
+
+            <div class="d-flex gap-2" style="margin-top: auto;">
+              <a href="/product/<%= p.productId %>" class="btn btn-outline btn-xs" style="flex:1; padding: 8px 10px; font-size: 0.8rem; text-align: center;">View Details</a>
+              <% if (p.stock > 0 && p.status !== 'Out Of Stock') { %>
+                <button onclick="buyNowDirect({
+                  name: '<%= escape(p.name) %>',
+                  price: <%= p.discountPrice || p.price %>,
+                  originalPrice: <%= p.price %>,
+                  image: '<%= p.images && p.images.length ? p.images[0] : '' %>',
+                  sku: '<%= p.sku || 'N/A' %>',
+                  category: '<%= p.category || 'General' %>',
+                  type: 'product'
+                })" class="btn btn-accent btn-xs" style="flex:1; padding: 8px 10px; font-size: 0.8rem; text-align: center;"><i class="bi bi-cart-check"></i> Buy Now</button>
+              <% } else { %>
+                <button class="btn btn-secondary btn-xs disabled" style="flex:1; padding: 8px 10px; font-size: 0.8rem;" disabled>Sold Out</button>
+              <% } %>
+            </div>
+
+          </div>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="text-center py-5" style="background: #f8f9fa; border-radius: 12px; border: 1px dashed var(--rule);">
+        <i class="bi bi-shop text-muted" style="font-size: 3rem; margin-bottom: 15px; display: block;"></i>
+        <h4 style="font-family: var(--font-display); font-weight: 600;">Products Coming Soon</h4>
+        <p style="color: var(--ink-light); margin: 0;">We are currently updating our online catalog. Check back shortly!</p>
+      </div>
+    <% } %>
+  </div>
+</section>
+
+<!-- ── ABOUT ───────────────────────────────────────────── -->
+<section class="about-section" id="about">
+  <div class="container">
+    <div class="about-inner">
+      <div class="about-left">
+        <div class="owner-avatar" aria-label="Owner initials: HK">HK</div>
+        <p class="section-label">About the Owner</p>
+        <h2>Himanshu Kumawat</h2>
+        <p style="color:var(--ink-light); font-size:.88rem; margin-top:6px;">Expert Technician &amp; Business Owner · Govindgarh</p>
+
+        <div class="differentiators">
+          <div class="diff-item"><span class="diff-dot"></span><span>Certified contractor with years of field experience.</span></div>
+          <div class="diff-item"><span class="diff-dot"></span><span>Pre-stocked tools and replacement parts for fast response.</span></div>
+          <div class="diff-item"><span class="diff-dot"></span><span>Transparent estimates provided before any work starts.</span></div>
+          <div class="diff-item"><span class="diff-dot"></span><span>Home Delivery of plumbing/electrical parts with option for installation.</span></div>
+        </div>
+      </div>
+
+      <div class="about-right">
+        <p class="section-label" style="margin-bottom:16px;">Our Commitment</p>
+        <p>At Kumawat Plumbing &amp; Electricals, we believe in honesty and high quality. We treat every home with the utmost respect. We don't overcharge, we don't use subpar materials, and we always show up on time.</p>
+        <p>Located in Govindgarh near Station Road, we cover all surrounding areas. Whether you need a small faucet leak repaired, a complete house rewired, or replacement switches delivered directly to your doorstep, we have you covered.</p>
+        <p>All user accounts get a <strong>Digital Customer Card</strong> with a unique QR code. Register today to earn points, track deliveries, and view your complete service history!</p>
+        
+        <div style="margin-top: 30px; border: 1.5px solid var(--rule); border-radius: 8px; padding: 16px; background-color: var(--bg);">
+          <h4 style="font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; margin-bottom: 6px;">Business Card &amp; Payment Support</h4>
+          <p style="font-size: 0.8rem; color: var(--ink-light); margin-bottom: 12px;">We support major online payments and digital billing records. Scan your Digital Customer Card for quick payments at checkout.</p>
+          <%- include('partials/payment_icons') %>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CONTACT ─────────────────────────────────────────── -->
+<section class="contact-section" id="contact">
+  <div class="container">
+    <p class="section-label">Find Us</p>
+    <h2 style="margin-bottom:48px;">We're right around the corner.</h2>
+
+    <div class="contact-grid">
+      <div>
+        <div class="map-wrap">
+          <!-- Govindgarh location map -->
+          <iframe
+            src="https://maps.google.com/maps?q=Govindgarh+Rajasthan+India&output=embed"
+            allowfullscreen=""
+            loading="lazy"
+            title="Kumawat Plumbing & Electricals location on map"
+          ></iframe>
+        </div>
+      </div>
+
+      <div class="contact-details">
+        <div>
+          <h3 style="margin-bottom:12px;">Working Hours</h3>
+          <div class="hours-grid">
+            <span class="day">Monday – Saturday</span><span class="time">8:00 am – 9:00 pm</span>
+            <span class="day">Sunday</span><span class="time">9:00 am – 6:00 pm</span>
+            <span class="day">Emergency Calls</span><span class="time">24/7 Available</span>
+          </div>
+        </div>
+
+        <div class="contact-methods">
+          <div class="contact-method">
+            <i class="bi bi-telephone" style="color: var(--accent); font-size: 1.15rem;"></i>
+            <a href="tel:+919462759965">+91 94627 59965</a>
+          </div>
+          <div class="contact-method">
+            <i class="bi bi-envelope" style="color: var(--accent); font-size: 1.15rem;"></i>
+            <a href="mailto:kumawathimanshu309@gmail.com">kumawathimanshu309@gmail.com</a>
+          </div>
+          <div class="contact-method">
+            <i class="bi bi-geo-alt" style="color: var(--accent); font-size: 1.15rem;"></i>
+            <span>Adda Ball, Kui Ke Pass, Station Road, Govindgarh</span>
+          </div>
+        </div>
+
+        <a href="https://wa.me/919462759965?text=Hi%20Himanshu%2C%20I%20want%20to%20book%20a%20service%20or%20order%20parts." target="_blank" class="btn btn-whatsapp">
+          <i class="bi bi-whatsapp"></i> Chat on WhatsApp
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  function buyNowDirect(itemObj) {
+    itemObj.name = unescape(itemObj.name);
+    let cart = [];
+    const saved = localStorage.getItem('kumawat_cart');
+    if (saved) {
+      try { cart = JSON.parse(saved); } catch(e) {}
+    }
+    
+    const existing = cart.find(item => item.name === itemObj.name);
+    if (existing) {
+      existing.quantity += 1;
+    } else {
+      itemObj.quantity = 1;
+      cart.push(itemObj);
+    }
+    
+    localStorage.setItem('kumawat_cart', JSON.stringify(cart));
+    window.location.href = '/checkout';
+  }
+</script>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kumawat P&E — Admin Portal</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  
+  <!-- Bootstrap 5 & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body style="overflow: hidden;">
+
+<div class="admin-layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="name">Kumawat P&amp;E</div>
+      <div class="sub">Admin Portal</div>
+    </div>
+    <div class="sidebar-user">
+      <div class="greeting">Logged in as</div>
+      <div class="uname"><%= adminUser.name %></div>
+      <div id="sidebar-role" style="margin-top:6px;">
+        <span class="role-badge role-admin">Admin</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav" style="overflow-y: auto;">
+      <div class="nav-section-label">Dashboard</div>
+      <div class="nav-item active" onclick="switchAdminTab('dashboard')">
+        <i class="bi bi-grid-1x2 me-2"></i> Overview
+      </div>
+      <div class="nav-section-label">Manage</div>
+      <div class="nav-item" onclick="switchAdminTab('orders')">
+        <i class="bi bi-cart-check me-2"></i> Bookings &amp; Orders
+      </div>
+      <div class="nav-item" onclick="switchAdminTab('users')">
+        <i class="bi bi-people me-2"></i> User Directory
+      </div>
+      <div class="nav-section-label">Store Management</div>
+      <div class="nav-item" onclick="switchAdminTab('store')">
+        <i class="bi bi-shop me-2"></i> Products &amp; Inventory
+      </div>
+      <div class="nav-section-label">Security Audit</div>
+      <div class="nav-item" onclick="switchAdminTab('otps')">
+        <i class="bi bi-shield-lock me-2"></i> OTP Monitoring
+      </div>
+      <div class="nav-item" onclick="switchAdminTab('logins')">
+        <i class="bi bi-journal-text me-2"></i> Login Logs
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="/auth/logout" class="btn btn-outline btn-full" style="color:rgba(255,255,255,.6); border-color:rgba(255,255,255,.2); font-size:.8rem;">
+        <i class="bi bi-box-arrow-left"></i> Logout
+      </a>
+      <div class="built">built with ❤️ by 21.coders</div>
+    </div>
+  </aside>
+
+  <!-- MAIN AREA -->
+  <div class="main-area" style="height: 100vh;">
+    <div class="topbar">
+      <h1 id="page-title">Overview</h1>
+      <div class="topbar-right">
+        <span style="font-size:.85rem; color:var(--ink-light);"><i class="bi bi-shield-fill-check text-success"></i> Connected</span>
+        <a href="/" class="btn btn-outline" style="font-size:.78rem; padding:7px 14px;"><i class="bi bi-box-arrow-up-right"></i> View Site</a>
+      </div>
+    </div>
+
+    <!-- PAGE CONTAINER (Scrollable) -->
+    <div style="flex: 1; overflow-y: auto; padding-bottom: 50px;">
+      
+      <!-- PAGE: DASHBOARD -->
+      <div id="page-dashboard" class="page active">
+        <div class="stats-row">
+          <div class="stat-card accent">
+            <div class="label">Total Orders / Bookings</div>
+            <div class="value"><%= stats.totalOrders %></div>
+            <div class="sub">All time bookings</div>
+          </div>
+          <div class="stat-card green">
+            <div class="label">Total Revenue</div>
+            <div class="value">₹<%= stats.totalRevenue %></div>
+            <div class="sub">Calculated labour fees</div>
+          </div>
+          <div class="stat-card yellow">
+            <div class="label">Pending Deliveries</div>
+            <div class="value"><%= stats.pendingDeliveries %></div>
+            <div class="sub">Need confirmation</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Registered Customers</div>
+            <div class="value"><%= stats.totalUsers %></div>
+            <div class="sub">Active profiles</div>
+          </div>
+        </div>
+
+        <div class="row mt-4">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h3>Recent Bookings</h3>
+                <button class="btn btn-outline btn-xs" onclick="switchAdminTab('orders')">View All</button>
+              </div>
+              <div class="card-body" style="padding:0;">
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Customer</th>
+                        <th>Preferred Date</th>
+                        <th>Amount</th>
+                        <th>Delivery Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% if (orders.length === 0) { %>
+                        <tr><td colspan="6" class="text-center py-4">No recent bookings.</td></tr>
+                      <% } else { %>
+                        <% orders.slice(-5).reverse().forEach(o => { %>
+                          <tr>
+                            <td><code><%= o.orderId %></code></td>
+                            <td><strong><%= o.customerName %></strong><div style="font-size:0.75rem;"><%= o.customerPhone %></div></td>
+                            <td><%= new Date(o.preferredDate).toLocaleDateString('en-IN') %><div style="font-size:0.75rem;"><%= o.timeSlot %></div></td>
+                            <td><strong>₹<%= o.totalAmount %></strong></td>
+                            <td>
+                              <span class="badge" id="badge-status-<%= o.orderId %>" style="font-weight:600;"><%= o.deliveryStatus %></span>
+                            </td>
+                            <td>
+                              <select class="btn btn-outline btn-xs" onchange="updateOrderStatus('<%= o.orderId %>', this)" id="select-status-<%= o.orderId %>" data-prev="<%= o.deliveryStatus %>" style="padding: 2px 6px; font-size: 0.75rem;">
+                                <% ['Pending', 'Confirmed', 'Processing', 'Packed', 'Out For Delivery', 'Delivered', 'Cancelled'].forEach(st => { %>
+                                  <option value="<%= st %>" <%= o.deliveryStatus === st ? 'selected' : '' %>><%= st %></option>
+                                <% }) %>
+                              </select>
+                            </td>
+                          </tr>
+                        <% }) %>
+                      <% } %>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: ORDERS -->
+      <div id="page-orders" class="page d-none">
+        <div class="card">
+          <div class="card-header">
+            <h3>Manage Bookings &amp; Deliveries</h3>
+            <div class="filters-right">
+              <select id="filter-order-status" class="filter-select" onchange="filterOrders()">
+                <option value="">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="In Transit">In Transit</option>
+                <option value="Delivered">Delivered</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="filters-bar px-3 py-2 border-bottom">
+              <input type="text" id="search-orders" class="search-input" placeholder="Search by customer name, phone, order ID..." onkeyup="filterOrders()" />
+            </div>
+            
+            <div class="table-wrap">
+              <table id="orders-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Customer Details</th>
+                    <th>Services Requested</th>
+                    <th>Date / Time Slot</th>
+                    <th>Address</th>
+                    <th>Payment Details</th>
+                    <th>Delivery Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% if (orders.length === 0) { %>
+                    <tr><td colspan="8" class="text-center py-4">No orders found.</td></tr>
+                  <% } else { %>
+                    <% orders.reverse().forEach(o => { %>
+                      <tr class="order-row" data-status="<%= o.deliveryStatus %>" data-search="<%= (o.orderId + ' ' + o.customerName + ' ' + o.customerPhone).toLowerCase() %>">
+                        <td><code><%= o.orderId %></code></td>
+                        <td>
+                          <strong><%= o.customerName %></strong>
+                          <div style="font-size:0.75rem; margin-top:2px;">
+                            <a href="tel:<%= o.customerPhone %>" style="color:var(--accent);"><i class="bi bi-phone"></i> <%= o.customerPhone %></a>
+                          </div>
+                        </td>
+                        <td>
+                          <div style="font-size:0.8rem; max-width: 180px;">
+                            <%= o.items.map(item => item.name + ' (x' + item.quantity + ')').join(', ') %>
+                          </div>
+                        </td>
+                        <td>
+                          <%= new Date(o.preferredDate).toLocaleDateString('en-IN') %>
+                          <div style="font-size:0.75rem; color:var(--ink-light);"><%= o.timeSlot %></div>
+                        </td>
+                        <td title="<%= o.deliveryAddress %>" style="max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                          <%= o.deliveryAddress %>
+                        </td>
+                        <td>
+                          <strong>₹<%= o.totalAmount %></strong>
+                          <div style="font-size:0.75rem;"><%= o.paymentMethod %></div>
+                          <span class="badge <%= o.paymentStatus === 'Completed' ? 'badge-confirmed' : 'badge-pending' %>" style="font-size:0.65rem; padding:1px 6px;"><%= o.paymentStatus %></span>
+                        </td>
+                        <td>
+                          <span class="badge" id="badge-status-main-<%= o.orderId %>" style="font-weight:600;"><%= o.deliveryStatus %></span>
+                        </td>
+                        <td>
+                          <div class="action-btns" style="display:flex; gap: 8px; align-items:center;">
+                            <select class="btn btn-outline btn-xs" onchange="updateOrderStatus('<%= o.orderId %>', this)" id="select-status-main-<%= o.orderId %>" data-prev="<%= o.deliveryStatus %>" style="padding: 2px 6px; font-size: 0.75rem;">
+                              <% ['Pending', 'Confirmed', 'Processing', 'Packed', 'Out For Delivery', 'Delivered', 'Cancelled'].forEach(st => { %>
+                                <option value="<%= st %>" <%= o.deliveryStatus === st ? 'selected' : '' %>><%= st %></option>
+                              <% }) %>
+                            </select>
+                            <a href="/admin/order/delete/<%= o.orderId %>" onclick="return confirm('Are you sure you want to delete this order?')" class="btn btn-danger btn-xs"><i class="bi bi-trash"></i></a>
+                          </div>
+                        </td>
+                      </tr>
+                    <% }) %>
+                  <% } %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: USERS -->
+      <div id="page-users" class="page d-none">
+        <div class="card">
+          <div class="card-header">
+            <h3>Registered Customers Directory</h3>
+            <button class="btn btn-green btn-xs" onclick="exportUsersToCSV()"><i class="bi bi-file-earmark-spreadsheet"></i> Export User Data (CSV)</button>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="filters-bar px-3 py-2 border-bottom">
+              <div class="filters-left">
+                <input type="text" id="search-users" class="search-input" placeholder="Search by name, email, mobile, address..." onkeyup="filterUsers()" />
+                <select id="filter-user-role" class="filter-select" onchange="filterUsers()">
+                  <option value="">All Roles</option>
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table id="users-table">
+                <thead>
+                  <tr>
+                    <th>Customer Name</th>
+                    <th>User ID</th>
+                    <th>Email Address</th>
+                    <th>Mobile</th>
+                    <th>Address</th>
+                    <th>Loyalty Card</th>
+                    <th>Dates (Joined / Last Login)</th>
+                    <th>Activity Log</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% users.forEach(u => { %>
+                    <tr class="user-row" data-role="<%= u.role %>" data-search="<%= (u.name + ' ' + u.email + ' ' + u.mobile + ' ' + u.address + ' ' + u.userId).toLowerCase() %>">
+                      <td>
+                        <strong><%= u.name %></strong>
+                        <div><span class="badge <%= u.role === 'admin' ? 'badge-admin' : 'badge-user' %>" style="font-size:0.65rem; padding:1px 5px;"><%= u.role %></span></div>
+                      </td>
+                      <td><code><%= u.userId %></code></td>
+                      <td><%= u.email %></td>
+                      <td><a href="tel:<%= u.mobile %>" style="color:var(--accent);"><%= u.mobile %></a></td>
+                      <td style="max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<%= u.address %>"><%= u.address || '—' %></td>
+                      <td>
+                        <span class="badge bg-secondary text-white font-monospace"><%= u.cardNumber || 'None' %></span>
+                      </td>
+                      <td style="font-size: 0.78rem;">
+                        <div>Reg: <%= new Date(u.createdAt).toLocaleDateString('en-IN') %></div>
+                        <div class="text-muted">Login: <%= u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString('en-IN') : 'Never' %></div>
+                      </td>
+                      <td>
+                        <button class="btn btn-outline btn-xs" onclick="viewUserActivity('<%= u.name %>', '<%= escape(JSON.stringify(u.activities)) %>')">Logs (<%= u.activities.length %>)</button>
+                      </td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: STORE MANAGEMENT -->
+      <div id="page-store" class="page d-none">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3>Products &amp; Inventory</h3>
+            <div>
+              <form action="/admin/store/toggle" method="POST" style="display:inline-block; margin-right: 15px;">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                <% if (storeEnabled) { %>
+                  <button type="submit" class="btn btn-outline btn-xs border-success text-success"><i class="bi bi-toggle-on"></i> Store is ON (Disable)</button>
+                <% } else { %>
+                  <button type="submit" class="btn btn-outline btn-xs border-danger text-danger"><i class="bi bi-toggle-off"></i> Store is OFF (Enable)</button>
+                <% } %>
+              </form>
+              <a href="/admin/products/new" class="btn btn-accent btn-xs"><i class="bi bi-plus-lg"></i> Add New Product</a>
+            </div>
+          </div>
+          
+          <div class="px-4 py-3" style="background: rgba(0,0,0,0.02); border-bottom: 1px solid var(--rule);">
+            <div class="row text-center">
+              <% 
+                const activeCount = products.filter(p => p.status === 'Active' || !p.status).length;
+                const outOfStockCount = products.filter(p => p.status === 'Out Of Stock').length;
+                const hiddenCount = products.filter(p => p.status === 'Hidden').length;
+              %>
+              <div class="col-3">
+                <div style="font-size: 1.5rem; font-weight: 700;"><%= products.length %></div>
+                <div style="font-size: 0.8rem; color: var(--ink-light);">Total Products</div>
+              </div>
+              <div class="col-3 border-start">
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);"><%= activeCount %></div>
+                <div style="font-size: 0.8rem; color: var(--ink-light);">Active</div>
+              </div>
+              <div class="col-3 border-start">
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--danger);"><%= outOfStockCount %></div>
+                <div style="font-size: 0.8rem; color: var(--ink-light);">Out of Stock</div>
+              </div>
+              <div class="col-3 border-start">
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--ink-light);"><%= hiddenCount %></div>
+                <div style="font-size: 0.8rem; color: var(--ink-light);">Hidden/Disabled</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="filters-bar px-3 py-2 border-bottom">
+              <input type="text" id="search-products" class="search-input" placeholder="Search products by name or SKU..." onkeyup="filterProducts()" />
+            </div>
+            <div class="table-wrap">
+              <table id="products-table">
+                <thead>
+                  <tr>
+                    <th>Image</th>
+                    <th>Product Name &amp; SKU</th>
+                    <th>Category</th>
+                    <th>Pricing</th>
+                    <th>Stock</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% if (!products || products.length === 0) { %>
+                    <tr>
+                      <td colspan="7" class="text-center py-5">
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.7;">
+                          <i class="bi bi-box-seam" style="font-size: 3rem; margin-bottom: 10px;"></i>
+                          <h4 style="font-family: var(--font-display); font-weight: 600;">📦 No products added yet</h4>
+                          <p style="font-size: 0.95rem;">Click "Add New Product" to create your first product.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  <% } else { %>
+                    <% products.filter(p => p.status !== 'Deleted').reverse().forEach(p => { %>
+                      <tr class="product-row" data-search="<%= (p.name + ' ' + p.sku).toLowerCase() %>">
+                        <td>
+                          <% if (p.images && p.images.length > 0) { %>
+                            <img src="<%= p.images[0] %>" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;" />
+                          <% } else { %>
+                            <div style="width: 50px; height: 50px; background: #eee; border-radius: 4px; display:flex; align-items:center; justify-content:center;"><i class="bi bi-image text-muted"></i></div>
+                          <% } %>
+                        </td>
+                        <td>
+                          <strong><%= p.name %></strong>
+                          <div style="font-size:0.75rem; color:var(--ink-light);"><%= p.sku || 'N/A' %></div>
+                        </td>
+                        <td><span class="badge bg-light text-dark"><%= p.category %></span></td>
+                        <td>
+                          <% if (p.discountPrice) { %>
+                            <span style="text-decoration:line-through; color:#999; font-size:0.8rem;">₹<%= p.price %></span>
+                            <strong style="color:var(--accent);">₹<%= p.discountPrice %></strong>
+                          <% } else { %>
+                            <strong>₹<%= p.price %></strong>
+                          <% } %>
+                        </td>
+                        <td>
+                          <div style="font-weight: 600; font-size: 1.1rem;"><%= p.stock %></div>
+                          <% if (p.stock <= 5) { %>
+                            <span class="badge bg-warning text-dark mt-1" style="font-size:0.7rem;">LOW STOCK</span>
+                          <% } %>
+                        </td>
+                        <td>
+                          <% if (p.status === 'Hidden') { %>
+                            <span class="badge bg-secondary">Disabled</span>
+                          <% } else if (p.stock <= 0 || p.status === 'Out Of Stock') { %>
+                            <span class="badge bg-danger">Out of Stock</span>
+                          <% } else { %>
+                            <span class="badge bg-success"><%= p.status || 'Active' %></span>
+                          <% } %>
+                        </td>
+                        <td>
+                          <div class="action-btns">
+                            <a href="/admin/products/edit/<%= p.productId %>" class="btn btn-outline btn-xs"><i class="bi bi-pencil"></i> Edit</a>
+                            <a href="/admin/products/delete/<%= p.productId %>" onclick="return confirm('Permanently delete this product?')" class="btn btn-danger btn-xs"><i class="bi bi-trash"></i></a>
+                          </div>
+                        </td>
+                      </tr>
+                    <% }) %>
+                  <% } %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: OTPS -->
+      <div id="page-otps" class="page d-none">
+        <div class="card">
+          <div class="card-header">
+            <h3>Forgot Password OTP Logs &amp; Monitoring</h3>
+            <span class="badge bg-info text-white">Rate-Limit Active: Max 3/req</span>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="filters-bar px-3 py-2 border-bottom">
+              <input type="text" id="search-otps" class="search-input" placeholder="Search by mobile number..." onkeyup="filterOtps()" />
+            </div>
+
+            <div class="table-wrap">
+              <table id="otps-table">
+                <thead>
+                  <tr>
+                    <th>Mobile</th>
+                    <th>OTP Code</th>
+                    <th>Requested At</th>
+                    <th>Expires At</th>
+                    <th>Status</th>
+                    <th>Attempts</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% if (otpLogs.length === 0) { %>
+                    <tr><td colspan="6" class="text-center py-4">No OTP activities recorded.</td></tr>
+                  <% } else { %>
+                    <% otpLogs.reverse().forEach(o => { %>
+                      <tr class="otp-row" data-search="<%= o.mobile %>">
+                        <td><strong><%= o.mobile %></strong></td>
+                        <td><code style="font-size:0.9rem; font-weight:bold; color:var(--accent);"><%= o.otp %></code></td>
+                        <td><%= new Date(o.createdAt).toLocaleString('en-IN') %></td>
+                        <td><%= new Date(o.expiresAt).toLocaleString('en-IN') %></td>
+                        <td>
+                          <%
+                            let badge = 'badge-pending';
+                            if (o.status === 'Verified') badge = 'badge-confirmed';
+                            if (o.status === 'Expired' || new Date() > o.expiresAt) badge = 'badge-cancelled';
+                          %>
+                          <span class="badge <%= badge %>"><%= new Date() > o.expiresAt && o.status === 'Pending' ? 'Expired' : o.status %></span>
+                        </td>
+                        <td><span class="badge bg-dark text-white"><%= o.requestCount %> / 3</span></td>
+                      </tr>
+                    <% }) %>
+                  <% } %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: LOGINS -->
+      <div id="page-logins" class="page d-none">
+        <div class="card">
+          <div class="card-header">
+            <h3>Login Security Audit Trial Logs</h3>
+            <span class="badge bg-dark text-white">Total Records: <%= loginLogs.length %></span>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="filters-bar px-3 py-2 border-bottom">
+              <input type="text" id="search-logins" class="search-input" placeholder="Search by Username/Email/Mobile..." onkeyup="filterLogins()" />
+            </div>
+
+            <div class="table-wrap">
+              <table id="logins-table">
+                <thead>
+                  <tr>
+                    <th>Username / Identity</th>
+                    <th>Timestamp</th>
+                    <th>IP Address</th>
+                    <th>Status</th>
+                    <th>Browser details</th>
+                    <th>Reason (if Failed)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% if (loginLogs.length === 0) { %>
+                    <tr><td colspan="6" class="text-center py-4">No login security records.</td></tr>
+                  <% } else { %>
+                    <% loginLogs.reverse().forEach(l => { %>
+                      <tr class="login-row" data-search="<%= l.emailOrMobile.toLowerCase() %>">
+                        <td><strong><%= l.emailOrMobile %></strong></td>
+                        <td><%= new Date(l.createdAt).toLocaleString('en-IN') %></td>
+                        <td><code><%= l.ipAddress || '127.0.0.1' %></code></td>
+                        <td>
+                          <span class="badge <%= l.status === 'Success' ? 'badge-confirmed' : 'badge-cancelled' %>"><%= l.status %></span>
+                        </td>
+                        <td style="font-size:0.75rem; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="<%= l.userAgent %>">
+                          <%= l.userAgent %>
+                        </td>
+                        <td class="text-danger font-weight-bold"><%= l.failureReason || '—' %></td>
+                      </tr>
+                    <% }) %>
+                  <% } %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /main-area -->
+</div>
+
+<!-- MODAL: USER ACTIVITY DETAILS -->
+<div class="modal-overlay" id="activity-modal">
+  <div class="modal" style="max-width: 600px;">
+    <h3 id="modal-activity-title">User Audit Activity Logs</h3>
+    <div style="max-height: 300px; overflow-y: auto; font-size: 0.82rem; background: var(--bg); padding: 14px; border-radius: var(--radius); font-family: monospace;" id="modal-activity-body">
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline" onclick="closeActivityModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+  // Dynamic Tab Switching
+  const pageTitles = {
+    'dashboard': 'Overview',
+    'orders': 'Bookings & Orders',
+    'users': 'User Directory',
+    'store': 'Products & Inventory',
+    'otps': 'OTP Monitoring',
+    'logins': 'Login Logs'
+  };
+
+  function switchAdminTab(tab) {
+    // Hide all pages
+    document.querySelectorAll('.page').forEach(p => p.classList.add('d-none'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    
+    // Show target page
+    const page = document.getElementById('page-' + tab);
+    if (page) page.classList.remove('d-none');
+    
+    // Highlight sidebar link
+    const navItem = document.querySelector(`.nav-item[onclick*="${tab}"]`);
+    if (navItem) navItem.classList.add('active');
+    
+    // Title update
+    document.getElementById('page-title').textContent = pageTitles[tab] || 'Admin';
+  }
+
+  // Filter Bookings/Orders
+  function filterOrders() {
+    const status = document.getElementById('filter-order-status').value;
+    const query = document.getElementById('search-orders').value.trim().toLowerCase();
+    
+    document.querySelectorAll('.order-row').forEach(row => {
+      const matchStatus = !status || row.dataset.status === status;
+      const matchSearch = !query || row.dataset.search.includes(query);
+      
+      if (matchStatus && matchSearch) {
+        row.classList.remove('d-none');
+      } else {
+        row.classList.add('d-none');
+      }
+    });
+  }
+
+  // Filter Users
+  function filterUsers() {
+    const role = document.getElementById('filter-user-role').value;
+    const query = document.getElementById('search-users').value.trim().toLowerCase();
+    
+    document.querySelectorAll('.user-row').forEach(row => {
+      const matchRole = !role || row.dataset.role === role;
+      const matchSearch = !query || row.dataset.search.includes(query);
+      
+      if (matchRole && matchSearch) {
+        row.classList.remove('d-none');
+      } else {
+        row.classList.add('d-none');
+      }
+    });
+  }
+
+  // Filter OTPs
+  function filterOtps() {
+    const query = document.getElementById('search-otps').value.trim().toLowerCase();
+    document.querySelectorAll('.otp-row').forEach(row => {
+      if (!query || row.dataset.search.includes(query)) {
+        row.classList.remove('d-none');
+      } else {
+        row.classList.add('d-none');
+      }
+    });
+  }
+
+  // Filter Logins
+  function filterLogins() {
+    const query = document.getElementById('search-logins').value.trim().toLowerCase();
+    document.querySelectorAll('.login-row').forEach(row => {
+      if (!query || row.dataset.search.includes(query)) {
+        row.classList.remove('d-none');
+      } else {
+        row.classList.add('d-none');
+      }
+    });
+  }
+
+  // Activity log display
+  function viewUserActivity(name, escapedJson) {
+    const logs = JSON.parse(unescape(escapedJson));
+    document.getElementById('modal-activity-title').textContent = `${name}'s Activity History`;
+    
+    const body = document.getElementById('modal-activity-body');
+    if (logs.length === 0) {
+      body.innerHTML = 'No activities recorded for this user.';
+    } else {
+      body.innerHTML = logs.reverse().map(l => `
+        <div style="border-bottom: 1px solid var(--rule); padding: 6px 0;">
+          <strong>[${new Date(l.timestamp).toLocaleString('en-IN')}]</strong> ${l.action}<br>
+          <span style="font-size:0.75rem; color:#7F8C8D;">IP: ${l.ip || '127.0.0.1'} | Browser: ${l.userAgent || '—'}</span>
+        </div>
+      `).join('');
+    }
+    
+    document.getElementById('activity-modal').classList.add('open');
+  }
+
+  function closeActivityModal() {
+    document.getElementById('activity-modal').classList.remove('open');
+  }
+
+  function filterProducts() {
+    const query = document.getElementById('search-products').value.trim().toLowerCase();
+    document.querySelectorAll('.product-row').forEach(row => {
+      row.classList.toggle('d-none', query && !row.dataset.search.includes(query));
+    });
+  }
+
+  function exportUsersToCSV() {
+    window.open('/admin/export-users', '_blank');
+  }
+
+  let toastTimer;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('success') === 'status') {
+      showToast('✓ Order status updated successfully!');
+      switchAdminTab('orders');
+    }
+    if (urlParams.get('success') === 'deleted') {
+      showToast('✓ Order record deleted successfully!');
+      switchAdminTab('orders');
+    }
+    if (urlParams.get('success') === 'product-added') {
+      showToast('📦 Product added successfully!');
+      switchAdminTab('store');
+    }
+    if (urlParams.get('success') === 'product-updated') {
+      showToast('📦 Product updated successfully!');
+      switchAdminTab('store');
+    }
+    if (urlParams.get('success') === 'product-deleted') {
+      showToast('🗑️ Product deleted successfully!');
+      switchAdminTab('store');
+    }
+    
+    // Initialize badge colors
+    document.querySelectorAll('[id^="badge-status-"]').forEach(badge => {
+      badge.style.backgroundColor = getStatusColor(badge.textContent.trim()).bg;
+      badge.style.color = getStatusColor(badge.textContent.trim()).text;
+    });
+  });
+
+  // document.getElementById('status-modal').addEventListener('click', function(e) { if(e.target===this) closeAdminModal(); });
+  document.getElementById('activity-modal').addEventListener('click', function(e) { if(e.target===this) closeActivityModal(); });
+</script>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+
+  function getStatusColor(status) {
+    switch(status) {
+      case 'Pending': return { bg: '#fff3cd', text: '#856404' }; // Yellow
+      case 'Confirmed': return { bg: '#cce5ff', text: '#004085' }; // Blue
+      case 'Processing': return { bg: '#ffe8cc', text: '#d97706' }; // Orange
+      case 'Packed': return { bg: '#e2d9f3', text: '#5a32a3' }; // Purple
+      case 'Out For Delivery': return { bg: '#cff4fc', text: '#055160' }; // Cyan
+      case 'Delivered': return { bg: '#d1e7dd', text: '#0f5132' }; // Green
+      case 'Cancelled': return { bg: '#f8d7da', text: '#842029' }; // Red
+      default: return { bg: '#e2e8f0', text: '#475569' };
+    }
+  }
+
+  async function updateOrderStatus(orderId, selectElement) {
+    const newStatus = selectElement.value;
+    const prevStatus = selectElement.getAttribute('data-prev');
+    let cancelReason = '';
+
+    if (newStatus === 'Cancelled') {
+      cancelReason = prompt('Please provide a reason for cancellation:');
+      if (cancelReason === null) {
+        selectElement.value = prevStatus;
+        return;
+      }
+    }
+
+    try {
+      const res = await fetch('/admin/api/order/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, newStatus, cancelReason })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('✓ Order status updated to ' + newStatus);
+        selectElement.setAttribute('data-prev', newStatus);
+        // UI updates handled via socket
+      } else {
+        showToast('❌ ' + data.message);
+        selectElement.value = prevStatus;
+      }
+    } catch(err) {
+      showToast('❌ Error connecting to server');
+      selectElement.value = prevStatus;
+    }
+  }
+
+  socket.on('order_status_updated', (data) => {
+    const { orderId, status, paymentStatus } = data;
+    
+    // Update Recent Bookings badge & select
+    const badge1 = document.getElementById('badge-status-' + orderId);
+    const select1 = document.getElementById('select-status-' + orderId);
+    if (badge1) {
+      badge1.textContent = status;
+      badge1.style.backgroundColor = getStatusColor(status).bg;
+      badge1.style.color = getStatusColor(status).text;
+    }
+    if (select1) {
+      select1.value = status;
+      select1.setAttribute('data-prev', status);
+    }
+
+    // Update Main Orders List badge & select
+    const badge2 = document.getElementById('badge-status-main-' + orderId);
+    const select2 = document.getElementById('select-status-main-' + orderId);
+    if (badge2) {
+      badge2.textContent = status;
+      badge2.style.backgroundColor = getStatusColor(status).bg;
+      badge2.style.color = getStatusColor(status).text;
+    }
+    if (select2) {
+      select2.value = status;
+      select2.setAttribute('data-prev', status);
+    }
+    
+    // Automatically update Payment Status badge if it was updated
+    const rows = document.querySelectorAll('.order-row');
+    rows.forEach(row => {
+      const td = row.querySelector('td:nth-child(5)'); // total amount cell with pay badge
+      if (td && row.innerHTML.includes(orderId)) {
+         const payBadge = td.querySelector('.badge');
+         if (payBadge && paymentStatus) {
+            payBadge.textContent = paymentStatus;
+            payBadge.className = 'badge ' + (paymentStatus === 'Completed' ? 'badge-confirmed' : 'badge-pending');
+         }
+      }
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<%- include('partials/header', { title: 'User Login | Kumawat P&E', activePage: 'login' }) %>
+
+<div class="auth-page blueprint-bg">
+  <div class="auth-card">
+    <div class="auth-title">Welcome Back</div>
+    <div class="auth-subtitle">Log in to view your Customer Card and check orders</div>
+    
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="alert alert-danger" role="alert" style="font-size: 0.85rem; padding: 10px 14px;">
+        <i class="bi bi-exclamation-triangle-fill"></i> <%= error %>
+      </div>
+    <% } %>
+    
+    <% if (typeof success !== 'undefined' && success) { %>
+      <div class="alert alert-success" role="alert" style="font-size: 0.85rem; padding: 10px 14px;">
+        <i class="bi bi-check-circle-fill"></i> <%= success %>
+      </div>
+    <% } %>
+
+    <form action="/auth/login" method="POST" id="loginForm">
+      <input type="hidden" name="redirect" value="<%= typeof redirect !== 'undefined' ? redirect : '' %>" />
+      
+      <div class="field">
+        <label for="username">Email Address or Mobile Number</label>
+        <input type="text" id="username" name="username" placeholder="name@email.com or +91XXXXXXXXXX" required autocomplete="username" />
+      </div>
+      
+      <div class="field">
+        <div class="d-flex justify-content-between align-items-center">
+          <label for="password">Password</label>
+          <a href="/forgot-password" style="font-size: 0.75rem; color: var(--accent); font-weight: 600;">Forgot Password?</a>
+        </div>
+        <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password" />
+      </div>
+      
+      <div class="field-row">
+        <input type="checkbox" id="rememberMe" name="rememberMe" value="true" />
+        <label for="rememberMe">Remember Me on this device</label>
+      </div>
+      
+      <button type="submit" class="btn btn-accent btn-full">Login <i class="bi bi-box-arrow-in-right"></i></button>
+      
+      <div class="auth-divider">or</div>
+      
+      <div class="text-center">
+        <span style="font-size: 0.85rem; color: var(--ink-light);">New customer?</span>
+        <a href="/register<%= typeof redirect !== 'undefined' && redirect ? '?redirect=' + redirect : '' %>" style="font-weight: 700; color: var(--accent); font-size: 0.85rem; margin-left: 4px;">Create an Account</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,56 @@
+<%- include('partials/header', { title: 'Contact Us | Kumawat P&E', activePage: 'contact' }) %>
+
+<div class="container" style="padding: 80px 24px;">
+  <p class="section-label">Find Us</p>
+  <h2 style="margin-bottom:48px;">We're right around the corner.</h2>
+
+  <div class="contact-grid">
+    <div>
+      <div class="map-wrap">
+        <iframe
+          src="https://maps.google.com/maps?q=Govindgarh+Rajasthan+India&output=embed"
+          allowfullscreen=""
+          loading="lazy"
+          title="Kumawat Plumbing & Electricals location on map"
+        ></iframe>
+      </div>
+      <div style="margin-top: 20px; border: 1.5px solid var(--rule); border-radius: 8px; padding: 18px; background: var(--white);">
+        <h4 style="font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; margin-bottom: 8px;">Billing &amp; Payment Options</h4>
+        <p style="font-size: 0.8rem; color: var(--ink-light); margin-bottom: 12px;">For delivery and service bookings, we accept all digital payment formats. Scan your Digital Customer Card upon service delivery to complete payments instantly.</p>
+        <%- include('partials/payment_icons') %>
+      </div>
+    </div>
+
+    <div class="contact-details">
+      <div>
+        <h3 style="margin-bottom:12px;">Working Hours</h3>
+        <div class="hours-grid">
+          <span class="day">Monday – Saturday</span><span class="time">8:00 am – 9:00 pm</span>
+          <span class="day">Sunday</span><span class="time">9:00 am – 6:00 pm</span>
+          <span class="day">Emergency Repairs</span><span class="time">24 Hours Available</span>
+        </div>
+      </div>
+
+      <div class="contact-methods">
+        <div class="contact-method">
+          <i class="bi bi-telephone-fill" style="color: var(--accent); font-size: 1.15rem;"></i>
+          <a href="tel:+919462759965">+91 94627 59965</a>
+        </div>
+        <div class="contact-method">
+          <i class="bi bi-envelope-fill" style="color: var(--accent); font-size: 1.15rem;"></i>
+          <a href="mailto:kumawathimanshu309@gmail.com">kumawathimanshu309@gmail.com</a>
+        </div>
+        <div class="contact-method">
+          <i class="bi bi-geo-alt-fill" style="color: var(--accent); font-size: 1.15rem;"></i>
+          <span>Adda Ball, Kui Ke Pass, Station Road, Govindgarh</span>
+        </div>
+      </div>
+
+      <a href="https://wa.me/919462759965?text=Hi%20Himanshu%2C%20I%20saw%20your%20website%20and%20want%20to%20book%20a%20service." target="_blank" class="btn btn-whatsapp" style="align-self: flex-start;">
+        <i class="bi bi-whatsapp"></i> WhatsApp Chat to Book
+      </a>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>
