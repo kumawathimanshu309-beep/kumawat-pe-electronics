@@ -42,7 +42,12 @@
       
       <div class="auth-divider">or</div>
       
-      <div class="text-center">
+      <a href="/auth/google" class="btn btn-outline btn-full mb-3" style="display:flex; justify-content:center; align-items:center; border: 1.5px solid var(--rule);">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" style="width: 20px; margin-right: 10px;" alt="Google">
+        Sign in with Google
+      </a>
+
+      <div class="text-center mt-3">
         <span style="font-size: 0.85rem; color: var(--ink-light);">New customer?</span>
         <a href="/register<%= typeof redirect !== 'undefined' && redirect ? '?redirect=' + redirect : '' %>" style="font-weight: 700; color: var(--accent); font-size: 0.85rem; margin-left: 4px;">Create an Account</a>
       </div>

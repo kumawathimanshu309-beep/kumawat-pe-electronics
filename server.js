@@ -15,6 +15,10 @@ const path = require('path');
 const fs = require('fs');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
+const Razorpay = require('razorpay');
+const crypto = require('crypto');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 const app = express();
 const server = http.createServer(app);
@@ -41,6 +45,7 @@ let isMongoConnected = false;
 // Real Mongoose Models
 const User = require('./models/User');
 const Order = require('./models/Order');
+const DeliverySetting = require('./models/DeliverySetting');
 const Delivery = require('./models/Delivery');
 const Card = require('./models/Card');
 const LoginLog = require('./models/LoginLog');
@@ -197,6 +202,84 @@ app.use(
     }
   })
 );
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Passport serialization
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
+passport.deserializeUser((user, done) => {
+  done(null, user);
+});
+
+// Google OAuth Strategy
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID || 'PLACEHOLDER_CLIENT_ID',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'PLACEHOLDER_CLIENT_SECRET',
+    callbackURL: "/auth/google/callback"
+  },
+  async function(accessToken, refreshToken, profile, cb) {
+    try {
+      const email = profile.emails[0].value;
+      let user = isMongoConnected ? await User.findOne({ email }) : mockDB.users.find(u => u.email === email);
+      
+      if (!user) {
+        // Create new user
+        const newUserId = 'USER' + String(Date.now()).slice(-6);
+        const newUserObj = {
+          userId: newUserId,
+          name: profile.displayName,
+          email: email,
+          mobile: 'N/A_' + Date.now(), // mobile required in schema, setting placeholder
+          profilePhoto: profile.photos && profile.photos[0] ? profile.photos[0].value : '',
+          googleId: profile.id,
+          role: 'user',
+          createdAt: new Date(),
+          lastLoginAt: new Date(),
+          activities: [{ action: 'Registered via Google OAuth', timestamp: new Date() }]
+        };
+
+        if (isMongoConnected) {
+          user = new User(newUserObj);
+          await user.save();
+        } else {
+          user = newUserObj;
+          mockDB.users.push(user);
+        }
+      } else {
+        // Update existing user with googleId if missing
+        if (!user.googleId) {
+          if (isMongoConnected) {
+            user.googleId = profile.id;
+            if(profile.photos && profile.photos[0]) user.profilePhoto = profile.photos[0].value;
+            await user.save();
+          } else {
+            user.googleId = profile.id;
+            if(profile.photos && profile.photos[0]) user.profilePhoto = profile.photos[0].value;
+          }
+        }
+        
+        // Log login
+        if (isMongoConnected) {
+          user.lastLoginAt = new Date();
+          user.activities.push({ action: 'Logged in via Google', timestamp: new Date() });
+          await user.save();
+        }
+      }
+      return cb(null, user);
+    } catch (err) {
+      return cb(err, null);
+    }
+  }
+));
+
+// Razorpay Initialization
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder',
+  key_secret: process.env.RAZORPAY_KEY_SECRET || 'rzp_test_secret_placeholder',
+});
 
 // Custom CSRF double-submit token middleware
 app.use((req, res, next) => {
@@ -359,6 +442,30 @@ app.get('/login', (req, res) => {
   if (req.session.user) return res.redirect('/dashboard');
   res.render('login', { activePage: 'login', redirect: req.query.redirect || '' });
 });
+
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+app.get('/auth/google/callback', 
+  passport.authenticate('google', { failureRedirect: '/login' }),
+  function(req, res) {
+    req.session.user = {
+      userId: req.user.userId,
+      name: req.user.name,
+      email: req.user.email,
+      mobile: req.user.mobile,
+      role: req.user.role,
+      profilePhoto: req.user.profilePhoto
+    };
+    
+    // Send admin notification
+    io.emit('admin_notification', {
+      type: 'new_user',
+      message: `New user joined via Google! ${req.user.name}`
+    });
+    
+    res.redirect('/dashboard');
+  }
+);
 
 app.post('/auth/login', loginLimiter, async (req, res) => {
   const { username, password, rememberMe, redirect } = req.body;
@@ -954,16 +1061,89 @@ app.get('/dashboard/download-card', isAuthenticated, async (req, res) => {
 });
 
 // ── CHECKOUT & ORDER BOOKING SYSTEM ──────────────────────────────
+app.post('/api/create-razorpay-order', isAuthenticated, async (req, res) => {
+  try {
+    const { amount, paymentMethod, cartData } = req.body;
+    const sessionUser = req.session.user;
+
+    console.log(`\n--- PAYMENT DEBUG LOG ---`);
+    console.log(`User Data: ${JSON.stringify({ id: sessionUser.userId, name: sessionUser.name, email: sessionUser.email })}`);
+    console.log(`Payment Method: ${paymentMethod}`);
+    console.log(`Order Amount (Original): ${amount}`);
+    
+    // 1. Verify Amount
+    const numericAmount = parseFloat(amount);
+    if (!numericAmount || isNaN(numericAmount) || numericAmount <= 0) {
+      console.error(`Invalid Amount Error: ${amount}`);
+      return res.status(400).json({ success: false, message: "Amount invalid: Must be a valid positive number." });
+    }
+
+    // 2. Verify Razorpay Configuration
+    const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder';
+    const keySecret = process.env.RAZORPAY_KEY_SECRET || 'rzp_test_secret_placeholder';
+    
+    console.log(`Razorpay Config check - Key ID present: ${!!process.env.RAZORPAY_KEY_ID}, Key Secret present: ${!!process.env.RAZORPAY_KEY_SECRET}`);
+
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET || keyId === 'rzp_test_placeholder') {
+      console.error(`Razorpay keys missing or invalid in environment variables.`);
+      return res.status(500).json({ success: false, message: "Razorpay keys missing: Please configure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in your environment." });
+    }
+
+    // 3. Create Order Options (Convert to paise)
+    const options = {
+      amount: Math.round(numericAmount * 100),
+      currency: "INR",
+      receipt: "rcpt_" + Date.now()
+    };
+    
+    console.log(`Razorpay Options: ${JSON.stringify(options)}`);
+
+    // 4. Call Razorpay API
+    const order = await razorpay.orders.create(options);
+    
+    console.log(`Razorpay Response: ${JSON.stringify({ id: order.id, amount: order.amount, status: order.status })}`);
+    console.log(`--- END PAYMENT DEBUG ---\n`);
+
+    res.json({
+      success: true,
+      order_id: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      key: keyId
+    });
+  } catch (error) {
+    console.error(`\n--- PAYMENT ERROR LOG ---`);
+    console.error(`Error Stack:`, error);
+    console.error(`--- END PAYMENT ERROR ---\n`);
+    
+    let errorMessage = "Failed to generate payment intent";
+    if (error.statusCode === 401 || (error.error && error.error.code === 'BAD_REQUEST_ERROR')) {
+      errorMessage = "Razorpay authentication failed. Verify API keys.";
+    } else if (error.error && error.error.description) {
+      errorMessage = `Razorpay error: ${error.error.description}`;
+    }
+
+    res.status(500).json({ success: false, message: errorMessage });
+  }
+});
+
 app.get('/checkout', isAuthenticated, (req, res) => {
   res.render('checkout', { activePage: 'services' });
 });
 
 app.post('/checkout', isAuthenticated, validateCsrf, async (req, res) => {
-  const { cartData, totalAmount, deliveryAddress, preferredDate, timeSlot, notes, paymentMethod } = req.body;
+  const { cartData, totalAmount, deliveryFee, discountAmount, deliveryAddressJSON, preferredDate, timeSlot, notes, paymentMethod, razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
   const sessionUser = req.session.user;
 
   try {
     const items = JSON.parse(cartData);
+    let parsedAddress = {};
+    try {
+      parsedAddress = JSON.parse(deliveryAddressJSON);
+    } catch (e) {
+      console.warn("Could not parse deliveryAddressJSON, falling back to string", deliveryAddressJSON);
+      parsedAddress = { street: deliveryAddressJSON }; // fallback
+    }
     
     // Generate Order ID & Confirmation Code
     let totalOrderCount = 0;
@@ -975,8 +1155,22 @@ app.post('/checkout', isAuthenticated, validateCsrf, async (req, res) => {
     const orderId = 'ORD' + String(totalOrderCount + 1).padStart(3, '0');
     const confirmationCode = String(Math.floor(1000 + Math.random() * 9000)); // 4-digit code
 
-    // Payment status initially Pending (unless Credit Card, which we mock simulate as completed)
-    const paymentStatus = paymentMethod === 'Credit Card' || paymentMethod === 'Debit Card' ? 'Completed' : 'Pending';
+    let paymentStatus = 'Pending';
+    let transactionId = '';
+
+    // Verify Razorpay Signature if not COD
+    if (paymentMethod !== 'Cash On Delivery' && paymentMethod !== 'Cash') {
+      const secret = process.env.RAZORPAY_KEY_SECRET || 'rzp_test_secret_placeholder';
+      const body = razorpay_order_id + "|" + razorpay_payment_id;
+      const expectedSignature = crypto.createHmac('sha256', secret).update(body.toString()).digest('hex');
+      
+      if (expectedSignature === razorpay_signature) {
+        paymentStatus = 'Completed';
+        transactionId = razorpay_payment_id;
+      } else {
+        return res.status(400).render('500', { error: new Error('Payment Signature Verification Failed! Potential Fraudulent Transaction.') });
+      }
+    }
 
     let order = null;
     let delivery = null;
@@ -991,9 +1185,13 @@ app.post('/checkout', isAuthenticated, validateCsrf, async (req, res) => {
         customerEmail: sessionUser.email,
         items,
         totalAmount: parseFloat(totalAmount),
+        deliveryFee: parseFloat(deliveryFee) || 0,
+        discountAmount: parseFloat(discountAmount) || 0,
         paymentMethod,
         paymentStatus,
-        deliveryAddress,
+        transactionId,
+        paymentDate: paymentStatus === 'Completed' ? new Date() : null,
+        deliveryAddress: parsedAddress,
         deliveryStatus: 'Pending',
         notes,
         preferredDate: new Date(preferredDate),
@@ -1005,7 +1203,7 @@ app.post('/checkout', isAuthenticated, validateCsrf, async (req, res) => {
       delivery = new Delivery({
         orderId,
         deliveryStatus: 'Pending',
-        deliveryAddress,
+        deliveryAddress: parsedAddress.street ? `${parsedAddress.house}, ${parsedAddress.street}, ${parsedAddress.city}, ${parsedAddress.state} - ${parsedAddress.pincode}` : JSON.stringify(parsedAddress),
         statusLogs: [{ status: 'Pending', remarks: 'Order placed, awaiting confirmation.' }],
         assignedTo: 'Deepak Kumawat',
         confirmationCode
@@ -1020,7 +1218,9 @@ app.post('/checkout', isAuthenticated, validateCsrf, async (req, res) => {
         userId: sessionUser.userId,
         method: paymentMethod,
         amount: parseFloat(totalAmount),
-        status: paymentStatus
+        status: paymentStatus,
+        razorpayOrderId: razorpay_order_id || '',
+        razorpayPaymentId: razorpay_payment_id || ''
       });
       await payment.save();
 
@@ -1085,6 +1285,13 @@ app.post('/checkout', isAuthenticated, validateCsrf, async (req, res) => {
     }
 
     console.log(`✓ Order Created: ${orderId} (Confirmation Code: ${confirmationCode})`);
+    
+    // Notify admin
+    io.emit('admin_notification', {
+      type: 'new_order',
+      message: `New Order Received! ID: ${orderId} Amount: ₹${totalAmount}`
+    });
+
     res.redirect(`/order-success/${orderId}`);
 
   } catch (error) {
@@ -1121,6 +1328,203 @@ app.get('/order-success/:orderId', isAuthenticated, async (req, res) => {
 
   } catch (error) {
     res.status(500).render('500', { error });
+  }
+});
+// ── ADDRESS & DELIVERY LOGIC ─────────────────────────────────
+app.post('/api/user/address', isAuthenticated, async (req, res) => {
+  try {
+    if (!isMongoConnected) {
+      // In-Memory Mode
+      const userIdx = inMemoryData.users.findIndex(u => u.userId === req.session.user.userId);
+      if (userIdx === -1) return res.status(404).json({ success: false, message: 'User not found' });
+      if (!inMemoryData.users[userIdx].addresses) inMemoryData.users[userIdx].addresses = [];
+      if (inMemoryData.users[userIdx].addresses.length === 0) req.body.isDefault = true;
+      inMemoryData.users[userIdx].addresses.push(req.body);
+      req.session.user = inMemoryData.users[userIdx];
+      return res.json({ success: true, addresses: inMemoryData.users[userIdx].addresses });
+    }
+    
+    const user = await User.findOne({ userId: req.session.user.userId });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    
+    if (user.addresses.length === 0) req.body.isDefault = true;
+    else if (req.body.isDefault) {
+      user.addresses.forEach(a => a.isDefault = false);
+    }
+    
+    user.addresses.push(req.body);
+    await user.save();
+    req.session.user = user; // Update session
+    res.json({ success: true, addresses: user.addresses });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/calculate-delivery', async (req, res) => {
+  try {
+    const { lat, lng } = req.body;
+    
+    if (!lat || !lng) {
+      return res.json({ success: true, deliveryFee: 0, serviceable: false, distanceKm: 0, message: "Missing coordinates" });
+    }
+
+    let settings = null;
+    if (isMongoConnected) settings = await DeliverySetting.findOne();
+    
+    if (!settings) {
+      settings = {
+        storeLocation: { lat: 27.4243, lng: 74.3722 },
+        maxDeliveryDistance: 50,
+        defaultDeliveryFee: 100,
+        distanceRules: [
+          { minKm: 0, maxKm: 5, deliveryFee: 30 },
+          { minKm: 5, maxKm: 15, deliveryFee: 60 },
+          { minKm: 15, maxKm: 30, deliveryFee: 100 },
+          { minKm: 30, maxKm: 50, deliveryFee: 150 }
+        ]
+      };
+    }
+    
+    const storeLat = settings.storeLocation?.lat || 27.4243;
+    const storeLng = settings.storeLocation?.lng || 74.3722;
+    
+    let distanceKm = 0;
+    
+    try {
+      const osrmRes = await fetch(`http://router.project-osrm.org/route/v1/driving/${storeLng},${storeLat};${lng},${lat}?overview=false`);
+      if (osrmRes.ok) {
+        const osrmData = await osrmRes.json();
+        if (osrmData.routes && osrmData.routes.length > 0) {
+          distanceKm = osrmData.routes[0].distance / 1000;
+        } else {
+          throw new Error("No route found");
+        }
+      } else {
+        throw new Error("OSRM API failed");
+      }
+    } catch (err) {
+      // Fallback to Haversine
+      const R = 6371;
+      const dLat = (lat - storeLat) * (Math.PI/180);
+      const dLon = (lng - storeLng) * (Math.PI/180); 
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(storeLat * (Math.PI/180)) * Math.cos(lat * (Math.PI/180)) * Math.sin(dLon/2) * Math.sin(dLon/2); 
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+      distanceKm = R * c; 
+    }
+    
+    distanceKm = Math.round(distanceKm * 10) / 10;
+    
+    let fee = settings.defaultDeliveryFee;
+    let serviceable = false;
+    
+    if (distanceKm <= settings.maxDeliveryDistance) {
+      serviceable = true;
+      const matchingRule = settings.distanceRules.find(r => distanceKm >= r.minKm && distanceKm <= r.maxKm);
+      if (matchingRule) {
+        fee = matchingRule.deliveryFee;
+      }
+    }
+    
+    res.json({ success: true, deliveryFee: fee, serviceable, distanceKm });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Customer My Orders
+app.get('/my-orders', isAuthenticated, async (req, res) => {
+  const userId = req.session.user.userId;
+  try {
+    let orders = [];
+    if (isMongoConnected) {
+      orders = await Order.find({ userId }).sort({ createdAt: -1 });
+    } else {
+      orders = mockDB.orders.filter(o => o.userId === userId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+    res.render('my-orders', { activePage: 'dashboard', orders });
+  } catch (err) {
+    res.status(500).render('500', { error: err });
+  }
+});
+
+app.get('/order/:id', isAuthenticated, async (req, res) => {
+  const orderId = req.params.id;
+  const userId = req.session.user.userId;
+  try {
+    let order, delivery, payment;
+    if (isMongoConnected) {
+      order = await Order.findOne({ orderId, userId });
+      if(order) {
+        delivery = await Delivery.findOne({ orderId });
+        payment = await PaymentRecord.findOne({ orderId });
+      }
+    } else {
+      order = mockDB.orders.find(o => o.orderId === orderId && o.userId === userId);
+      if(order) {
+        delivery = mockDB.deliveries.find(d => d.orderId === orderId);
+        payment = mockDB.paymentRecords.find(p => p.orderId === orderId);
+      }
+    }
+    
+    if (!order) return res.status(404).render('404');
+    res.render('order-details', { activePage: 'dashboard', order, delivery, payment });
+  } catch (err) {
+    res.status(500).render('500', { error: err });
+  }
+});
+
+// ── ADMIN PANEL & MANAGEMENT ───────────────────────────────────────
+
+app.post('/admin/api/toggle-store', isAdmin, async (req, res) => {
+  try {
+    const { enabled } = req.body;
+    mockDB.storeEnabled = enabled === true;
+    
+    // Optionally save to a database setting object if you had one.
+    // For now, mockDB.storeEnabled serves as an in-memory global config.
+    
+    res.json({ success: true, enabled: mockDB.storeEnabled });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+app.get('/admin/api/delivery-settings', isAdmin, async (req, res) => {
+  try {
+    if (!isMongoConnected) return res.json({ success: true, settings: null });
+    let settings = await DeliverySetting.findOne();
+    if (!settings) {
+      settings = new DeliverySetting();
+      await settings.save();
+    }
+    res.json({ success: true, settings });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/admin/api/delivery-settings', isAdmin, async (req, res) => {
+  try {
+    if (!isMongoConnected) return res.json({ success: false, message: "Mongo DB required" });
+    let settings = await DeliverySetting.findOne();
+    if (!settings) settings = new DeliverySetting();
+    settings.minOrderAmount = req.body.minOrderAmount || 0;
+    settings.defaultDeliveryFee = req.body.defaultDeliveryFee || 100;
+    settings.maxDeliveryDistance = req.body.maxDeliveryDistance || 50;
+    
+    if (req.body.storeLocation) {
+      settings.storeLocation = typeof req.body.storeLocation === 'string' ? JSON.parse(req.body.storeLocation) : req.body.storeLocation;
+    }
+    
+    if (req.body.distanceRules) {
+      settings.distanceRules = typeof req.body.distanceRules === 'string' ? JSON.parse(req.body.distanceRules) : req.body.distanceRules;
+    }
+    
+    await settings.save();
+    res.json({ success: true, settings });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

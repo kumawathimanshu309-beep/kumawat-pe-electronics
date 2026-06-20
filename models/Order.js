@@ -35,8 +35,15 @@ const OrderSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['Cash', 'UPI', 'Google Pay', 'PhonePe', 'Paytm', 'Credit Card', 'Debit Card'],
+    enum: ['Cash On Delivery', 'Google Pay', 'PhonePe', 'Paytm', 'Instant UPI QR Scan', 'Debit Card', 'Net Banking'],
     required: true
+  },
+  transactionId: {
+    type: String,
+    default: ''
+  },
+  paymentDate: {
+    type: Date
   },
   paymentStatus: {
     type: String,
@@ -44,8 +51,30 @@ const OrderSchema = new mongoose.Schema({
     default: 'Pending'
   },
   deliveryAddress: {
-    type: String,
-    required: true
+    fullName: String,
+    mobile: String,
+    altMobile: String,
+    house: String,
+    street: String,
+    landmark: String,
+    city: String,
+    state: String,
+    pincode: String,
+    country: String,
+    lat: Number,
+    lng: Number
+  },
+  distanceKm: {
+    type: Number,
+    default: 0
+  },
+  deliveryFee: {
+    type: Number,
+    default: 0
+  },
+  discountAmount: {
+    type: Number,
+    default: 0
   },
   deliveryStatus: {
     type: String,

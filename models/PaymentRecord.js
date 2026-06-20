@@ -16,8 +16,16 @@ const PaymentRecordSchema = new mongoose.Schema({
   },
   method: {
     type: String,
-    enum: ['Cash', 'UPI', 'Google Pay', 'PhonePe', 'Paytm', 'Credit Card', 'Debit Card'],
+    enum: ['Cash On Delivery', 'Google Pay', 'PhonePe', 'Paytm', 'Instant UPI QR Scan', 'Debit Card', 'Net Banking'],
     required: true
+  },
+  razorpayOrderId: {
+    type: String,
+    default: ''
+  },
+  razorpayPaymentId: {
+    type: String,
+    default: ''
   },
   amount: {
     type: Number,

@@ -49,6 +49,9 @@
       <div class="nav-item" onclick="switchAdminTab('store')">
         <i class="bi bi-shop me-2"></i> Products &amp; Inventory
       </div>
+      <div class="nav-item" onclick="switchAdminTab('delivery')">
+        <i class="bi bi-truck me-2"></i> Delivery &amp; Logistics
+      </div>
       <div class="nav-section-label">Security Audit</div>
       <div class="nav-item" onclick="switchAdminTab('otps')">
         <i class="bi bi-shield-lock me-2"></i> OTP Monitoring
@@ -70,7 +73,11 @@
     <div class="topbar">
       <h1 id="page-title">Overview</h1>
       <div class="topbar-right">
-        <span style="font-size:.85rem; color:var(--ink-light);"><i class="bi bi-shield-fill-check text-success"></i> Connected</span>
+        <span style="font-size:.85rem; color:var(--ink-light); margin-right: 15px;"><i class="bi bi-shield-fill-check text-success"></i> Connected</span>
+        <div class="form-check form-switch" style="display: inline-block; margin-right: 15px;">
+          <input class="form-check-input" type="checkbox" id="storeToggleSwitch" <%= storeEnabled ? 'checked' : '' %> onchange="toggleStore(this)">
+          <label class="form-check-label" for="storeToggleSwitch" style="font-size: 0.85rem; color: var(--ink);">Store Enabled</label>
+        </div>
         <a href="/" class="btn btn-outline" style="font-size:.78rem; padding:7px 14px;"><i class="bi bi-box-arrow-up-right"></i> View Site</a>
       </div>
     </div>
@@ -533,6 +540,68 @@
         </div>
       </div>
 
+      <!-- PAGE: DELIVERY & LOGISTICS -->
+      <div id="page-delivery" class="page d-none">
+        <div class="dashboard-block mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="m-0">Delivery Settings & Routing</h3>
+            <button class="btn btn-accent" onclick="saveDeliverySettings()">Save Settings</button>
+          </div>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="field">
+                <label>Default Delivery Fee (₹)</label>
+                <input type="number" id="defaultDeliveryFee" class="form-control" value="100">
+                <div class="form-text">Fallback fee if distance slab is not matched.</div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="field">
+                <label>Max Delivery Distance (KM)</label>
+                <input type="number" id="maxDeliveryDistance" class="form-control" value="50">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="field">
+                <label>Minimum Order Amount (₹)</label>
+                <input type="number" id="minOrderAmount" class="form-control" value="0">
+              </div>
+            </div>
+          </div>
+
+          <hr class="my-4">
+          
+          <div class="mb-4">
+            <h4 class="m-0 mb-3">Store Location Settings</h4>
+            <div class="row">
+              <div class="col-12 mb-2">
+                <label>Store Address</label>
+                <input type="text" id="storeAddress" class="form-control" value="Kumawat P&E, Adda Ball, Kui Ke Pass, Station Road, Govindgarh, Rajasthan">
+              </div>
+              <div class="col-md-6 mb-2">
+                <label>Store Latitude</label>
+                <input type="number" step="any" id="storeLat" class="form-control" value="27.4243">
+              </div>
+              <div class="col-md-6 mb-2">
+                <label>Store Longitude</label>
+                <input type="number" step="any" id="storeLng" class="form-control" value="74.3722">
+              </div>
+            </div>
+          </div>
+
+          <hr class="my-4">
+          
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="m-0">Distance Rules (Slabs)</h4>
+            <button class="btn btn-outline btn-sm" onclick="addDistanceRule()">+ Add Distance Slab</button>
+          </div>
+          
+          <div id="distanceRulesContainer">
+            <!-- Rules will be rendered here dynamically -->
+          </div>
+        </div>
+      </div>
+
     </div>
   </div><!-- /main-area -->
 </div>
@@ -560,7 +629,8 @@
     'users': 'User Directory',
     'store': 'Products & Inventory',
     'otps': 'OTP Monitoring',
-    'logins': 'Login Logs'
+    'logins': 'Login Logs',
+    'delivery': 'Delivery & Logistics'
   };
 
   function switchAdminTab(tab) {
@@ -578,6 +648,100 @@
     
     // Title update
     document.getElementById('page-title').textContent = pageTitles[tab] || 'Admin';
+    if (tab === 'delivery') loadDeliverySettings();
+  }
+
+  let distanceRules = [];
+
+  async function loadDeliverySettings() {
+    try {
+      const res = await fetch('/admin/api/delivery-settings');
+      const data = await res.json();
+      if (data.success && data.settings) {
+        document.getElementById('defaultDeliveryFee').value = data.settings.defaultDeliveryFee || 100;
+        document.getElementById('minOrderAmount').value = data.settings.minOrderAmount || 0;
+        document.getElementById('maxDeliveryDistance').value = data.settings.maxDeliveryDistance || 50;
+        if(data.settings.storeLocation) {
+          document.getElementById('storeAddress').value = data.settings.storeLocation.address || '';
+          document.getElementById('storeLat').value = data.settings.storeLocation.lat || 27.4243;
+          document.getElementById('storeLng').value = data.settings.storeLocation.lng || 74.3722;
+        }
+        distanceRules = data.settings.distanceRules || [];
+        renderDistanceRules();
+      }
+    } catch(e) { console.error(e); }
+  }
+
+  function renderDistanceRules() {
+    const container = document.getElementById('distanceRulesContainer');
+    container.innerHTML = '';
+    distanceRules.forEach((rule, idx) => {
+      container.innerHTML += `
+        <div class="card p-3 mb-3" style="border: 1px solid var(--rule);">
+          <div class="row align-items-end">
+            <div class="col-md-3">
+              <label>Min Distance (KM)</label>
+              <input type="number" class="form-control" value="${rule.minKm}" onchange="updateDistanceRule(${idx}, 'minKm', this.value)">
+            </div>
+            <div class="col-md-3">
+              <label>Max Distance (KM)</label>
+              <input type="number" class="form-control" value="${rule.maxKm}" onchange="updateDistanceRule(${idx}, 'maxKm', this.value)">
+            </div>
+            <div class="col-md-4">
+              <label>Delivery Fee (₹)</label>
+              <input type="number" class="form-control" value="${rule.deliveryFee}" onchange="updateDistanceRule(${idx}, 'deliveryFee', this.value)">
+            </div>
+            <div class="col-md-2 text-end">
+              <button class="btn btn-danger btn-sm w-100" onclick="removeDistanceRule(${idx})">Delete</button>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  function addDistanceRule() {
+    distanceRules.push({ minKm: 0, maxKm: 5, deliveryFee: 30 });
+    renderDistanceRules();
+  }
+
+  function updateDistanceRule(idx, field, value) {
+    distanceRules[idx][field] = parseFloat(value) || 0;
+  }
+
+  function removeDistanceRule(idx) {
+    distanceRules.splice(idx, 1);
+    renderDistanceRules();
+  }
+
+  async function saveDeliverySettings() {
+    const payload = {
+      defaultDeliveryFee: document.getElementById('defaultDeliveryFee').value,
+      minOrderAmount: document.getElementById('minOrderAmount').value,
+      maxDeliveryDistance: document.getElementById('maxDeliveryDistance').value,
+      storeLocation: JSON.stringify({
+        address: document.getElementById('storeAddress').value,
+        lat: parseFloat(document.getElementById('storeLat').value),
+        lng: parseFloat(document.getElementById('storeLng').value)
+      }),
+      distanceRules: JSON.stringify(distanceRules)
+    };
+    
+    try {
+      const res = await fetch('/admin/api/delivery-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if(data.success) {
+        showToast('Delivery settings saved successfully!');
+      } else {
+        showToast('Failed to save settings: ' + data.message);
+      }
+    } catch (e) {
+      showToast('Error saving settings');
+    }
   }
 
   // Filter Bookings/Orders
@@ -808,7 +972,44 @@
          }
       }
     });
+    });
   });
+
+  socket.on('admin_notification', (data) => {
+    // Play a gentle notification sound
+    try {
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      audio.volume = 0.5;
+      audio.play();
+    } catch(e) {}
+    
+    showToast(`🔔 ${data.message}`);
+    // Optionally auto-refresh data
+    if(data.type === 'new_order') {
+      setTimeout(() => window.location.reload(), 2000);
+    }
+  });
+
+  async function toggleStore(checkbox) {
+    const isEnabled = checkbox.checked;
+    try {
+      const res = await fetch('/admin/api/toggle-store', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: isEnabled })
+      });
+      const data = await res.json();
+      if(data.success) {
+        showToast('Store is now ' + (isEnabled ? 'ENABLED' : 'DISABLED'));
+      } else {
+        checkbox.checked = !isEnabled;
+        showToast('❌ Failed to toggle store');
+      }
+    } catch(err) {
+      checkbox.checked = !isEnabled;
+      showToast('❌ Error connecting to server');
+    }
+  }
 </script>
 </body>
 </html>

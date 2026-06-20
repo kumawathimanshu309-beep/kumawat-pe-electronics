@@ -42,7 +42,7 @@
       </div>
 
       <!-- PRODUCT GRID -->
-      <div class="col-lg-6 mb-4">
+      <div class="col-lg-9 mb-4">
         <div class="row g-4" id="store-products-grid">
           <% products.forEach(p => { %>
             <div class="col-md-6 store-item-card" data-category="<%= p.category %>" data-name="<%= p.name.toLowerCase() %>">
@@ -79,7 +79,10 @@
                     </div>
                     
                     <% if (p.stock > 0 && p.status !== 'Out Of Stock') { %>
-                      <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); addToCart('<%= escape(p.name) %>', <%= p.discountPrice || p.price %>)">Add <i class="bi bi-cart-plus"></i></button>
+                      <div class="d-flex gap-2 w-100">
+                        <button class="btn btn-outline btn-sm w-50" onclick="event.stopPropagation(); addToCart('<%= escape(p.name) %>', <%= p.discountPrice || p.price %>, <%= p.price %>, '<%= p.images && p.images.length ? p.images[0] : '' %>', '<%= p.sku || '' %>', '<%= p.category || '' %>')">Add <i class="bi bi-cart-plus"></i></button>
+                        <button class="btn btn-accent btn-sm w-50" onclick="event.stopPropagation(); buyNowDirect({name: '<%= escape(p.name) %>', price: <%= p.discountPrice || p.price %>, originalPrice: <%= p.price %>, image: '<%= p.images && p.images.length ? p.images[0] : '' %>', sku: '<%= p.sku || '' %>', category: '<%= p.category || '' %>', type: 'product'})"><i class="bi bi-cart-check"></i> Buy Now</button>
+                      </div>
                     <% } else { %>
                       <button class="btn btn-outline btn-sm disabled" disabled>Sold Out</button>
                     <% } %>
@@ -90,30 +93,6 @@
           <% }) %>
         </div>
       </div>
-
-      <!-- CART SIDEBAR -->
-      <div class="col-lg-3">
-        <div class="card p-4" style="position: sticky; top: 100px; background: var(--white); border: 2px solid var(--rule); border-radius: 16px; box-shadow: 0 10px 30px rgba(28,43,43,0.05);">
-          <h3 style="font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
-            Your Cart
-            <span class="badge bg-danger text-white" id="cart-count">0</span>
-          </h3>
-          
-          <div id="cart-empty-msg" class="text-center py-4 text-muted">
-            <i class="bi bi-cart3" style="font-size: 2.5rem; display: block; margin-bottom: 10px; color: var(--rule);"></i>
-            <p>Your cart is empty.</p>
-          </div>
-
-          <div id="cart-items-wrapper" style="display: none;">
-            <div id="cart-items-list" style="max-height: 250px; overflow-y: auto;"></div>
-            
-            <div class="cart-total-row" style="display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--rule); font-weight: bold; font-size: 1.1rem;">
-              <span>Total:</span>
-              <span id="cart-total-price">₹0</span>
-            </div>
-
-            <button class="btn btn-accent btn-full mt-4" onclick="proceedToCheckout()">Proceed to Checkout <i class="bi bi-arrow-right"></i></button>
-          </div>
         </div>
       </div>
     </div>
@@ -125,118 +104,6 @@
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
-  let cart = [];
-
-  function loadCart() {
-    const saved = localStorage.getItem('kumawat_cart');
-    if (saved) {
-      try {
-        cart = JSON.parse(saved);
-        updateCartUI();
-      } catch (e) {
-        cart = [];
-      }
-    }
-  }
-
-  function saveCart() {
-    localStorage.setItem('kumawat_cart', JSON.stringify(cart));
-    updateCartUI();
-  }
-
-  function addToCart(escapedName, price) {
-    const name = unescape(escapedName);
-    const existing = cart.find(item => item.name === name);
-    if (existing) {
-      existing.quantity += 1;
-    } else {
-      cart.push({ name, price, quantity: 1 });
-    }
-    saveCart();
-    showToast(`Added ${name} to cart`);
-  }
-
-  function removeFromCart(name) {
-    cart = cart.filter(item => item.name !== name);
-    saveCart();
-  }
-
-  function adjustQty(name, amount) {
-    const item = cart.find(item => item.name === name);
-    if (item) {
-      item.quantity += amount;
-      if (item.quantity <= 0) {
-        removeFromCart(name);
-      } else {
-        saveCart();
-      }
-    }
-  }
-
-  function updateCartUI() {
-    const list = document.getElementById('cart-items-list');
-    const emptyMsg = document.getElementById('cart-empty-msg');
-    const wrapper = document.getElementById('cart-items-wrapper');
-    const countBadge = document.getElementById('cart-count');
-    const totalEl = document.getElementById('cart-total-price');
-
-    if (!list) return;
-
-    let count = 0;
-    let total = 0;
-
-    if (cart.length === 0) {
-      emptyMsg.style.display = 'block';
-      wrapper.style.display = 'none';
-      countBadge.textContent = '0';
-      return;
-    }
-
-    emptyMsg.style.display = 'none';
-    wrapper.style.display = 'block';
-
-    list.innerHTML = cart.map(item => {
-      count += item.quantity;
-      total += item.price * item.quantity;
-      return `
-        <div class="cart-item" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:10px;">
-          <div class="info" style="flex:1;">
-            <div class="title" style="font-size:0.85rem; font-weight:600;">${item.name}</div>
-            <div class="desc" style="font-size:0.75rem; color:#888;">₹${item.price} each</div>
-          </div>
-          <div class="d-flex align-items-center gap-1">
-            <div class="btn-group btn-group-sm">
-              <button class="btn btn-outline p-1 py-0" style="font-size: 0.75rem;" onclick="adjustQty('${item.name}', -1)">-</button>
-              <span class="px-2 font-weight-bold" style="font-size: 0.85rem;">${item.quantity}</span>
-              <button class="btn btn-outline p-1 py-0" style="font-size: 0.75rem;" onclick="adjustQty('${item.name}', 1)">+</button>
-            </div>
-            <button class="btn btn-link text-danger p-0 ms-2" onclick="removeFromCart('${item.name}')"><i class="bi bi-trash"></i></button>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    countBadge.textContent = count;
-    totalEl.textContent = `₹${total}`;
-  }
-
-  function proceedToCheckout() {
-    if (cart.length === 0) return;
-    
-    fetch('/auth/check-status')
-      .then(res => res.json())
-      .then(data => {
-        if (data.loggedIn) {
-          window.location.href = '/checkout';
-        } else {
-          showToast('Please login first to proceed');
-          setTimeout(() => {
-            window.location.href = '/login?redirect=/checkout';
-          }, 1500);
-        }
-      });
-  }
-
   function filterStore() {
     const query = document.getElementById('store-search').value.toLowerCase();
     
@@ -258,8 +125,7 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded', loadCart);
-
+  // Removed loadCart logic, handled by shared cart-drawer.ejs
   // Real-time socket io
   const socket = io();
   socket.on('product_updated', (data) => {

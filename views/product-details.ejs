@@ -78,37 +78,12 @@
           </div>
         </div>
 
-        <div style="background-color: var(--bg); border: 1.5px solid var(--rule); border-radius: 8px; padding: 18px; margin-top: 24px;">
-          <h4 style="font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; margin-bottom: 6px;">Need Help?</h4>
-          <p style="font-size: 0.8rem; color: var(--ink-light); line-height: 1.5; margin-bottom: 12px;">Contact support if you have questions about this product or need help with your order.</p>
-          <a href="https://wa.me/919462759965" target="_blank" class="btn btn-whatsapp btn-sm btn-full"><i class="bi bi-whatsapp"></i> Contact Support on WhatsApp</a>
-        </div>
 
       </div>
     </div>
   </div>
 </section>
 
-<script>
-  function buyNowDirect(itemObj) {
-    itemObj.name = unescape(itemObj.name);
-    let cart = [];
-    const saved = localStorage.getItem('kumawat_cart');
-    if (saved) {
-      try { cart = JSON.parse(saved); } catch(e) {}
-    }
-    
-    const existing = cart.find(item => item.name === itemObj.name);
-    if (existing) {
-      existing.quantity += 1;
-    } else {
-      itemObj.quantity = 1;
-      cart.push(itemObj);
-    }
-    
-    localStorage.setItem('kumawat_cart', JSON.stringify(cart));
-    window.location.href = '/checkout';
-  }
-</script>
+
 
 <%- include('partials/footer') %>

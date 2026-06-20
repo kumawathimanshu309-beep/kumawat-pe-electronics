@@ -13,10 +13,14 @@
       <div class="dashboard-block">
         <h3 style="margin-bottom: 20px;">Customer &amp; Scheduling Details</h3>
         
-        <form action="/checkout" method="POST" id="checkoutForm" onsubmit="return populateCartInput()">
+        <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+        <form action="/checkout" method="POST" id="checkoutForm">
           <!-- Hidden inputs for cart data -->
           <input type="hidden" name="cartData" id="cartDataInput" value="" />
           <input type="hidden" name="totalAmount" id="totalAmountInput" value="0" />
+          <input type="hidden" name="deliveryAddressJSON" id="deliveryAddressJSON" value="">
+          <input type="hidden" name="deliveryFee" id="deliveryFeeInput" value="0">
+          <input type="hidden" name="discountAmount" id="discountAmountInput" value="0">
 
           <div class="field">
             <label for="customerName">Full Name</label>
@@ -38,9 +42,56 @@
             </div>
           </div>
 
-          <div class="field">
-            <label for="deliveryAddress">Delivery / Service Address *</label>
-            <textarea id="deliveryAddress" name="deliveryAddress" rows="2" required><%= user.address %></textarea>
+          <div class="field" id="address-selection-container">
+            <label>Delivery / Service Address *</label>
+            <div id="saved-addresses-list" class="mb-3">
+              <% if (user.addresses && user.addresses.length > 0) { %>
+                <% user.addresses.forEach((addr, idx) => { %>
+                  <div class="card p-3 mb-2 address-card" onclick="selectAddress('<%= encodeURIComponent(JSON.stringify(addr)) %>', this)" style="cursor: pointer; border: 1px solid var(--rule);">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div>
+                        <strong><%= addr.fullName %></strong> <span class="badge bg-light text-dark"><%= addr.mobile %></span>
+                        <div class="text-muted mt-1" style="font-size:0.85rem;">
+                          <%= addr.house %>, <%= addr.street %>, <%= addr.landmark ? addr.landmark + ', ' : '' %><%= addr.city %>, <%= addr.state %> - <%= addr.pincode %>
+                        </div>
+                      </div>
+                      <input type="radio" name="selectedAddressRadio" value="<%= idx %>" <%= addr.isDefault ? 'checked' : '' %>>
+                    </div>
+                  </div>
+                <% }) %>
+              <% } else { %>
+                <div class="text-muted" style="font-size: 0.9rem;">No saved addresses found. Please add a new address.</div>
+              <% } %>
+            </div>
+            <button type="button" class="btn btn-outline btn-sm w-100" onclick="showNewAddressForm()">+ Add New Address</button>
+          </div>
+
+          <!-- New Address Form (Hidden by default) -->
+          <div id="new-address-form" style="display: none; background: #fafafa; padding: 20px; border-radius: 8px; border: 1px solid var(--rule); margin-bottom: 20px;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="mb-0">Add New Address</h5>
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="getCurrentLocation()">
+                <i class="bi bi-geo-alt-fill"></i> Use Current Location
+              </button>
+            </div>
+            
+            <input type="hidden" id="newAddrLat" value="">
+            <input type="hidden" id="newAddrLng" value="">
+
+            <div class="row">
+              <div class="col-md-6 mb-2"><input type="text" id="newAddrName" class="form-control" placeholder="Full Name"></div>
+              <div class="col-md-6 mb-2"><input type="tel" id="newAddrMobile" class="form-control" placeholder="Mobile Number"></div>
+              <div class="col-12 mb-2"><input type="text" id="newAddrHouse" class="form-control" placeholder="House / Flat No."></div>
+              <div class="col-12 mb-2"><input type="text" id="newAddrStreet" class="form-control" placeholder="Street / Area"></div>
+              <div class="col-md-6 mb-2"><input type="text" id="newAddrLandmark" class="form-control" placeholder="Landmark (Optional)"></div>
+              <div class="col-md-6 mb-2"><input type="text" id="newAddrPincode" class="form-control" placeholder="Pincode"></div>
+              <div class="col-md-6 mb-2"><input type="text" id="newAddrCity" class="form-control" placeholder="City"></div>
+              <div class="col-md-6 mb-2"><input type="text" id="newAddrState" class="form-control" placeholder="State"></div>
+            </div>
+            <div class="d-flex gap-2 mt-3">
+              <button type="button" class="btn btn-accent btn-sm w-50" onclick="saveNewAddress()">Save Address</button>
+              <button type="button" class="btn btn-outline btn-sm w-50" onclick="hideNewAddressForm()">Cancel</button>
+            </div>
           </div>
 
           <div class="row">
@@ -114,11 +165,19 @@
                 </label>
               </div>
 
-              <div class="payment-method-card" onclick="selectPayment('Credit Card')">
-                <input type="radio" name="paymentMethod" value="Credit Card" id="pay-credit" />
-                <label for="pay-credit">
-                  <strong>Credit Card</strong>
+              <div class="payment-method-card" onclick="selectPayment('Debit Card')">
+                <input type="radio" name="paymentMethod" value="Debit Card" id="pay-debit" />
+                <label for="pay-debit">
+                  <strong>Debit Card</strong>
                   <div style="font-size: 0.75rem; color: var(--ink-light);">Visa, MasterCard, RuPay</div>
+                </label>
+              </div>
+
+              <div class="payment-method-card" onclick="selectPayment('Net Banking')">
+                <input type="radio" name="paymentMethod" value="Net Banking" id="pay-netbanking" />
+                <label for="pay-netbanking">
+                  <strong>Net Banking</strong>
+                  <div style="font-size: 0.75rem; color: var(--ink-light);">All Indian Banks Supported</div>
                 </label>
               </div>
             </div>
@@ -162,16 +221,12 @@
           <strong id="summary-discount">- ₹0</strong>
         </div>
         <div style="font-size: 0.95rem; color: var(--ink); margin-bottom: 8px; display: flex; justify-content: space-between;">
-          <span>Delivery Charge:</span>
-          <strong id="summary-delivery">₹0</strong>
-        </div>
-        <div style="font-size: 0.95rem; color: var(--ink); margin-bottom: 8px; display: flex; justify-content: space-between;">
-          <span>Platform Charge:</span>
-          <strong>₹0</strong>
+          <span>Distance:</span>
+          <strong id="summary-distance">-- KM</strong>
         </div>
         <div style="font-size: 0.95rem; color: var(--ink); margin-bottom: 16px; display: flex; justify-content: space-between;">
-          <span>GST:</span>
-          <strong>₹0</strong>
+          <span>Delivery Charge:</span>
+          <strong id="summary-delivery">Select Address</strong>
         </div>
 
         <hr style="border-top: 1px dashed var(--rule); margin: 16px 0;" />
@@ -188,6 +243,9 @@
 
 <script>
   let checkoutCart = [];
+  let currentDeliveryFee = null;
+  let currentDistance = null;
+  let currentAddressJSON = '';
 
   function loadCheckoutCart() {
     const saved = localStorage.getItem('kumawat_cart');
@@ -209,6 +267,116 @@
     
     renderCheckoutCart();
   }
+
+  // Razorpay Checkout Integration
+  document.getElementById('checkoutForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const cartInput = document.getElementById('cartDataInput');
+    const totalInput = document.getElementById('totalAmountInput');
+    
+    cartInput.value = JSON.stringify(checkoutCart);
+    const grandTotalStr = document.getElementById('checkout-total-price').textContent.replace('₹', '').trim();
+    totalInput.value = grandTotalStr;
+
+    if (!cartInput.value || checkoutCart.length === 0) {
+      showToast("Cart is empty!");
+      return false;
+    }
+
+    if (!document.getElementById('deliveryAddressJSON').value) {
+      showToast("Please select a delivery address.");
+      return false;
+    }
+    
+    if (currentDeliveryFee === null) {
+      showToast("Delivery is not available at the selected address.");
+      return false;
+    }
+
+    const formData = new FormData(this);
+    const paymentMethod = formData.get('paymentMethod');
+    const totalAmount = parseFloat(grandTotalStr);
+
+    if (paymentMethod === 'Cash On Delivery' || paymentMethod === 'Cash') {
+      // Direct Submit for COD
+      this.submit();
+      return;
+    }
+
+    // Online Payments via Razorpay
+    const submitBtn = this.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Processing... <i class="bi bi-hourglass-split"></i>';
+
+    try {
+      // 1. Create Order on Backend
+      const response = await fetch('/api/create-razorpay-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: totalAmount })
+      });
+      const orderData = await response.json();
+
+      if (!orderData.success) {
+        throw new Error(orderData.message || "Failed to initiate payment");
+      }
+
+      // 2. Open Razorpay Checkout Modal
+      const options = {
+        key: orderData.key,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: "Kumawat P&E",
+        description: "Service & Product Order",
+        order_id: orderData.order_id,
+        handler: function (response) {
+          // 3. Inject Payment Details & Submit Form
+          const form = document.getElementById('checkoutForm');
+          
+          const rzpPaymentId = document.createElement('input');
+          rzpPaymentId.type = 'hidden';
+          rzpPaymentId.name = 'razorpay_payment_id';
+          rzpPaymentId.value = response.razorpay_payment_id;
+          form.appendChild(rzpPaymentId);
+
+          const rzpOrderId = document.createElement('input');
+          rzpOrderId.type = 'hidden';
+          rzpOrderId.name = 'razorpay_order_id';
+          rzpOrderId.value = response.razorpay_order_id;
+          form.appendChild(rzpOrderId);
+
+          const rzpSignature = document.createElement('input');
+          rzpSignature.type = 'hidden';
+          rzpSignature.name = 'razorpay_signature';
+          rzpSignature.value = response.razorpay_signature;
+          form.appendChild(rzpSignature);
+
+          form.submit();
+        },
+        prefill: {
+          name: formData.get('customerName'),
+          email: formData.get('customerEmail'),
+          contact: formData.get('customerPhone')
+        },
+        theme: { color: "#2d7a7a" }
+      };
+      
+      const rzp = new Razorpay(options);
+      rzp.on('payment.failed', function (response) {
+        showToast('Payment Failed. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Confirm &amp; Place Order <i class="bi bi-check-lg"></i>';
+      });
+      rzp.open();
+
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || 'Error processing payment');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Confirm &amp; Place Order <i class="bi bi-check-lg"></i>';
+    }
+  });
 
   function renderCheckoutCart() {
     const list = document.getElementById('checkout-items-list');
@@ -310,13 +478,125 @@
       }
     }).join('');
     
-    let delivery = hasProduct ? 50 : 0;
-    let grandTotal = (itemsTotal - totalDiscount) + delivery;
+    // Removed GST. Using dynamic delivery fee.
+    let taxableAmount = itemsTotal - totalDiscount;
+    let grandTotal = taxableAmount + (currentDeliveryFee || 0);
     
     itemsTotalEl.textContent = `₹${itemsTotal}`;
     discountEl.textContent = `- ₹${totalDiscount}`;
-    deliveryEl.textContent = `₹${delivery}`;
+    document.getElementById('summary-distance').textContent = currentDistance !== null ? `${currentDistance} KM` : '-- KM';
+    document.getElementById('summary-delivery').textContent = currentDeliveryFee !== null ? `₹${currentDeliveryFee}` : 'Select Address';
     grandTotalEl.textContent = `₹${grandTotal}`;
+
+    document.getElementById('totalAmountInput').value = grandTotal;
+    document.getElementById('discountAmountInput').value = totalDiscount;
+    document.getElementById('deliveryFeeInput').value = currentDeliveryFee || 0;
+  }
+
+  function selectAddress(encodedAddrStr, cardElement) {
+    document.querySelectorAll('.address-card').forEach(c => c.style.borderColor = 'var(--rule)');
+    if(cardElement) cardElement.style.borderColor = 'var(--accent)';
+    
+    const addr = JSON.parse(decodeURIComponent(encodedAddrStr));
+    currentAddressJSON = JSON.stringify(addr);
+    document.getElementById('deliveryAddressJSON').value = currentAddressJSON;
+    
+    // Fetch delivery fee
+    fetch('/api/calculate-delivery', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lat: addr.lat, lng: addr.lng })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.serviceable) {
+        currentDeliveryFee = data.deliveryFee;
+        currentDistance = data.distanceKm;
+        renderCheckoutCart(); // Recalculate
+        document.querySelector('button[type="submit"]').disabled = false;
+      } else {
+        showToast(data.message || "Sorry, delivery is not available at this location.");
+        currentDeliveryFee = null;
+        currentDistance = null;
+        renderCheckoutCart();
+        document.querySelector('button[type="submit"]').disabled = true;
+      }
+    });
+  }
+
+  function showNewAddressForm() {
+    document.getElementById('new-address-form').style.display = 'block';
+    document.getElementById('saved-addresses-list').style.display = 'none';
+  }
+
+  function hideNewAddressForm() {
+    document.getElementById('new-address-form').style.display = 'none';
+    document.getElementById('saved-addresses-list').style.display = 'block';
+  }
+
+  function getCurrentLocation() {
+    if (!navigator.geolocation) {
+      return showToast("Geolocation is not supported by your browser.");
+    }
+    showToast("Fetching location...");
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      document.getElementById('newAddrLat').value = lat;
+      document.getElementById('newAddrLng').value = lng;
+      
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+        const data = await res.json();
+        if (data && data.address) {
+          document.getElementById('newAddrCity').value = data.address.city || data.address.town || data.address.village || '';
+          document.getElementById('newAddrState').value = data.address.state || '';
+          document.getElementById('newAddrPincode').value = data.address.postcode || '';
+          document.getElementById('newAddrStreet').value = data.address.road || data.address.suburb || '';
+          showToast("Location autofilled successfully!");
+        }
+      } catch (e) {
+        showToast("Failed to reverse geocode location.");
+      }
+    }, (err) => {
+      showToast("Location access denied or failed.");
+    });
+  }
+
+  async function saveNewAddress() {
+    const payload = {
+      fullName: document.getElementById('newAddrName').value,
+      mobile: document.getElementById('newAddrMobile').value,
+      house: document.getElementById('newAddrHouse').value,
+      street: document.getElementById('newAddrStreet').value,
+      landmark: document.getElementById('newAddrLandmark').value,
+      pincode: document.getElementById('newAddrPincode').value,
+      city: document.getElementById('newAddrCity').value,
+      state: document.getElementById('newAddrState').value,
+      lat: document.getElementById('newAddrLat').value,
+      lng: document.getElementById('newAddrLng').value
+    };
+    
+    if(!payload.fullName || !payload.mobile || !payload.house || !payload.street || !payload.pincode || !payload.city || !payload.state) {
+      return showToast("Please fill all required address fields.");
+    }
+    
+    try {
+      const res = await fetch('/api/user/address', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast("Address saved successfully!");
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        showToast("Failed: " + (data.message || "Unknown error"));
+      }
+    } catch(err) {
+      showToast("Network error while saving address.");
+    }
   }
 
   function updateQty(escapedName, change) {
@@ -365,36 +645,14 @@
     // Set minimum date for preferred Date to today
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('preferredDate').min = today;
+    
+    // Auto-select default address if exists
+    const defaultRadio = document.querySelector('input[name="selectedAddressRadio"]:checked');
+    if(defaultRadio) {
+      defaultRadio.closest('.address-card').click();
+    }
   });
 
-  function populateCartInput() {
-    if (checkoutCart.length === 0) {
-      showToast("Cannot place booking with empty cart");
-      return false;
-    }
-
-    let itemsTotal = 0;
-    let totalDiscount = 0;
-    let hasProduct = false;
-    checkoutCart.forEach(item => {
-      if (item.type === 'product') hasProduct = true;
-      const orig = item.originalPrice ? parseFloat(item.originalPrice) : parseFloat(item.price);
-      const sell = parseFloat(item.price);
-      itemsTotal += orig * item.quantity;
-      totalDiscount += (orig - sell) * item.quantity;
-    });
-    
-    let delivery = hasProduct ? 50 : 0;
-    let grandTotal = (itemsTotal - totalDiscount) + delivery;
-
-    document.getElementById('cartDataInput').value = JSON.stringify(checkoutCart);
-    document.getElementById('totalAmountInput').value = grandTotal;
-    
-    // Clear cart in local storage
-    localStorage.removeItem('kumawat_cart');
-    
-    return true;
-  }
 </script>
 
 <%- include('partials/footer') %>

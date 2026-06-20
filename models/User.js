@@ -23,13 +23,33 @@ const UserSchema = new mongoose.Schema({
     unique: true,
     trim: true
   },
-  address: {
-    type: String,
-    default: ''
-  },
+  addresses: [{
+    fullName: { type: String, required: true },
+    mobile: { type: String, required: true },
+    altMobile: { type: String, default: '' },
+    house: { type: String, required: true },
+    street: { type: String, required: true },
+    landmark: { type: String, default: '' },
+    city: { type: String, required: true },
+    state: { type: String, required: true },
+    pincode: { type: String, required: true },
+    country: { type: String, default: 'India' },
+    isDefault: { type: Boolean, default: false },
+    lat: { type: Number },
+    lng: { type: Number }
+  }],
   password: {
     type: String,
-    required: true
+    required: false
+  },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  profilePhoto: {
+    type: String,
+    default: ''
   },
   cardNumber: {
     type: String,
