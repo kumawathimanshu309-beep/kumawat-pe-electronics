@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /dashboard
+
+Sitemap: https://kumawatelectricals.com/sitemap.xml

@@ -93,7 +93,54 @@
             </div>
           </div>
 
-          <div class="field mb-3">
+          <h5 class="mt-4 mb-3" style="font-family:var(--font-display); color:var(--accent); border-bottom:1px solid var(--rule); padding-bottom:10px;">Premium Electronics Specifications</h5>
+
+          <div class="row mb-3">
+            <div class="col-md-4 field">
+              <label>Video URL [Optional]</label>
+              <input type="url" name="video" class="form-control" placeholder="https://youtube.com/embed/..." value="<%= product.video || '' %>" />
+            </div>
+            <div class="col-md-4 field">
+              <label>Badges (Comma separated)</label>
+              <input type="text" name="badges" class="form-control" placeholder="e.g. New Arrival, Best Seller" value="<%= product.badges ? product.badges.join(', ') : '' %>" />
+            </div>
+            <div class="col-md-4 field">
+              <label>Accessories (Comma separated Product IDs)</label>
+              <input type="text" name="accessories" class="form-control" placeholder="ID1, ID2..." value="<%= product.accessories ? product.accessories.join(', ') : '' %>" />
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6 field">
+              <label>Key Features (Comma separated)</label>
+              <textarea name="features" class="form-control" rows="2"><%= product.features ? product.features.join(', ') : '' %></textarea>
+            </div>
+            <div class="col-md-6 field">
+              <label>Package Contents</label>
+              <textarea name="packageContents" class="form-control" rows="2"><%= product.packageContents ? product.packageContents.join(', ') : '' %></textarea>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-3 field">
+              <label>Warranty Duration</label>
+              <input type="text" name="spec_warranty" class="form-control" value="<%= (product.specifications && product.specifications.warranty && product.specifications.warranty.get) ? product.specifications.warranty.get('duration') : '' %>" />
+            </div>
+            <div class="col-md-3 field">
+              <label>Voltage</label>
+              <input type="text" name="spec_voltage" class="form-control" value="<%= (product.specifications && product.specifications.electrical && product.specifications.electrical.get) ? product.specifications.electrical.get('voltage') : '' %>" />
+            </div>
+            <div class="col-md-3 field">
+              <label>Power/Wattage</label>
+              <input type="text" name="spec_wattage" class="form-control" value="<%= (product.specifications && product.specifications.electrical && product.specifications.electrical.get) ? product.specifications.electrical.get('wattage') : '' %>" />
+            </div>
+            <div class="col-md-3 field">
+              <label>Physical Weight</label>
+              <input type="text" name="spec_weight" class="form-control" value="<%= (product.specifications && product.specifications.physical && product.specifications.physical.get) ? product.specifications.physical.get('weight') : '' %>" />
+            </div>
+          </div>
+
+          <div class="field mb-3 mt-4">
             <label>Description [Optional]</label>
             <textarea name="description" class="form-control" rows="4"><%= product.description || '' %></textarea>
           </div>

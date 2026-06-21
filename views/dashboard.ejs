@@ -1,232 +1,503 @@
 <%- include('partials/header', { title: 'My Account Dashboard | Kumawat P&E', activePage: 'dashboard' }) %>
 
-<div class="container card-section">
-  <div class="services-header" style="margin-bottom: 40px;">
+<style>
+  .dashboard-tabs .nav-link {
+    color: var(--ink-light);
+    font-weight: 600;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 12px 20px;
+  }
+  .dashboard-tabs .nav-link.active {
+    color: var(--accent);
+    border-bottom: 2px solid var(--accent);
+    background: transparent;
+  }
+  .dashboard-block {
+    background: var(--white);
+    padding: 24px;
+    border-radius: 8px;
+    border: 1px solid var(--rule);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+    margin-bottom: 24px;
+  }
+</style>
+
+<div class="container card-section" style="padding-top: 120px; padding-bottom: 60px;">
+  <div class="services-header" style="margin-bottom: 30px;">
     <p class="section-label">Customer Workspace</p>
     <h2>Welcome, <%= user.name %></h2>
-    <p class="text-muted" style="margin-top: 5px;">Manage your digital loyalty card, track home deliveries, and review your service history.</p>
   </div>
 
-  <div class="dashboard-grid">
-    <!-- Left: Digital Loyalty Card & Actions -->
-    <div>
-      <div class="dashboard-block">
-        <h3 style="margin-bottom: 20px;">Digital Customer Card</h3>
-        
-        <!-- WALLET CARD DESIGN -->
-        <div class="wallet-card" id="printableCard">
-          <div class="wallet-card-header">
-            <div class="brand">
-              Kumawat P&amp;E
-              <span>Plumbing &amp; Electricals</span>
-            </div>
-            <div class="card-type">LOYALTY MEMBER</div>
+  <div class="row">
+    <div class="col-lg-3 col-md-4 mb-4">
+      <div class="dashboard-block" style="padding: 0; overflow: hidden;">
+        <div style="padding: 24px; background: var(--bg-dark); color: white; text-align: center;">
+          <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; margin: 0 auto 15px;">
+            <%= user.name.charAt(0) %>
           </div>
-          
-          <div class="wallet-card-body">
-            <div class="wallet-card-details">
-              <div class="name"><%= user.name %></div>
-              <div class="phone"><i class="bi bi-phone"></i> <%= user.mobile %></div>
-              <div class="uid">ID: <%= user.userId %></div>
-            </div>
-            
-            <div class="qr-box">
-              <!-- Renders generated QR code from DB card object -->
-              <img src="<%= typeof card !== 'undefined' && card ? card.qrCodeData : '/images/qr-placeholder.png' %>" alt="Member QR Code" />
-            </div>
-          </div>
-          
-          <div class="wallet-card-footer">
-            <div class="number"><%= typeof card !== 'undefined' && card ? card.cardNumber : 'CARD-0000-0000' %></div>
-            <div class="joined">
-              Joined<br>
-              <strong><%= new Date(user.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) %></strong>
-            </div>
-          </div>
+          <h4 style="margin: 0; font-family: var(--font-display);"><%= user.name %></h4>
+          <p style="margin: 5px 0 0; font-size: 0.85rem; opacity: 0.8;"><%= user.email %></p>
         </div>
-
-        <!-- Card Actions -->
-        <div class="card-actions">
-          <button class="btn btn-outline" onclick="printCard()"><i class="bi bi-printer"></i> Print Card</button>
-          <a href="/dashboard/download-card" class="btn btn-accent"><i class="bi bi-download"></i> Download Card</a>
+        <div class="nav flex-column nav-pills dashboard-tabs" id="dashboard-tabs" role="tablist" style="padding: 10px 0;">
+          <button class="nav-link active text-start" id="profile-tab" data-bs-toggle="pill" data-bs-target="#profile" type="button" role="tab"><i class="bi bi-person me-2"></i> My Profile</button>
+          <button class="nav-link text-start" id="orders-tab" data-bs-toggle="pill" data-bs-target="#orders" type="button" role="tab"><i class="bi bi-box-seam me-2"></i> My Orders</button>
+          <button class="nav-link text-start" id="addresses-tab" data-bs-toggle="pill" data-bs-target="#addresses" type="button" role="tab"><i class="bi bi-geo-alt me-2"></i> My Addresses</button>
+          <button class="nav-link text-start" id="wishlist-tab" data-bs-toggle="pill" data-bs-target="#wishlist" type="button" role="tab"><i class="bi bi-heart me-2"></i> My Wishlist</button>
+          <button class="nav-link text-start" id="notifications-tab" data-bs-toggle="pill" data-bs-target="#notifications" type="button" role="tab"><i class="bi bi-bell me-2"></i> Notifications</button>
+          <button class="nav-link text-start" id="security-tab" data-bs-toggle="pill" data-bs-target="#security" type="button" role="tab"><i class="bi bi-shield-lock me-2"></i> Security</button>
+          <hr style="margin: 10px 20px; border-color: var(--rule);">
+          <a href="/auth/logout" class="nav-link text-start text-danger"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
         </div>
-      </div>
-
-      <!-- Quick Contact Info -->
-      <div class="dashboard-block mt-4">
-        <h3>Need Quick Help?</h3>
-        <p style="font-size: 0.85rem; color: var(--ink-light); margin-bottom: 15px;">Our team is active 24/7 in Govindgarh for emergencies. Reach Himanshu directly via WhatsApp.</p>
-        <a href="https://wa.me/919462759965?text=Hi%20Himanshu%2C%20I%20need%20urgent%20service." target="_blank" class="btn btn-whatsapp btn-full"><i class="bi bi-whatsapp"></i> Chat on WhatsApp</a>
       </div>
     </div>
 
-    <!-- Right: Order History & Tracking -->
-    <div class="col-lg-8 col-md-12 mt-4 mt-lg-0">
-      <div class="dashboard-block" style="min-height: 400px; margin-bottom: 30px;">
-        <h3 style="margin-bottom: 20px;">Notification Center</h3>
-        <div id="notification-center" style="background: var(--bg); padding: 15px; border-radius: 8px; border: 1px solid var(--rule); margin-bottom: 24px; max-height: 150px; overflow-y: auto;">
-          <div class="text-muted text-center" id="empty-notifications" style="font-size: 0.85rem; padding: 10px;">No new notifications</div>
+    <div class="col-lg-9 col-md-8">
+      <div class="tab-content" id="dashboard-tabContent">
+        
+        <!-- PROFILE TAB -->
+        <div class="tab-pane fade show active" id="profile" role="tabpanel">
+          <div class="dashboard-block">
+            <h3 style="margin-bottom: 20px;">Digital Loyalty Card</h3>
+            <div class="row">
+              <div class="col-md-6">
+                <!-- WALLET CARD DESIGN -->
+                <div class="wallet-card" id="printableCard">
+                  <div class="wallet-card-header">
+                    <div class="brand">Kumawat P&amp;E<span>Plumbing &amp; Electricals</span></div>
+                    <div class="card-type">LOYALTY MEMBER</div>
+                  </div>
+                  <div class="wallet-card-body">
+                    <div class="wallet-card-details">
+                      <div class="name"><%= user.name %></div>
+                      <div class="phone"><i class="bi bi-phone"></i> <%= user.mobile %></div>
+                      <div class="uid">ID: <%= user.userId %></div>
+                    </div>
+                    <div class="qr-box">
+                      <img src="<%= typeof card !== 'undefined' && card ? card.qrCodeData : '/images/qr-placeholder.png' %>" alt="QR" />
+                    </div>
+                  </div>
+                  <div class="wallet-card-footer">
+                    <div class="number"><%= typeof card !== 'undefined' && card ? card.cardNumber : 'CARD-0000-0000' %></div>
+                    <div class="joined">Joined<br><strong><%= new Date(user.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) %></strong></div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6 d-flex flex-column justify-content-center mt-3 mt-md-0">
+                <button class="btn btn-outline mb-2" onclick="window.print()"><i class="bi bi-printer"></i> Print Card</button>
+                <a href="/dashboard/download-card" class="btn btn-accent mb-4"><i class="bi bi-download"></i> Download Card</a>
+                <div class="p-3 bg-light rounded" style="border: 1px dashed var(--rule);">
+                  <strong>Quick Support</strong>
+                  <p style="font-size: 0.85rem; margin-bottom: 10px;" class="text-muted">Need emergency service? Contact Himanshu.</p>
+                  <a href="https://wa.me/919462759965" target="_blank" class="btn btn-whatsapp btn-sm w-100"><i class="bi bi-whatsapp"></i> Chat Now</a>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <h3 style="margin-bottom: 20px;">Order &amp; Booking History</h3>
-        
-        <% if (typeof orders === 'undefined' || orders.length === 0) { %>
-          <div class="text-center py-5 text-muted">
-            <i class="bi bi-journal-text" style="font-size: 3rem; color: var(--rule); display: block; margin-bottom: 12px;"></i>
-            <p>You haven't made any bookings yet.</p>
-            <a href="/services" class="btn btn-accent btn-sm mt-3">Browse Services</a>
+        <!-- ORDERS TAB -->
+        <div class="tab-pane fade" id="orders" role="tabpanel">
+          <div class="dashboard-block">
+            <h3 style="margin-bottom: 20px;">My Orders</h3>
+            <% if (typeof orders === 'undefined' || orders.length === 0) { %>
+              <div class="text-center py-5 text-muted">
+                <i class="bi bi-box2" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                <p>You haven't placed any orders yet.</p>
+                <a href="/store" class="btn btn-accent btn-sm mt-2">Start Shopping</a>
+              </div>
+            <% } else { %>
+              <div class="table-responsive">
+                <table class="table align-middle">
+                  <thead>
+                    <tr>
+                      <th>Order ID & Date</th>
+                      <th>Items</th>
+                      <th>Total</th>
+                      <th>Payment</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% orders.forEach(ord => { %>
+                      <tr>
+                        <td>
+                          <code style="font-size: 0.8rem;"><%= ord.orderId %></code><br>
+                          <small class="text-muted"><%= new Date(ord.createdAt).toLocaleDateString('en-IN') %></small>
+                        </td>
+                        <td>
+                          <% ord.items.forEach(item => { %>
+                            <div style="font-size: 0.85rem; margin-bottom: 4px;">
+                              <strong><%= item.quantity %>x</strong> <%= item.name %>
+                            </div>
+                          <% }) %>
+                        </td>
+                        <td><strong style="color: var(--accent);">₹<%= ord.totalAmount %></strong></td>
+                        <td><%= ord.paymentMethod %></td>
+                        <td><span class="badge" id="badge-status-<%= ord.orderId %>" data-status="<%= ord.deliveryStatus %>"><%= ord.deliveryStatus %></span></td>
+                        <td>
+                          <div class="d-flex flex-column gap-2">
+                            <a href="/order/<%= ord.orderId %>" class="btn btn-outline btn-sm" style="font-size: 0.75rem;">View</a>
+                            <% if (ord.deliveryStatus === 'Pending' || ord.deliveryStatus === 'Confirmed') { %>
+                              <button class="btn btn-danger btn-sm" style="font-size: 0.75rem;" onclick="cancelOrder('<%= ord.orderId %>')">Cancel</button>
+                            <% } %>
+                            <button class="btn btn-primary btn-sm" style="font-size: 0.75rem;" onclick="reorder('<%= encodeURIComponent(JSON.stringify(ord.items)) %>')">Reorder</button>
+                          </div>
+                        </td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              </div>
+            <% } %>
           </div>
-        <% } else { %>
-          <div class="table-wrap">
-            <table class="table align-middle">
-              <thead>
-                <tr>
-                  <th>Order ID</th>
-                  <th>Date</th>
-                  <th>Total</th>
-                  <th>Method</th>
-                  <th>Delivery Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% orders.reverse().forEach(ord => { %>
-                  <tr>
-                    <td><code style="font-size: 0.78rem; font-weight: bold;"><%= ord.orderId %></code></td>
-                    <td><%= new Date(ord.createdAt).toLocaleDateString('en-IN') %></td>
-                    <td><strong style="color: var(--accent);">₹<%= ord.totalAmount %></strong></td>
-                    <td><%= ord.paymentMethod %></td>
-                    <td>
-                      <span class="badge" id="badge-status-<%= ord.orderId %>" data-status="<%= ord.deliveryStatus %>" style="font-weight: 600;"><%= ord.deliveryStatus %></span>
-                    </td>
-                    <td>
-                      <a href="/order-success/<%= ord.orderId %>" class="btn btn-outline btn-xs"><i class="bi bi-eye"></i> Track</a>
-                    </td>
-                  </tr>
-                  <tr id="timeline-row-<%= ord.orderId %>" style="border-bottom: 2px solid var(--rule);">
-                    <td colspan="6" style="padding: 16px 20px; background: #fafbfc;">
-                      <div class="order-timeline" id="timeline-<%= ord.orderId %>" data-status="<%= ord.deliveryStatus %>"></div>
-                    </td>
-                  </tr>
+        </div>
+
+        <!-- ADDRESSES TAB -->
+        <div class="tab-pane fade" id="addresses" role="tabpanel">
+          <div class="dashboard-block">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <h3 class="m-0">My Addresses</h3>
+              <button class="btn btn-accent btn-sm" onclick="showAddressModal()"><i class="bi bi-plus-lg"></i> Add New Address</button>
+            </div>
+            
+            <div class="row" id="dashboard-addresses-list">
+              <% if (user.addresses && user.addresses.length > 0) { %>
+                <% user.addresses.forEach((addr, idx) => { %>
+                  <div class="col-md-6 mb-3">
+                    <div class="card p-3 h-100" style="border: 1px solid var(--rule);">
+                      <% if (addr.isDefault) { %>
+                        <span class="badge bg-success" style="position: absolute; top: 10px; right: 10px;">Default</span>
+                      <% } %>
+                      <h5 class="m-0 mb-1"><%= addr.fullName %></h5>
+                      <div class="text-muted" style="font-size: 0.85rem; margin-bottom: 10px;">
+                        <i class="bi bi-telephone"></i> <%= addr.mobile %><br>
+                        <%= addr.house %>, <%= addr.street %><br>
+                        <%= addr.landmark ? addr.landmark + ', ' : '' %><%= addr.city %>, <%= addr.state %> - <%= addr.pincode %>
+                      </div>
+                      <div class="mt-auto pt-2 border-top d-flex justify-content-between">
+                        <button class="btn btn-link p-0 text-decoration-none" style="font-size: 0.8rem; color: var(--accent);" onclick="editAddress(<%= idx %>)"><i class="bi bi-pencil"></i> Edit</button>
+                        <button class="btn btn-link text-danger p-0 text-decoration-none" style="font-size: 0.8rem;" onclick="deleteAddress(<%= idx %>)"><i class="bi bi-trash"></i> Delete</button>
+                      </div>
+                    </div>
+                  </div>
                 <% }) %>
-              </tbody>
-            </table>
+              <% } else { %>
+                <div class="col-12 text-center py-4 text-muted">
+                  <p>No saved addresses.</p>
+                </div>
+              <% } %>
+            </div>
           </div>
-        <% } %>
+        </div>
+
+        <!-- WISHLIST TAB -->
+        <div class="tab-pane fade" id="wishlist" role="tabpanel">
+          <div class="dashboard-block">
+            <h3 style="margin-bottom: 20px;">My Wishlist</h3>
+            <div id="wishlist-container">
+              <div class="text-center py-5 text-muted" id="wishlist-loading">
+                <div class="spinner-border text-accent" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NOTIFICATIONS TAB -->
+        <div class="tab-pane fade" id="notifications" role="tabpanel">
+          <div class="dashboard-block">
+            <h3 style="margin-bottom: 20px;">Notifications</h3>
+            <% if (typeof notifications === 'undefined' || notifications.length === 0) { %>
+              <div id="notification-center">
+                <div class="text-center py-4 text-muted" id="empty-notifications">No new notifications</div>
+              </div>
+            <% } else { %>
+              <div class="list-group">
+                <% notifications.forEach(notif => { %>
+                  <div class="list-group-item list-group-item-action <%= notif.read ? '' : 'fw-bold bg-light' %>" style="border-left: 4px solid <%= notif.read ? 'transparent' : 'var(--accent)' %>">
+                    <div class="d-flex w-100 justify-content-between">
+                      <h6 class="mb-1"><%= notif.title %></h6>
+                      <small><%= new Date(notif.createdAt).toLocaleDateString() %></small>
+                    </div>
+                    <p class="mb-1" style="font-size: 0.9rem;"><%= notif.message %></p>
+                  </div>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- SECURITY TAB -->
+        <div class="tab-pane fade" id="security" role="tabpanel">
+          <div class="dashboard-block">
+            <h3 style="margin-bottom: 20px;">Security Settings</h3>
+            <form action="/api/user/change-password" method="POST">
+              <div class="mb-3">
+                <label class="form-label">Current Password</label>
+                <input type="password" class="form-control" name="currentPassword" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">New Password</label>
+                <input type="password" class="form-control" name="newPassword" required>
+              </div>
+              <button type="submit" class="btn btn-accent">Update Password</button>
+            </form>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
 </div>
 
-<script>
-  function printCard() {
-    window.print();
-  }
-</script>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script>
+  const userAddresses = <%- JSON.stringify(user.addresses || []) %>;
+
+  function editAddress(idx) {
+    const addr = userAddresses[idx];
+    if (!addr) return;
+    
+    document.getElementById('modalAddrName').value = addr.fullName || '';
+    document.getElementById('modalAddrMobile').value = addr.mobile || '';
+    document.getElementById('modalAddrHouse').value = addr.house || '';
+    document.getElementById('modalAddrStreet').value = addr.street || '';
+    document.getElementById('modalAddrLandmark').value = addr.landmark || '';
+    document.getElementById('modalAddrPincode').value = addr.pincode || '';
+    document.getElementById('modalAddrCity').value = addr.city || '';
+    document.getElementById('modalAddrState').value = addr.state || '';
+    document.getElementById('modalAddrLat').value = addr.lat || '';
+    document.getElementById('modalAddrLng').value = addr.lng || '';
+    document.getElementById('addressModalLabel').innerText = 'Edit Address';
+    
+    // Pass index to modal logic
+    window.editAddressIndex = idx;
+    
+    const modal = new bootstrap.Modal(document.getElementById('addressModal'));
+    modal.show();
+  }
+
+  async function deleteAddress(idx) {
+    if (!confirm('Are you sure you want to delete this address?')) return;
+    try {
+      const res = await fetch(`/api/user/address/${idx}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        window.location.reload();
+      } else {
+        alert('Failed to delete address.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Network error.');
+    }
+  }
+
+  async function cancelOrder(orderId) {
+    if (!confirm('Are you sure you want to cancel this order?')) return;
+    try {
+      const response = await fetch(`/api/order/${orderId}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await response.json();
+      if (data.success) {
+        showToast('Order Cancelled Successfully');
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        showToast(data.message || 'Failed to cancel order');
+      }
+    } catch (err) {
+      showToast('An error occurred');
+    }
+  }
+
+  function reorder(encodedItems) {
+    try {
+      const items = JSON.parse(decodeURIComponent(encodedItems));
+      localStorage.setItem('cartItems', JSON.stringify(items));
+      showToast('Items added to cart for reorder');
+      setTimeout(() => window.location.href = '/checkout', 1000);
+    } catch (e) {
+      console.error(e);
+      showToast('Failed to reorder items');
+    }
+  }
+
   function getStatusColor(status) {
     switch(status) {
-      case 'Pending': return { bg: '#fff3cd', text: '#856404' }; // Yellow
-      case 'Confirmed': return { bg: '#cce5ff', text: '#004085' }; // Blue
-      case 'Processing': return { bg: '#ffe8cc', text: '#d97706' }; // Orange
-      case 'Packed': return { bg: '#e2d9f3', text: '#5a32a3' }; // Purple
-      case 'Out For Delivery': return { bg: '#cff4fc', text: '#055160' }; // Cyan
-      case 'Delivered': return { bg: '#d1e7dd', text: '#0f5132' }; // Green
-      case 'Cancelled': return { bg: '#f8d7da', text: '#842029' }; // Red
+      case 'Pending': return { bg: '#fff3cd', text: '#856404' };
+      case 'Confirmed': return { bg: '#cce5ff', text: '#004085' };
+      case 'Processing': return { bg: '#ffe8cc', text: '#d97706' };
+      case 'Packed': return { bg: '#e2d9f3', text: '#5a32a3' };
+      case 'Shipped': return { bg: '#e2d9f3', text: '#5a32a3' };
+      case 'Out For Delivery': return { bg: '#cff4fc', text: '#055160' };
+      case 'Delivered': return { bg: '#d1e7dd', text: '#0f5132' };
+      case 'Cancelled': return { bg: '#f8d7da', text: '#842029' };
       default: return { bg: '#e2e8f0', text: '#475569' };
     }
   }
 
-  function renderTimeline(status, container) {
-    if (status === 'Cancelled') {
-      container.innerHTML = '<div style="color: #dc3545; font-weight: 700; text-align: center; padding: 10px 0;"><i class="bi bi-x-circle-fill"></i> Order Cancelled</div>';
-      return;
-    }
-    
-    const steps = ['Pending', 'Confirmed', 'Processing', 'Packed', 'Out For Delivery', 'Delivered'];
-    let html = '<div style="display: flex; justify-content: space-between; align-items: center; position: relative;">';
-    html += '<div style="position: absolute; top: 12px; left: 0; right: 0; height: 3px; background: #e0e0e0; z-index: 1;"></div>';
-    
-    let passed = true;
-    steps.forEach(step => {
-      const isCurrent = step === status;
-      const color = passed ? '#2ecc71' : '#e0e0e0';
-      const textColor = passed ? '#2ecc71' : '#999';
-      const icon = passed ? '<i class="bi bi-check text-white" style="font-size:1.1rem; line-height: 1;"></i>' : '';
-      
-      html += `
-        <div style="position: relative; z-index: 2; text-align: center; width: 16%;">
-          <div style="width: 28px; height: 28px; background: ${color}; border-radius: 50%; margin: 0 auto; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            ${icon}
-          </div>
-          <div style="font-size: 0.65rem; font-weight: 700; color: ${textColor}; margin-top: 8px; text-transform: uppercase;">${step}</div>
-        </div>
-      `;
-      if (step === status) passed = false;
-    });
-    html += '</div>';
-    container.innerHTML = html;
-  }
-
   window.addEventListener('DOMContentLoaded', () => {
-    // Initial render of badges and timelines
     document.querySelectorAll('[id^="badge-status-"]').forEach(badge => {
       const status = badge.getAttribute('data-status');
-      badge.style.backgroundColor = getStatusColor(status).bg;
-      badge.style.color = getStatusColor(status).text;
-    });
-
-    document.querySelectorAll('.order-timeline').forEach(timeline => {
-      const status = timeline.getAttribute('data-status');
-      renderTimeline(status, timeline);
+      const colors = getStatusColor(status);
+      badge.style.backgroundColor = colors.bg;
+      badge.style.color = colors.text;
     });
   });
 
   const socket = io();
-  
-  // Listen for real-time status updates
   socket.on('order_status_updated', (data) => {
     const { orderId, status, message } = data;
-    
-    // Update Badge
     const badge = document.getElementById('badge-status-' + orderId);
     if (badge) {
       badge.textContent = status;
       badge.setAttribute('data-status', status);
-      badge.style.backgroundColor = getStatusColor(status).bg;
-      badge.style.color = getStatusColor(status).text;
+      const colors = getStatusColor(status);
+      badge.style.backgroundColor = colors.bg;
+      badge.style.color = colors.text;
     }
     
-    // Update Timeline
-    const timeline = document.getElementById('timeline-' + orderId);
-    if (timeline) {
-      timeline.setAttribute('data-status', status);
-      renderTimeline(status, timeline);
-    }
-    
-    // Add Notification
     const emptyMsg = document.getElementById('empty-notifications');
     if (emptyMsg) emptyMsg.style.display = 'none';
     
     const notifCenter = document.getElementById('notification-center');
     const notif = document.createElement('div');
-    notif.style.padding = '12px';
-    notif.style.borderBottom = '1px solid var(--rule)';
-    notif.style.fontSize = '0.9rem';
-    notif.style.display = 'flex';
-    notif.style.alignItems = 'flex-start';
-    notif.style.gap = '10px';
+    notif.className = 'p-3 border-bottom d-flex gap-3 align-items-start';
     notif.innerHTML = `
-      <i class="bi bi-bell-fill text-accent" style="margin-top:2px;"></i>
+      <i class="bi bi-bell-fill text-accent"></i>
       <div>
-        <div style="font-weight: 600; color: var(--ink);">${message}</div>
-        <div style="font-size: 0.75rem; color: var(--ink-light); margin-top: 4px;">Just now</div>
+                        <div style="font-weight: 600;">${message}</div>
+        <div style="font-size: 0.75rem; color: #999;">Just now</div>
       </div>
     `;
     notifCenter.prepend(notif);
   });
 </script>
 
+<script>
+  // WISHLIST LOGIC
+  document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('tab') === 'wishlist') {
+      const wTab = new bootstrap.Tab(document.querySelector('#wishlist-tab'));
+      wTab.show();
+      loadWishlist();
+    }
+
+    document.querySelector('#wishlist-tab').addEventListener('shown.bs.tab', function () {
+      loadWishlist();
+    });
+  });
+
+  async function loadWishlist() {
+    const container = document.getElementById('wishlist-container');
+    container.innerHTML = `<div class="text-center py-5 text-muted"><div class="spinner-border text-accent" role="status"></div></div>`;
+    
+    try {
+      const res = await fetch('/api/wishlist');
+      const data = await res.json();
+      
+      if (data.success) {
+        // Update badge
+        const badge = document.getElementById('wishlist-badge');
+        if (badge) {
+          badge.innerText = data.count;
+          badge.style.display = data.count > 0 ? 'block' : 'none';
+        }
+
+        if (data.wishlist.length === 0) {
+          container.innerHTML = `
+            <div class="text-center py-5 text-muted">
+              <i class="bi bi-heart" style="font-size: 3rem; margin-bottom: 15px;"></i>
+              <p>Your wishlist is currently empty.</p>
+              <a href="/store" class="btn btn-accent btn-sm mt-2">Explore Store</a>
+            </div>
+          `;
+          return;
+        }
+
+        let html = `<div class="row g-4">`;
+        data.wishlist.forEach(p => {
+          html += `
+            <div class="col-md-6 col-lg-4" id="wishlist-item-${p.productId}">
+              <div class="card h-100" style="border: 1px solid var(--rule); border-radius: var(--radius); overflow: hidden;">
+                <div style="width: 100%; height: 180px; background: #fff; display: flex; align-items: center; justify-content: center; position: relative;">
+                  ${p.images && p.images.length > 0 ? `<img src="${p.images[0]}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="${p.name}" />` : '<i class="bi bi-image text-muted" style="font-size: 2rem;"></i>'}
+                  <button class="btn btn-sm btn-light position-absolute top-0 end-0 m-2" style="border-radius: 50%; color: var(--accent);" onclick="toggleWishlist('${p.productId}', this)">
+                    <i class="bi bi-heart-fill"></i>
+                  </button>
+                </div>
+                <div class="p-3 d-flex flex-column" style="flex: 1;">
+                  <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 8px;">${p.name}</h3>
+                  <div class="mt-auto pt-2">
+                    <strong style="color:var(--accent); font-size:1.1rem;">₹${p.discountPrice || p.price}</strong>
+                    <button class="btn btn-outline btn-sm w-100 mt-2" onclick="moveToCart('${p.productId}', '${escape(p.name)}', ${p.discountPrice || p.price}, ${p.price}, '${p.images && p.images.length ? p.images[0] : ''}', '${p.sku || ''}', '${p.category || ''}')">Move to Cart <i class="bi bi-cart-plus"></i></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+      }
+    } catch (e) {
+      container.innerHTML = `<div class="alert alert-danger">Failed to load wishlist.</div>`;
+    }
+  }
+
+  async function toggleWishlist(productId, btn) {
+    try {
+      const res = await fetch('/api/wishlist/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.action === 'removed') {
+          const card = document.getElementById(`wishlist-item-${productId}`);
+          if (card) card.remove();
+          
+          const badge = document.getElementById('wishlist-badge');
+          if (badge) {
+            badge.innerText = data.count;
+            badge.style.display = data.count > 0 ? 'block' : 'none';
+          }
+          
+          if (data.count === 0) loadWishlist(); // to show empty state
+          showToast('Removed from wishlist');
+        }
+      }
+    } catch (e) {
+      showToast('Error removing item');
+    }
+  }
+
+  async function moveToCart(productId, name, price, originalPrice, image, sku, category) {
+    // 1. Add to cart using the global addToCart function if available, or fetch
+    if (typeof addToCart === 'function') {
+      addToCart({
+        productId,
+        name: unescape(name),
+        price,
+        originalPrice,
+        image,
+        sku,
+        category,
+        type: 'product'
+      });
+    }
+    // 2. Remove from wishlist
+    await toggleWishlist(productId, null);
+  }
+</script>
+
+<%- include('partials/address-modal') %>
 <%- include('partials/footer') %>

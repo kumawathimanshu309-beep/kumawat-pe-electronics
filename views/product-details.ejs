@@ -1,57 +1,133 @@
 <%- include('partials/header') %>
 
-<section class="py-5 mt-5" style="background: var(--bg); min-height: 80vh;">
-  <div class="container" style="padding-top: 40px;">
+<!-- JSON-LD SEO Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": "<%= product.name.replace(/"/g, '') %>",
+  "image": "<%= product.images && product.images.length ? product.images[0] : '' %>",
+  "description": "<%= (product.description || '').replace(/"/g, '') %>",
+  "sku": "<%= product.sku || '' %>",
+  "brand": {
+    "@type": "Brand",
+    "name": "<%= product.brand || 'Generic' %>"
+  },
+  "offers": {
+    "@type": "Offer",
+    "priceCurrency": "INR",
+    "price": "<%= product.discountPrice || product.price %>",
+    "itemCondition": "https://schema.org/NewCondition",
+    "availability": "<%= (product.stock > 0 && product.status !== 'Out Of Stock') ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock' %>"
+  }
+}
+</script>
+
+<section class="py-4 mt-4" style="background: var(--bg); min-height: 80vh;">
+  <div class="container">
     
-    <div class="mb-4">
-      <a href="/store" class="btn btn-outline btn-sm"><i class="bi bi-arrow-left"></i> Back to Store</a>
-    </div>
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+      <ol class="breadcrumb" style="font-size:0.85rem; font-weight:500;">
+        <li class="breadcrumb-item"><a href="/" style="color:var(--ink-light)">Home</a></li>
+        <li class="breadcrumb-item"><a href="/store" style="color:var(--ink-light)">Store</a></li>
+        <li class="breadcrumb-item"><a href="/store?category=<%= encodeURIComponent(product.category) %>" style="color:var(--accent)"><%= product.category %></a></li>
+        <li class="breadcrumb-item active" aria-current="page"><%= product.name %></li>
+      </ol>
+    </nav>
 
     <div class="row g-5">
-      <div class="col-lg-6">
-        <div class="card p-4 h-100" style="display:flex; align-items:center; justify-content:center; border: 1px solid var(--rule);">
-          <% if (product.images && product.images.length > 0) { %>
-            <img src="<%= product.images[0] %>" alt="<%= product.name %>" style="max-width: 100%; max-height: 500px; object-fit: contain; border-radius: var(--radius);" />
-          <% } else { %>
-            <div style="width:100%; height:300px; display:flex; align-items:center; justify-content:center; background:#eee;">
-              <i class="bi bi-image text-muted" style="font-size: 4rem;"></i>
+      <!-- Product Gallery -->
+      <div class="col-lg-5">
+        <div class="modern-card p-3">
+          <div class="gallery-main" id="main-image-container">
+            <% if (product.images && product.images.length > 0) { %>
+              <img id="main-image" src="<%= product.images[0] %>" alt="<%= product.name %>" style="max-height: 500px; object-fit: contain; width: 100%; border-radius: var(--radius);" />
+            <% } else { %>
+              <div style="width:100%; height:400px; display:flex; align-items:center; justify-content:center; background:#eee;">
+                <i class="bi bi-image text-muted" style="font-size: 4rem;"></i>
+              </div>
+            <% } %>
+            
+            <!-- Badges Overlay -->
+            <div style="position: absolute; top: 10px; left: 10px; display:flex; flex-direction:column; gap:5px;">
+              <% if (product.discountPrice && product.price > product.discountPrice) { %>
+                <span class="badge badge-sale"><%= Math.round(((product.price - product.discountPrice) / product.price) * 100) %>% OFF</span>
+              <% } %>
+              <% if (product.badges && product.badges.length > 0) { %>
+                <% product.badges.forEach(b => { %>
+                  <span class="badge badge-new"><%= b %></span>
+                <% }) %>
+              <% } %>
+            </div>
+          </div>
+          
+          <% if (product.images && product.images.length > 1) { %>
+            <div class="gallery-thumbnails">
+              <% product.images.forEach((img, i) => { %>
+                <img src="<%= img %>" loading="lazy" class="gallery-thumb <%= i===0 ? 'active' : '' %>" onclick="changeMainImage(this, '<%= img %>')" />
+              <% }) %>
             </div>
           <% } %>
         </div>
       </div>
 
-      <div class="col-lg-6">
+      <!-- Product Details -->
+      <div class="col-lg-7">
         <div class="d-flex justify-content-between align-items-start mb-2">
-          <span class="badge bg-light text-dark" style="font-size: 0.85rem;"><%= product.category %></span>
-          <% if (product.stock <= 0 || product.status === 'Out Of Stock') { %>
-            <span class="badge bg-danger" style="font-size: 0.85rem;">Out of Stock</span>
-          <% } else if (product.stock <= 5) { %>
-            <span class="badge bg-warning text-dark" style="font-size: 0.85rem;">Only <%= product.stock %> left</span>
-          <% } else { %>
-            <span class="badge bg-success" style="font-size: 0.85rem;">In Stock</span>
-          <% } %>
+          <div>
+            <span class="badge bg-light text-dark" style="font-size: 0.85rem; border: 1px solid var(--rule);"><%= product.brand || 'Generic' %></span>
+            <span class="badge bg-light text-dark ms-2" style="font-size: 0.85rem; border: 1px solid var(--rule);">SKU: <%= product.sku || 'N/A' %></span>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-ghost" onclick="shareProduct()" title="Share"><i class="bi bi-share"></i></button>
+            <button class="btn btn-sm btn-ghost" onclick="addToCompare('<%= product.productId %>')" title="Compare"><i class="bi bi-bar-chart"></i></button>
+          </div>
         </div>
 
-        <h1 style="font-family: var(--font-display); font-size: 2.5rem; font-weight: 700; margin-bottom: 15px;"><%= product.name %></h1>
+        <h1 style="font-family: var(--font-display); font-size: 2.2rem; font-weight: 700; margin-bottom: 15px; color: var(--ink);"><%= product.name %></h1>
         
-        <div class="price-block mb-4">
+        <!-- Ratings Snapshot -->
+        <div class="d-flex align-items-center mb-3">
+          <div style="color: var(--yellow); font-size: 1.1rem;">
+            <% const avg = product.ratings ? product.ratings.average : 0; %>
+            <% for(let i=1; i<=5; i++) { %>
+              <i class="bi <%= i <= avg ? 'bi-star-fill' : (i - 0.5 <= avg ? 'bi-star-half' : 'bi-star') %>"></i>
+            <% } %>
+          </div>
+          <span class="ms-2" style="font-size:0.9rem; color:var(--ink-light);">(<%= product.ratings ? product.ratings.count : 0 %> verified reviews)</span>
+        </div>
+
+        <div class="price-block mb-4 p-3 glass-panel" style="border-radius: var(--radius);">
           <% if (product.discountPrice) { %>
-            <span style="text-decoration:line-through; color:#999; font-size:1.2rem; margin-right: 10px;">₹<%= product.price %></span>
-            <strong style="color:var(--accent); font-size:2rem;">₹<%= product.discountPrice %></strong>
+            <div style="font-size: 0.9rem; color: var(--ink-light);">M.R.P: <span style="text-decoration:line-through;">₹<%= product.price %></span></div>
+            <div style="color:var(--accent); font-size:2.2rem; font-weight:700;">₹<%= product.discountPrice %></div>
+            <div style="font-size: 0.85rem; color: var(--green); font-weight:600;">You Save: ₹<%= product.price - product.discountPrice %> (inclusive of all taxes)</div>
           <% } else { %>
-            <strong style="font-size:2rem;">₹<%= product.price %></strong>
+            <div style="font-size:2.2rem; font-weight:700;">₹<%= product.price %></div>
+            <div style="font-size: 0.85rem; color: var(--ink-light);">Inclusive of all taxes</div>
           <% } %>
         </div>
 
-        <div class="mb-4" style="color: var(--ink-light); line-height: 1.6; font-size: 1.1rem;">
-          <%= product.description || 'No description available for this product.' %>
+        <div class="mb-4" style="color: var(--ink-light); line-height: 1.7; font-size: 1rem;">
+          <%= product.description || 'No description available.' %>
         </div>
 
-        <hr style="border-color: var(--rule); margin: 30px 0;">
+        <!-- Stock Status -->
+        <div class="mb-4">
+          <% if (product.stock <= 0 || product.status === 'Out Of Stock') { %>
+            <div class="text-danger fw-bold"><i class="bi bi-x-circle"></i> Currently Out of Stock</div>
+          <% } else if (product.stock <= 5) { %>
+            <div class="text-warning fw-bold" style="color:#B8860B!important;"><i class="bi bi-exclamation-triangle"></i> Hurry, only <%= product.stock %> units left in stock!</div>
+          <% } else { %>
+            <div class="text-success fw-bold"><i class="bi bi-check-circle"></i> In Stock & Ready to Ship</div>
+          <% } %>
+        </div>
 
-        <div class="d-flex gap-3">
+        <!-- Action Buttons -->
+        <div class="d-flex gap-3 align-items-center mb-4">
           <% if (product.stock > 0 && product.status !== 'Out Of Stock') { %>
-            <button class="btn btn-accent btn-full" style="padding: 14px; font-size: 1.2rem;" onclick="buyNowDirect({
+            <button class="btn btn-accent flex-grow-1" style="padding: 14px; font-size: 1.1rem; border-radius: 8px;" onclick="buyNowDirect({
               name: '<%= escape(product.name) %>',
               price: <%= product.discountPrice || product.price %>,
               originalPrice: <%= product.price %>,
@@ -60,30 +136,396 @@
               category: '<%= product.category || 'General' %>',
               type: 'product'
             })">
-              <i class="bi bi-cart-check"></i> Buy Now
+              <i class="bi bi-cart-plus"></i> Add to Cart
             </button>
           <% } else { %>
-            <button class="btn btn-secondary btn-full disabled" style="padding: 14px; font-size: 1.2rem;" disabled>Out of Stock</button>
+            <button class="btn flex-grow-1 disabled" style="background:#ddd; color:#888; padding: 14px; font-size: 1.1rem; border-radius: 8px;" disabled>Out of Stock</button>
           <% } %>
+          
+          <button class="btn btn-outline" style="padding: 14px; font-size: 1.4rem; border-radius: 8px; color: var(--accent); border-color: var(--rule);" onclick="toggleWishlist('<%= product.productId %>', this)" id="wishlist-btn">
+            <i class="bi bi-heart"></i>
+          </button>
         </div>
 
-        <div class="mt-4 p-3 bg-light" style="border-radius: var(--radius); font-size: 0.9rem;">
-          <div class="d-flex align-items-center mb-2">
-            <i class="bi bi-truck me-2 text-primary"></i> 
-            <strong>Delivery:</strong> &nbsp; <%= product.deliveryAvailable ? 'Home Delivery Available' : 'Store Pickup Only' %>
+        <!-- Delivery & Promises -->
+        <div class="row g-3 text-center" style="font-size: 0.85rem; color: var(--ink-light);">
+          <div class="col-4">
+            <div class="modern-card p-3 h-100 d-flex flex-column align-items-center justify-content-center">
+              <i class="bi bi-truck fs-4 text-primary mb-2"></i>
+              <span><%= product.deliveryAvailable ? 'Express Delivery' : 'Store Pickup' %></span>
+            </div>
           </div>
-          <div class="d-flex align-items-center">
-            <i class="bi bi-shield-check me-2 text-success"></i>
-            <strong>Guaranteed Quality</strong> &nbsp; managed directly by Himanshu Kumawat.
+          <div class="col-4">
+            <div class="modern-card p-3 h-100 d-flex flex-column align-items-center justify-content-center">
+              <i class="bi bi-shield-check fs-4 text-success mb-2"></i>
+              <span>Secure Payment</span>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="modern-card p-3 h-100 d-flex flex-column align-items-center justify-content-center">
+              <i class="bi bi-award fs-4 text-warning mb-2"></i>
+              <span><%= product.specifications && product.specifications.warranty && product.specifications.warranty.get('duration') ? product.specifications.warranty.get('duration') : 'Brand Warranty' %></span>
+            </div>
           </div>
         </div>
-
 
       </div>
     </div>
+    
+    <!-- Grouped Specifications & Details Tabs -->
+    <div class="mt-5">
+      <ul class="nav nav-tabs" id="productTabs" role="tablist" style="border-bottom: 2px solid var(--rule);">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" style="font-weight:600; color:var(--ink); border:none; background:transparent;" id="specs-tab" data-bs-toggle="tab" data-bs-target="#specs" type="button" role="tab">Specifications</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" style="font-weight:600; color:var(--ink-light); border:none; background:transparent;" id="features-tab" data-bs-toggle="tab" data-bs-target="#features" type="button" role="tab">Features & Details</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" style="font-weight:600; color:var(--ink-light); border:none; background:transparent;" id="reviews-tab" data-bs-toggle="tab" data-bs-target="#reviews" type="button" role="tab">Customer Reviews (<%= product.ratings ? product.ratings.count : 0 %>)</button>
+        </li>
+      </ul>
+      
+      <div class="tab-content modern-card p-4 mt-4" id="productTabsContent">
+        <!-- Specs Tab -->
+        <div class="tab-pane fade show active" id="specs" role="tabpanel">
+          <div class="row">
+            <div class="col-md-6 mb-4">
+              <h5 style="color:var(--accent); font-family:var(--font-display);"><i class="bi bi-cpu"></i> General Information</h5>
+              <table class="spec-table mt-3">
+                <tbody>
+                  <tr><th>Brand</th><td><%= product.brand || 'Generic' %></td></tr>
+                  <tr><th>Model Number</th><td><%= (product.specifications && product.specifications.general) ? (product.specifications.general.get('modelNumber') || 'N/A') : 'N/A' %></td></tr>
+                  <tr><th>SKU</th><td><%= product.sku || 'N/A' %></td></tr>
+                  <tr><th>Country of Origin</th><td><%= (product.specifications && product.specifications.general) ? (product.specifications.general.get('countryOfOrigin') || 'N/A') : 'N/A' %></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="col-md-6 mb-4">
+              <h5 style="color:var(--accent); font-family:var(--font-display);"><i class="bi bi-lightning-charge"></i> Electrical Specifications</h5>
+              <table class="spec-table mt-3">
+                <tbody>
+                  <tr><th>Voltage</th><td><%= (product.specifications && product.specifications.electrical) ? (product.specifications.electrical.get('voltage') || 'N/A') : 'N/A' %></td></tr>
+                  <tr><th>Power/Wattage</th><td><%= (product.specifications && product.specifications.electrical) ? (product.specifications.electrical.get('wattage') || 'N/A') : 'N/A' %></td></tr>
+                  <tr><th>Current</th><td><%= (product.specifications && product.specifications.electrical) ? (product.specifications.electrical.get('current') || 'N/A') : 'N/A' %></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="col-md-6 mb-4">
+              <h5 style="color:var(--accent); font-family:var(--font-display);"><i class="bi bi-box"></i> Physical Dimensions</h5>
+              <table class="spec-table mt-3">
+                <tbody>
+                  <tr><th>Weight</th><td><%= (product.specifications && product.specifications.physical) ? (product.specifications.physical.get('weight') || 'N/A') : 'N/A' %></td></tr>
+                  <tr><th>Dimensions</th><td><%= (product.specifications && product.specifications.physical) ? (product.specifications.physical.get('dimensions') || 'N/A') : 'N/A' %></td></tr>
+                  <tr><th>Material</th><td><%= (product.specifications && product.specifications.physical) ? (product.specifications.physical.get('material') || 'N/A') : 'N/A' %></td></tr>
+                  <tr><th>Color</th><td><%= (product.specifications && product.specifications.physical) ? (product.specifications.physical.get('color') || 'N/A') : 'N/A' %></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="col-md-6 mb-4">
+              <h5 style="color:var(--accent); font-family:var(--font-display);"><i class="bi bi-shield-check"></i> Warranty & Support</h5>
+              <table class="spec-table mt-3">
+                <tbody>
+                  <tr><th>Warranty</th><td><%= (product.specifications && product.specifications.warranty) ? (product.specifications.warranty.get('duration') || 'N/A') : 'N/A' %></td></tr>
+                  <tr><th>Coverage</th><td><%= (product.specifications && product.specifications.warranty) ? (product.specifications.warranty.get('coverage') || 'N/A') : 'N/A' %></td></tr>
+                  <tr><th>Package Contents</th><td><%= (product.packageContents && product.packageContents.length > 0) ? product.packageContents.join(', ') : 'Unit, User Manual' %></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Features Tab -->
+        <div class="tab-pane fade" id="features" role="tabpanel">
+          <h5 style="color:var(--accent); font-family:var(--font-display); margin-bottom: 20px;">Key Features</h5>
+          <% if (product.features && product.features.length > 0) { %>
+            <ul style="list-style: none; padding-left:0;">
+              <% product.features.forEach(f => { %>
+                <li style="margin-bottom: 12px; display:flex; align-items:flex-start;">
+                  <i class="bi bi-check-circle-fill text-success me-2" style="margin-top:4px;"></i>
+                  <span><%= f %></span>
+                </li>
+              <% }) %>
+            </ul>
+          <% } else { %>
+            <p class="text-muted">No specific features listed.</p>
+          <% } %>
+          
+          <% if (product.video) { %>
+            <h5 style="color:var(--accent); font-family:var(--font-display); margin-top: 30px; margin-bottom: 20px;">Product Video</h5>
+            <div class="ratio ratio-16x9" style="max-width: 600px; border-radius: var(--radius); overflow:hidden;">
+              <iframe src="<%= product.video %>" title="Product Video" allowfullscreen></iframe>
+            </div>
+          <% } %>
+        </div>
+
+        <!-- Reviews Tab (Placeholder for React / AJAX Injection) -->
+        <div class="tab-pane fade" id="reviews" role="tabpanel">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 style="color:var(--accent); font-family:var(--font-display);">Verified Customer Reviews</h5>
+            <button class="btn btn-outline btn-sm" onclick="openReviewModal()">Write a Review</button>
+          </div>
+          <div id="reviews-container">
+            <div class="text-center py-5">
+               <div class="spinner-border text-secondary" role="status"><span class="sr-only">Loading...</span></div>
+               <p class="mt-3 text-muted">Loading verified reviews...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </section>
 
+<!-- Related Products / Accessories -->
+<% if (product.accessories && product.accessories.length > 0) { %>
+<section class="py-5" style="background: var(--white); border-top: 1px solid var(--rule);">
+  <div class="container">
+    <h3 style="font-family: var(--font-display); font-weight:700; color:var(--ink); margin-bottom:30px;">Frequently Bought Together</h3>
+    <div class="row row-cols-1 row-cols-md-4 g-4">
+      <% product.accessories.forEach(acc => { %>
+        <% if(acc.status !== 'Hidden' && acc.status !== 'Deleted') { %>
+        <div class="col">
+          <a href="/product/<%= acc.productId %>" class="text-decoration-none">
+            <div class="modern-card h-100 p-3 text-center">
+              <% if (acc.images && acc.images.length > 0) { %>
+                <img src="<%= acc.images[0] %>" loading="lazy" alt="<%= acc.name %>" style="max-height: 150px; object-fit: contain; margin-bottom: 15px;" />
+              <% } %>
+              <h6 style="color:var(--ink); font-weight:600;"><%= acc.name %></h6>
+              <div style="color:var(--accent); font-weight:700; font-size:1.1rem;">
+                ₹<%= acc.discountPrice || acc.price %>
+              </div>
+            </div>
+          </a>
+        </div>
+        <% } %>
+      <% }) %>
+    </div>
+  </div>
+</section>
+<% } %>
 
+<!-- Review Modal -->
+<div class="modal fade" id="reviewModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content glass-panel">
+      <div class="modal-header border-0">
+        <h5 class="modal-title" style="font-family:var(--font-display); font-weight:700;">Write a Review</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="reviewForm">
+          <div class="mb-3">
+            <label class="form-label">Rating</label>
+            <select class="form-select" id="reviewRating" required>
+              <option value="5">★★★★★ - Excellent</option>
+              <option value="4">★★★★☆ - Good</option>
+              <option value="3">★★★☆☆ - Average</option>
+              <option value="2">★★☆☆☆ - Poor</option>
+              <option value="1">★☆☆☆☆ - Terrible</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Review Headline</label>
+            <input type="text" class="form-control" id="reviewTitle" placeholder="What's most important to know?" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Written Review</label>
+            <textarea class="form-control" id="reviewText" rows="4" placeholder="What did you like or dislike?" required></textarea>
+          </div>
+          <button type="submit" class="btn btn-accent w-100">Submit Review</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  // Tab Switching logic for Bootstrap
+  document.addEventListener('DOMContentLoaded', () => {
+    const tabs = document.querySelectorAll('#productTabs button');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', function(e) {
+        e.preventDefault();
+        tabs.forEach(t => {
+          t.classList.remove('active');
+          t.style.color = 'var(--ink-light)';
+        });
+        this.classList.add('active');
+        this.style.color = 'var(--ink)';
+        
+        const targetId = this.getAttribute('data-bs-target');
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('show', 'active'));
+        document.querySelector(targetId).classList.add('show', 'active');
+      });
+    });
+
+    // Check wishlist
+    checkWishlist();
+    // Load reviews
+    loadReviews();
+  });
+
+  function changeMainImage(thumb, src) {
+    document.getElementById('main-image').src = src;
+    document.querySelectorAll('.gallery-thumb').forEach(t => t.classList.remove('active'));
+    thumb.classList.add('active');
+  }
+
+  async function checkWishlist() {
+    try {
+      const res = await fetch('/api/wishlist');
+      const data = await res.json();
+      if (data.success && data.wishlist) {
+        const inWishlist = data.wishlist.some(item => item.productId === '<%= product.productId %>');
+        if (inWishlist) {
+          const btn = document.getElementById('wishlist-btn');
+          btn.innerHTML = '<i class="bi bi-heart-fill"></i>';
+        }
+      }
+    } catch (e) {}
+  }
+
+  async function toggleWishlist(productId, btn) {
+    try {
+      btn.disabled = true;
+      const res = await fetch('/api/wishlist/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.action === 'added') {
+          btn.innerHTML = '<i class="bi bi-heart-fill"></i>';
+          showToast('Added to wishlist');
+        } else {
+          btn.innerHTML = '<i class="bi bi-heart"></i>';
+          showToast('Removed from wishlist');
+        }
+        const badge = document.getElementById('wishlist-badge');
+        if (badge) {
+          badge.innerText = data.count;
+          badge.style.display = data.count > 0 ? 'block' : 'none';
+        }
+      } else {
+        if (data.message === 'Unauthorized' || data.message.includes('Session expired')) {
+           window.location.href = '/login';
+        } else {
+           showToast('Failed to update wishlist');
+        }
+      }
+    } catch (e) {
+      showToast('Error updating wishlist');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function shareProduct() {
+    if (navigator.share) {
+      navigator.share({
+        title: '<%= product.name %>',
+        url: window.location.href
+      }).catch(console.error);
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      showToast('Link copied to clipboard');
+    }
+  }
+
+  function addToCompare(productId) {
+    let compareList = JSON.parse(localStorage.getItem('compareList') || '[]');
+    if (compareList.length >= 4) {
+      showToast('Maximum 4 products can be compared at a time.');
+      return;
+    }
+    if (!compareList.includes(productId)) {
+      compareList.push(productId);
+      localStorage.setItem('compareList', JSON.stringify(compareList));
+      showToast('Added to compare');
+    } else {
+      showToast('Already in comparison list');
+    }
+    // Provide a button to go to comparison page
+    const toast = document.createElement('div');
+    toast.innerHTML = `<div class="toast show align-items-center text-white bg-primary border-0" role="alert" style="position:fixed; bottom:20px; right:20px; z-index:9999;">
+      <div class="d-flex">
+        <div class="toast-body">Added to Compare. <a href="/compare" class="text-white fw-bold text-decoration-underline ms-2">View Comparison</a></div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 4000);
+  }
+
+  function openReviewModal() {
+    const modal = new bootstrap.Modal(document.getElementById('reviewModal'));
+    modal.show();
+  }
+
+  document.getElementById('reviewForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('button');
+    btn.disabled = true;
+    btn.innerText = 'Submitting...';
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: '<%= product._id %>', // internal Object ID required by Review schema
+          rating: document.getElementById('reviewRating').value,
+          title: document.getElementById('reviewTitle').value,
+          text: document.getElementById('reviewText').value
+        })
+      });
+      const data = await res.json();
+      if(data.success) {
+        showToast('Review submitted successfully!');
+        bootstrap.Modal.getInstance(document.getElementById('reviewModal')).hide();
+        loadReviews();
+      } else {
+        showToast(data.message || 'Failed to submit review');
+      }
+    } catch(err) {
+      showToast('Error submitting review');
+    }
+    btn.disabled = false;
+    btn.innerText = 'Submit Review';
+  });
+
+  async function loadReviews() {
+    try {
+      const res = await fetch('/api/reviews/<%= product._id %>');
+      const data = await res.json();
+      const container = document.getElementById('reviews-container');
+      if (data.success && data.reviews && data.reviews.length > 0) {
+        container.innerHTML = data.reviews.map(r => `
+          <div class="mb-4 pb-3 border-bottom">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <strong>${r.userName}</strong>
+                ${r.verifiedBuyer ? '<span class="badge bg-success ms-2" style="font-size:0.6rem;"><i class="bi bi-patch-check-fill"></i> Verified Buyer</span>' : ''}
+              </div>
+              <div style="color:var(--yellow); font-size:0.85rem;">
+                ${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}
+              </div>
+            </div>
+            <h6 class="mt-2 fw-bold" style="font-size:0.95rem;">${r.title}</h6>
+            <p class="text-muted" style="font-size:0.9rem;">${r.text}</p>
+            <div style="font-size:0.75rem; color:#aaa;">Reviewed on ${new Date(r.createdAt).toLocaleDateString()}</div>
+          </div>
+        `).join('');
+      } else {
+        container.innerHTML = '<div class="text-center py-4 text-muted"><i class="bi bi-chat-square-text" style="font-size:2rem;"></i><p class="mt-2">No reviews yet. Be the first to review this product!</p></div>';
+      }
+    } catch(err) {
+      document.getElementById('reviews-container').innerHTML = '<div class="text-danger py-4">Error loading reviews.</div>';
+    }
+  }
+</script>
 
 <%- include('partials/footer') %>

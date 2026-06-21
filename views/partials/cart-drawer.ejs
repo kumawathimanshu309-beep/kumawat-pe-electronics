@@ -171,6 +171,7 @@
 
 <script>
   let cart = [];
+  const isLoggedIn = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
 
   function toggleCartDrawer() {
     const drawer = document.getElementById('cartDrawer');
@@ -179,22 +180,53 @@
     overlay.classList.toggle('show');
   }
 
-  function loadCart() {
-    const saved = localStorage.getItem('kumawat_cart');
-    if (saved) {
+  async function loadCart() {
+    if (isLoggedIn) {
+      const localCartStr = localStorage.getItem('kumawat_cart');
+      if (localCartStr) {
+        try {
+          const localCart = JSON.parse(localCartStr);
+          if (localCart.length > 0) {
+            await fetch('/api/cart/sync', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ cart: localCart })
+            });
+            localStorage.removeItem('kumawat_cart');
+          }
+        } catch(e){}
+      }
+      
       try {
-        cart = JSON.parse(saved);
-      } catch (e) {
-        cart = [];
+        const res = await fetch('/api/cart');
+        const data = await res.json();
+        if (data.success) cart = data.cart;
+      } catch (e) { console.error(e); }
+    } else {
+      const saved = localStorage.getItem('kumawat_cart');
+      if (saved) {
+        try { cart = JSON.parse(saved); } catch (e) { cart = []; }
       }
     }
     updateCartUI();
   }
 
-  function saveCart() {
-    localStorage.setItem('kumawat_cart', JSON.stringify(cart));
+  async function saveCart() {
+    if (isLoggedIn) {
+      try {
+        await fetch('/api/cart/overwrite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cart })
+        });
+      } catch (e) { console.error(e); }
+    } else {
+      localStorage.setItem('kumawat_cart', JSON.stringify(cart));
+    }
     updateCartUI();
   }
+
+  window.addEventListener('DOMContentLoaded', loadCart);
 
   function addToCart(escapedName, price, originalPrice, image, sku, category) {
     let item;
@@ -231,19 +263,41 @@
     window.location.href = '/checkout';
   }
 
-  function removeFromCart(name) {
+  async function removeFromCart(name) {
     cart = cart.filter(item => item.name !== name);
-    saveCart();
+    if (isLoggedIn) {
+      try {
+        await fetch('/api/cart/remove', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId: name }) // using name as identifier fallback
+        });
+      } catch (e) { console.error(e); }
+    } else {
+      localStorage.setItem('kumawat_cart', JSON.stringify(cart));
+    }
+    updateCartUI();
   }
 
-  function adjustQty(name, amount) {
+  async function adjustQty(name, amount) {
     const item = cart.find(item => item.name === name);
     if (item) {
       item.quantity += amount;
       if (item.quantity <= 0) {
-        removeFromCart(name);
+        await removeFromCart(name);
       } else {
-        saveCart();
+        if (isLoggedIn) {
+          try {
+            await fetch('/api/cart/update', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ productId: name, quantity: item.quantity })
+            });
+          } catch (e) { console.error(e); }
+        } else {
+          localStorage.setItem('kumawat_cart', JSON.stringify(cart));
+        }
+        updateCartUI();
       }
     }
   }

@@ -7,8 +7,8 @@ const PaymentRecordSchema = new mongoose.Schema({
     unique: true
   },
   orderId: {
-    type: String,
-    required: true
+    type: String, // Optional initially if order isn't created yet
+    default: ''
   },
   userId: {
     type: String,
@@ -16,16 +16,22 @@ const PaymentRecordSchema = new mongoose.Schema({
   },
   method: {
     type: String,
-    enum: ['Cash On Delivery', 'Google Pay', 'PhonePe', 'Paytm', 'Instant UPI QR Scan', 'Debit Card', 'Net Banking'],
+    enum: ['Cash On Delivery', 'Cash', 'COD', 'Google Pay', 'PhonePe', 'Paytm', 'Instant UPI QR Scan', 'UPI', 'Debit Card', 'Net Banking', 'Razorpay'],
     required: true
   },
   razorpayOrderId: {
     type: String,
-    default: ''
+    default: '',
+    sparse: true // Allows multiple empty strings while maintaining uniqueness for real IDs
   },
   razorpayPaymentId: {
     type: String,
-    default: ''
+    default: '',
+    sparse: true
+  },
+  receipt: {
+    type: String,
+    sparse: true
   },
   amount: {
     type: Number,
@@ -33,13 +39,41 @@ const PaymentRecordSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Pending', 'Completed', 'Failed'],
+    enum: ['Pending', 'Paid', 'Failed', 'Cancelled', 'Refunded', 'COD Pending', 'COD Completed'],
     default: 'Pending'
   },
   transactionTime: {
     type: Date,
     default: Date.now
+  },
+  refundId: {
+    type: String,
+    default: ''
+  },
+  refundAmount: {
+    type: Number,
+    default: 0
+  },
+  refundReason: {
+    type: String,
+    default: ''
+  },
+  refundStatus: {
+    type: String,
+    enum: ['None', 'Requested', 'Approved', 'Rejected'],
+    default: 'None'
+  },
+  refundDate: {
+    type: Date
+  },
+  expiresAt: {
+    type: Date
+  },
+  cartSnapshot: {
+    type: Array,
+    default: []
   }
 });
 
+// Removed duplicate index declarations. Mongoose already creates these from the schema configuration.
 module.exports = mongoose.model('PaymentRecord', PaymentRecordSchema);

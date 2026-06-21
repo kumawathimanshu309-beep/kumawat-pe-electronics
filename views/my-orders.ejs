@@ -37,15 +37,32 @@
                   <div style="font-size: 0.85rem; color: var(--ink-light); margin-bottom: 4px;">Total Amount</div>
                   <div style="font-size: 1.25rem; font-weight: 700; color: var(--accent); margin-bottom: 10px;">₹<%= order.totalAmount %></div>
                   
+                  <div class="d-flex justify-content-end align-items-center gap-2 mb-2">
+                    <div style="padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; background: #e2e3e5; color: #383d41;">
+                      <i class="bi bi-wallet2"></i> <%= order.paymentRecordId ? order.paymentRecordId.method : 'Unknown' %>
+                    </div>
+                    <div style="padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; 
+                      <%= (order.paymentRecordId && order.paymentRecordId.status === 'Paid') ? 'background: #d4edda; color: #155724;' : 
+                          (order.paymentRecordId && (order.paymentRecordId.status === 'Failed' || order.paymentRecordId.status === 'Cancelled')) ? 'background: #f8d7da; color: #721c24;' : 
+                          'background: #fff3cd; color: #856404;' %>">
+                      <%= order.paymentRecordId ? order.paymentRecordId.status : 'Pending' %>
+                    </div>
+                  </div>
+
                   <div style="display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; 
                     <%= order.deliveryStatus === 'Delivered' ? 'background: #d4edda; color: #155724;' : 
                         order.deliveryStatus === 'Cancelled' ? 'background: #f8d7da; color: #721c24;' : 
-                        'background: #fff3cd; color: #856404;' %>">
-                    <%= order.deliveryStatus %>
+                        'background: #cce5ff; color: #004085;' %>">
+                    <i class="bi bi-truck"></i> <%= order.deliveryStatus %>
                   </div>
                 </div>
               </div>
             </div>
+            <% if(order.paymentRecordId && order.paymentRecordId.status === 'Failed') { %>
+            <div class="card-footer bg-white text-end border-top-0 pt-0">
+               <button class="btn btn-sm btn-outline-danger" onclick="retryPayment('<%= order.paymentRecordId.paymentId %>')">Retry Payment</button>
+            </div>
+            <% } %>
           </div>
         <% }) %>
       <% } else { %>
@@ -67,6 +84,14 @@
     // Refresh page if status updates
     window.location.reload();
   });
+
+  function retryPayment(paymentId) {
+    // Ideally we redirect to a payment retry page, or redirect to checkout with a query parameter.
+    // Let's store the paymentId in localStorage and redirect to checkout
+    window.currentPaymentId = paymentId;
+    alert("This will direct you back to checkout to retry your payment.");
+    window.location.href = '/checkout?retry=' + paymentId;
+  }
 </script>
 
 <%- include('partials/footer') %>

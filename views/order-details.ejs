@@ -1,12 +1,112 @@
 <%- include('partials/header', { title: 'Order Details | Kumawat P&E', activePage: 'dashboard' }) %>
 
 <div class="container" style="padding: 60px 24px;">
-  <div class="mb-4">
+  <div class="mb-4 d-flex justify-content-between align-items-center">
     <a href="/my-orders" class="btn btn-outline btn-sm"><i class="bi bi-arrow-left"></i> Back to Orders</a>
+    <a href="/invoice/<%= order.orderId %>?print=true" target="_blank" class="btn btn-outline btn-sm"><i class="bi bi-printer"></i> Print Invoice</a>
   </div>
 
+<style>
+  .track-stepper {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    padding: 0;
+    margin: 30px 0;
+    list-style: none;
+  }
+  .track-step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+  }
+  .track-step::before {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: -50%;
+    width: 100%;
+    height: 4px;
+    background: var(--rule);
+    z-index: 0;
+  }
+  .track-step:first-child::before {
+    display: none;
+  }
+  .track-step.active::before,
+  .track-step.completed::before {
+    background: #25D366; /* Green for success */
+  }
+  .track-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--rule);
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px;
+    position: relative;
+    z-index: 1;
+    border: 3px solid #fff;
+  }
+  .track-step.completed .track-icon,
+  .track-step.active .track-icon {
+    background: #25D366;
+    color: #fff;
+  }
+  .track-text {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #6c757d;
+  }
+  .track-step.active .track-text,
+  .track-step.completed .track-text {
+    color: var(--ink);
+  }
+</style>
+
   <div class="row">
-    <div class="col-lg-8">
+    <div class="col-12 mb-4">
+      <div class="card" style="border: 1px solid var(--rule); border-radius: 12px;">
+        <div class="card-body" style="padding: 30px;">
+          <h5 style="font-family: var(--font-display); font-weight: 700;">Delivery Tracking</h5>
+          
+          <% 
+            const statuses = ['Pending', 'Confirmed', 'Packed', 'Shipped', 'Out For Delivery', 'Delivered'];
+            let currentIdx = statuses.indexOf(order.deliveryStatus);
+            if (currentIdx === -1) currentIdx = 0; // fallback
+          %>
+          
+          <% if (order.deliveryStatus === 'Cancelled') { %>
+            <div class="alert alert-danger text-center mt-3" style="font-weight: 600;">
+              <i class="bi bi-x-circle-fill me-2"></i> This order was Cancelled.
+            </div>
+          <% } else { %>
+            <ul class="track-stepper">
+              <% statuses.forEach((st, idx) => { 
+                let stepClass = '';
+                if (idx < currentIdx) stepClass = 'completed';
+                else if (idx === currentIdx) stepClass = 'active';
+              %>
+                <li class="track-step <%= stepClass %>">
+                  <div class="track-icon">
+                    <% if (idx < currentIdx || (idx === currentIdx && st === 'Delivered')) { %>
+                      <i class="bi bi-check-lg"></i>
+                    <% } else { %>
+                      <%= idx + 1 %>
+                    <% } %>
+                  </div>
+                  <div class="track-text"><%= st %></div>
+                </li>
+              <% }) %>
+            </ul>
+          <% } %>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-12">
       <div class="card mb-4" style="border: 1px solid var(--rule); border-radius: 12px; overflow: hidden;">
         <div class="card-header bg-light d-flex justify-content-between align-items-center" style="padding: 16px 20px; border-bottom: 1px solid var(--rule);">
           <h4 style="margin: 0; font-family: var(--font-display); font-weight: 700; color: var(--ink);">Order #<%= order.orderId %></h4>
@@ -17,15 +117,22 @@
           <div class="row mb-4">
             <div class="col-md-6 mb-3 mb-md-0">
               <h6 style="color: var(--ink-light); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Delivery Address</h6>
-              <% if (typeof order.deliveryAddress === 'object' && order.deliveryAddress !== null) { %>
-                <p style="margin: 0; font-size: 0.95rem; color: var(--ink);">
-                  <strong><%= order.deliveryAddress.fullName %></strong> (<%= order.deliveryAddress.mobile %>)<br>
-                  <%= order.deliveryAddress.house %>, <%= order.deliveryAddress.street %><br>
-                  <%= order.deliveryAddress.landmark ? order.deliveryAddress.landmark + ', ' : '' %><%= order.deliveryAddress.city %>, <%= order.deliveryAddress.state %> - <%= order.deliveryAddress.pincode %>
-                </p>
-              <% } else { %>
-                <p style="margin: 0; font-size: 0.95rem; color: var(--ink); white-space: pre-wrap;"><%= order.deliveryAddress %></p>
-              <% } %>
+              <%
+                let addressStr = "Address Not Available";
+                if (typeof order.deliveryAddress === 'object' && order.deliveryAddress !== null) {
+                  addressStr = `${order.deliveryAddress.house || ''}, ${order.deliveryAddress.street || ''}\n${order.deliveryAddress.city || ''}, ${order.deliveryAddress.state || ''} - ${order.deliveryAddress.pincode || ''}`;
+                } else if (typeof order.deliveryAddress === 'string' && order.deliveryAddress.trim() !== '') {
+                  try {
+                    const parsed = JSON.parse(order.deliveryAddress);
+                    addressStr = `${parsed.house || ''}, ${parsed.street || ''}\n${parsed.city || ''}, ${parsed.state || ''} - ${parsed.pincode || ''}`;
+                  } catch (e) {
+                    addressStr = order.deliveryAddress;
+                  }
+                }
+              %>
+              <p style="margin: 0; font-size: 0.95rem; color: var(--ink); white-space: pre-wrap;">
+                <%= addressStr %>
+              </p>
             </div>
             <div class="col-md-6">
               <h6 style="color: var(--ink-light); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Payment Information</h6>
@@ -90,42 +197,6 @@
       </div>
     </div>
 
-    <!-- Timeline Tracking -->
-    <div class="col-lg-4">
-      <div class="card" style="border: 1px solid var(--rule); border-radius: 12px; overflow: hidden; position: sticky; top: 100px;">
-        <div class="card-header bg-light" style="padding: 16px 20px; border-bottom: 1px solid var(--rule);">
-          <h4 style="margin: 0; font-family: var(--font-display); font-weight: 700; color: var(--ink);">Order Status</h4>
-        </div>
-        <div class="card-body" style="padding: 24px;">
-          
-          <div style="font-size: 1.1rem; font-weight: 700; text-align: center; margin-bottom: 25px; padding: 10px; border-radius: 8px;
-            <%= order.deliveryStatus === 'Delivered' ? 'background: #d4edda; color: #155724;' : 
-                order.deliveryStatus === 'Cancelled' ? 'background: #f8d7da; color: #721c24;' : 
-                'background: #e2f3f5; color: var(--accent);' %>">
-            <%= order.deliveryStatus %>
-          </div>
-
-          <div class="timeline" style="border-left: 2px solid var(--rule); margin-left: 10px; padding-left: 20px;">
-            <% if (delivery && delivery.statusLogs) { %>
-              <% delivery.statusLogs.slice().reverse().forEach((log, index) => { %>
-                <div style="margin-bottom: 20px; position: relative;">
-                  <div style="position: absolute; left: -26px; top: 0; width: 10px; height: 10px; border-radius: 50%; background: <%= index === 0 ? 'var(--accent)' : 'var(--rule)' %>;"></div>
-                  <div style="font-weight: 600; font-size: 0.95rem; color: <%= index === 0 ? 'var(--ink)' : 'var(--ink-light)' %>;"><%= log.status %></div>
-                  <div style="font-size: 0.8rem; color: var(--ink-light); margin-top: 4px;"><%= log.remarks %></div>
-                  <div style="font-size: 0.75rem; color: #aaa; margin-top: 2px;"><%= new Date(log.updatedAt || Date.now()).toLocaleString() %></div>
-                </div>
-              <% }) %>
-            <% } else { %>
-              <div style="margin-bottom: 20px; position: relative;">
-                <div style="position: absolute; left: -26px; top: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--accent);"></div>
-                <div style="font-weight: 600; font-size: 0.95rem; color: var(--ink);">Pending</div>
-                <div style="font-size: 0.8rem; color: var(--ink-light); margin-top: 4px;">Order placed, awaiting confirmation.</div>
-              </div>
-            <% } %>
-          </div>
-
-        </div>
-      </div>
     </div>
   </div>
 </div>
@@ -133,7 +204,7 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
   const socket = io();
-  socket.on('order_status_update', (data) => {
+  socket.on('order_status_updated', (data) => {
     if (data.orderId === '<%= order.orderId %>') {
       window.location.reload();
     }

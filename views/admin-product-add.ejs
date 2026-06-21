@@ -91,8 +91,55 @@
             </div>
           </div>
 
-          <div class="field mb-4">
-            <label>Description [Optional]</label>
+          <h5 class="mt-4 mb-3" style="font-family:var(--font-display); color:var(--accent); border-bottom:1px solid var(--rule); padding-bottom:10px;">Premium Electronics Specifications</h5>
+
+          <div class="row mb-3">
+            <div class="col-md-4 field">
+              <label>Video URL [Optional]</label>
+              <input type="url" name="video" class="form-control" placeholder="https://youtube.com/embed/..." />
+            </div>
+            <div class="col-md-4 field">
+              <label>Badges (Comma separated)</label>
+              <input type="text" name="badges" class="form-control" placeholder="e.g. New Arrival, Best Seller" />
+            </div>
+            <div class="col-md-4 field">
+              <label>Accessories (Comma separated Product IDs)</label>
+              <input type="text" name="accessories" class="form-control" placeholder="ID1, ID2..." />
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6 field">
+              <label>Key Features (Comma separated)</label>
+              <textarea name="features" class="form-control" rows="2" placeholder="e.g. Energy Efficient, 5 Star Rated..."></textarea>
+            </div>
+            <div class="col-md-6 field">
+              <label>Package Contents</label>
+              <textarea name="packageContents" class="form-control" rows="2" placeholder="e.g. Main Unit, Power Cable, User Manual..."></textarea>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-3 field">
+              <label>Warranty Duration</label>
+              <input type="text" name="spec_warranty" class="form-control" placeholder="e.g. 1 Year" />
+            </div>
+            <div class="col-md-3 field">
+              <label>Voltage</label>
+              <input type="text" name="spec_voltage" class="form-control" placeholder="e.g. 220V - 240V" />
+            </div>
+            <div class="col-md-3 field">
+              <label>Power/Wattage</label>
+              <input type="text" name="spec_wattage" class="form-control" placeholder="e.g. 1200W" />
+            </div>
+            <div class="col-md-3 field">
+              <label>Physical Weight</label>
+              <input type="text" name="spec_weight" class="form-control" placeholder="e.g. 2.5 kg" />
+            </div>
+          </div>
+
+          <div class="field mb-4 mt-4">
+            <label>Product Description [Optional]</label>
             <textarea name="description" class="form-control" rows="4"></textarea>
           </div>
 

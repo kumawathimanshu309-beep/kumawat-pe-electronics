@@ -1,102 +1,99 @@
 <%- include('partials/header') %>
 
-<section class="hero-section" style="padding-top: 100px; padding-bottom: 50px; background: var(--bg-dark); color: var(--white);">
-  <div class="container text-center">
-    <h1 style="font-family: var(--font-display); font-size: 2.5rem; margin-bottom: 10px;">Store &amp; Inventory</h1>
-    <p style="color: rgba(255,255,255,0.7); font-size: 1.1rem;">Buy spare parts, tools, and accessories directly.</p>
+<section class="hero-section" style="padding-top: 100px; padding-bottom: 50px; background: var(--bg-dark); color: var(--white); position: relative; overflow: hidden;">
+  <div class="container text-center position-relative" style="z-index: 2;">
+    <h1 style="font-family: var(--font-display); font-size: 3rem; margin-bottom: 10px; font-weight:700;">Premium Electronics Store</h1>
+    <p style="color: rgba(255,255,255,0.8); font-size: 1.1rem; max-width: 600px; margin: 0 auto;">Discover the finest selection of authentic electrical accessories, tools, and smart appliances.</p>
   </div>
+  <div class="blueprint-dark-bg" style="position:absolute; top:0; left:0; right:0; bottom:0; z-index: 1;"></div>
 </section>
 
 <section class="py-5" style="background: var(--bg);">
-  <div class="container">
-    <% if (products.length === 0) { %>
-      <div class="text-center py-5" style="min-height: 50vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-        <i class="bi bi-shop text-muted" style="font-size: 5rem; margin-bottom: 20px;"></i>
-        <h2 style="font-family: var(--font-display); font-weight: 700;">Store Coming Soon</h2>
-        <p class="text-muted" style="font-size: 1.1rem; max-width: 500px; margin: 0 auto;">We are currently setting up our inventory. Please check back later for high-quality plumbing and electrical parts.</p>
-      </div>
-    <% } else { %>
-    <div class="row">
-      <!-- SIDEBAR FILTERS -->
-      <div class="col-lg-3 mb-4">
-        <div class="card p-4" style="position: sticky; top: 100px;">
-          <h4 style="font-family: var(--font-display); font-size: 1.1rem; margin-bottom: 20px;">Filters</h4>
-          
-          <div class="mb-4">
-            <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">Search Products</label>
-            <input type="text" id="store-search" class="form-control" placeholder="Search by name..." onkeyup="filterStore()" />
-          </div>
-
-          <div class="mb-4">
-            <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">Categories</label>
-            <div class="d-flex flex-column gap-2" id="category-filters">
-              <label><input type="checkbox" value="Plumbing" onchange="filterStore()"> Plumbing</label>
-              <label><input type="checkbox" value="Electrical" onchange="filterStore()"> Electrical</label>
-              <label><input type="checkbox" value="AC & Appliances" onchange="filterStore()"> AC & Appliances</label>
-              <label><input type="checkbox" value="Motors & Pumps" onchange="filterStore()"> Motors & Pumps</label>
-              <label><input type="checkbox" value="Tools" onchange="filterStore()"> Tools</label>
-              <label><input type="checkbox" value="Spare Parts" onchange="filterStore()"> Spare Parts</label>
-            </div>
+  <div class="store-layout">
+    
+    <!-- LEFT SIDEBAR FILTERS -->
+    <aside class="store-sidebar">
+      <div class="modern-card p-4">
+        
+        <div class="filter-group">
+          <h5>Search</h5>
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+            <input type="text" id="store-search" class="form-control border-start-0 ps-0" placeholder="Keywords, SKU..." style="font-size: 0.9rem;" />
           </div>
         </div>
+
+        <div class="filter-group">
+          <h5>Category</h5>
+          <label class="custom-checkbox"><input type="checkbox" value="AC & Appliances" class="cat-filter"> AC & Appliances</label>
+          <label class="custom-checkbox"><input type="checkbox" value="Electrical" class="cat-filter"> Electrical Fittings</label>
+          <label class="custom-checkbox"><input type="checkbox" value="Plumbing" class="cat-filter"> Plumbing</label>
+          <label class="custom-checkbox"><input type="checkbox" value="Motors & Pumps" class="cat-filter"> Motors & Pumps</label>
+          <label class="custom-checkbox"><input type="checkbox" value="Tools" class="cat-filter"> Tools & Equipment</label>
+          <label class="custom-checkbox"><input type="checkbox" value="Spare Parts" class="cat-filter"> Spare Parts</label>
+        </div>
+
+        <div class="filter-group">
+          <h5>Brand</h5>
+          <label class="custom-checkbox"><input type="checkbox" value="Havells" class="brand-filter"> Havells</label>
+          <label class="custom-checkbox"><input type="checkbox" value="Anchor" class="brand-filter"> Anchor</label>
+          <label class="custom-checkbox"><input type="checkbox" value="Polycab" class="brand-filter"> Polycab</label>
+          <label class="custom-checkbox"><input type="checkbox" value="Crompton" class="brand-filter"> Crompton</label>
+          <label class="custom-checkbox"><input type="checkbox" value="Legrand" class="brand-filter"> Legrand</label>
+        </div>
+
+        <div class="filter-group">
+          <h5>Price Range</h5>
+          <div class="d-flex gap-2 align-items-center">
+            <input type="number" id="minPrice" class="form-control form-control-sm" placeholder="Min ₹" />
+            <span class="text-muted">-</span>
+            <input type="number" id="maxPrice" class="form-control form-control-sm" placeholder="Max ₹" />
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <h5>Availability</h5>
+          <label class="custom-checkbox"><input type="checkbox" value="In Stock" id="inStockFilter"> In Stock Only</label>
+        </div>
+
+        <button class="btn btn-outline w-100 mt-2" style="border-radius: 8px;" onclick="resetFilters()">Reset All Filters</button>
+      </div>
+    </aside>
+
+    <!-- RIGHT MAIN CONTENT -->
+    <main class="store-main">
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 p-3 modern-card bg-white" style="border-radius: 12px;">
+        <div id="results-count" style="font-size: 0.95rem; font-weight:700; color: var(--ink);">Loading...</div>
+        <div class="d-flex gap-3 align-items-center">
+          <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline btn-sm active" id="view-grid" onclick="setViewMode('grid')"><i class="bi bi-grid-fill"></i></button>
+            <button type="button" class="btn btn-outline btn-sm" id="view-list" onclick="setViewMode('list')"><i class="bi bi-list-task"></i></button>
+          </div>
+          <select id="sort-select" class="form-select form-select-sm" style="width: auto; cursor:pointer; border-radius: 8px; font-weight: 600; color: var(--ink-light);">
+            <option value="newest">Newest First</option>
+            <option value="price_asc">Price: Low to High</option>
+            <option value="price_desc">Price: High to Low</option>
+            <option value="rating_desc">Highest Rated</option>
+          </select>
+        </div>
       </div>
 
-      <!-- PRODUCT GRID -->
-      <div class="col-lg-9 mb-4">
-        <div class="row g-4" id="store-products-grid">
-          <% products.forEach(p => { %>
-            <div class="col-md-6 store-item-card" data-category="<%= p.category %>" data-name="<%= p.name.toLowerCase() %>">
-              <div class="card h-100" style="border: 1px solid var(--rule); border-radius: var(--radius); overflow: hidden; cursor: pointer;" onclick="window.location.href='/product/<%= p.productId %>'">
-                <% if (p.images && p.images.length > 0) { %>
-                  <img src="<%= p.images[0] %>" style="width: 100%; height: 200px; object-fit: cover;" alt="<%= p.name %>" />
-                <% } else { %>
-                  <div style="width: 100%; height: 200px; background: #eee; display: flex; align-items: center; justify-content: center;">
-                    <i class="bi bi-image text-muted" style="font-size: 2rem;"></i>
-                  </div>
-                <% } %>
-                
-                <div class="p-3 d-flex flex-column" style="flex: 1;">
-                  <div class="d-flex justify-content-between align-items-start mb-2">
-                    <span class="badge bg-light text-dark" style="font-size: 0.7rem;"><%= p.category %></span>
-                    <% if (p.stock <= 0 || p.status === 'Out Of Stock') { %>
-                      <span class="badge bg-danger">Out of Stock</span>
-                    <% } else if (p.stock <= 5) { %>
-                      <span class="badge bg-warning text-dark">Only <%= p.stock %> left</span>
-                    <% } else { %>
-                      <span class="badge bg-success">In Stock</span>
-                    <% } %>
-                  </div>
-                  <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 8px;"><%= p.name %></h3>
-                  
-                  <div class="d-flex justify-content-between align-items-center mt-auto pt-3">
-                    <div>
-                      <% if (p.discountPrice) { %>
-                        <div style="text-decoration:line-through; color:#999; font-size:0.8rem;">₹<%= p.price %></div>
-                        <strong style="color:var(--accent); font-size:1.1rem;">₹<%= p.discountPrice %></strong>
-                      <% } else { %>
-                        <strong style="font-size:1.1rem;">₹<%= p.price %></strong>
-                      <% } %>
-                    </div>
-                    
-                    <% if (p.stock > 0 && p.status !== 'Out Of Stock') { %>
-                      <div class="d-flex gap-2 w-100">
-                        <button class="btn btn-outline btn-sm w-50" onclick="event.stopPropagation(); addToCart('<%= escape(p.name) %>', <%= p.discountPrice || p.price %>, <%= p.price %>, '<%= p.images && p.images.length ? p.images[0] : '' %>', '<%= p.sku || '' %>', '<%= p.category || '' %>')">Add <i class="bi bi-cart-plus"></i></button>
-                        <button class="btn btn-accent btn-sm w-50" onclick="event.stopPropagation(); buyNowDirect({name: '<%= escape(p.name) %>', price: <%= p.discountPrice || p.price %>, originalPrice: <%= p.price %>, image: '<%= p.images && p.images.length ? p.images[0] : '' %>', sku: '<%= p.sku || '' %>', category: '<%= p.category || '' %>', type: 'product'})"><i class="bi bi-cart-check"></i> Buy Now</button>
-                      </div>
-                    <% } else { %>
-                      <button class="btn btn-outline btn-sm disabled" disabled>Sold Out</button>
-                    <% } %>
-                  </div>
-                </div>
-              </div>
-            </div>
-          <% }) %>
-        </div>
+      <div class="row g-4 justify-content-center" id="store-products-grid">
+        <!-- Dynamic Products -->
       </div>
-        </div>
+
+      <div class="text-center mt-5" id="load-more-container" style="display: none;">
+        <button class="btn btn-outline px-5 py-2 fw-bold" id="load-more-btn" style="border-radius:20px;">Load More Products</button>
       </div>
-    </div>
-    <% } %>
+      
+      <div id="no-results" class="text-center py-5 d-none modern-card" style="min-height: 40vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <i class="bi bi-search text-muted" style="font-size: 4rem; margin-bottom: 15px;"></i>
+        <h4 style="font-family: var(--font-display); font-weight: 700;">No products found</h4>
+        <p class="text-muted">Try adjusting your search or filter criteria.</p>
+        <button class="btn btn-accent mt-3" onclick="resetFilters()">Clear All Filters</button>
+      </div>
+    </main>
+
   </div>
 </section>
 
@@ -104,36 +101,335 @@
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
-  function filterStore() {
-    const query = document.getElementById('store-search').value.toLowerCase();
-    
-    const checkboxes = Array.from(document.querySelectorAll('#category-filters input:checked'));
-    const selectedCats = checkboxes.map(cb => cb.value);
-    
-    document.querySelectorAll('.store-item-card').forEach(card => {
-      const name = card.dataset.name;
-      const cat = card.dataset.category;
-      
-      const matchSearch = !query || name.includes(query);
-      const matchCat = selectedCats.length === 0 || selectedCats.includes(cat);
-      
-      if (matchSearch && matchCat) {
-        card.style.display = 'block';
-      } else {
-        card.style.display = 'none';
-      }
-    });
+  let currentPage = 1;
+  const limit = 12;
+  let isLoading = false;
+  let hasMore = true;
+  let userWishlist = [];
+  let currentView = 'grid';
+  let compareList = JSON.parse(localStorage.getItem('compareList') || '[]');
+
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => { clearTimeout(timeout); func(...args); };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
   }
 
-  // Removed loadCart logic, handled by shared cart-drawer.ejs
-  // Real-time socket io
+  function setViewMode(mode) {
+    currentView = mode;
+    document.getElementById('view-grid').classList.toggle('active', mode === 'grid');
+    document.getElementById('view-grid').classList.toggle('btn-accent', mode === 'grid');
+    document.getElementById('view-list').classList.toggle('active', mode === 'list');
+    document.getElementById('view-list').classList.toggle('btn-accent', mode === 'list');
+    loadProducts(false, true); 
+  }
+
+  async function fetchUserWishlist() {
+    try {
+      const res = await fetch('/api/wishlist');
+      const data = await res.json();
+      if (data.success && data.wishlist) {
+        userWishlist = data.wishlist.map(w => w.productId);
+      }
+    } catch(e) {}
+  }
+
+  function toggleCompare(productId, event) {
+    event.stopPropagation();
+    let idx = compareList.indexOf(productId);
+    if(idx > -1) {
+      compareList.splice(idx, 1);
+      showToast('Removed from compare');
+    } else {
+      if(compareList.length >= 4) {
+        showToast('You can only compare up to 4 items.');
+        return;
+      }
+      compareList.push(productId);
+      showToast('Added to compare');
+    }
+    localStorage.setItem('compareList', JSON.stringify(compareList));
+    loadProducts(false, true);
+  }
+
+  function generateSkeleton() {
+    let html = '';
+    const count = currentView === 'grid' ? 8 : 4;
+    for(let i=0; i<count; i++) {
+      if (currentView === 'grid') {
+        html += `
+          <div class="col-12 col-md-6 col-lg-4 col-xl-3">
+            <div class="product-card-premium">
+              <div class="product-card-img"><div class="skeleton w-100 h-100"></div></div>
+              <div class="product-card-body">
+                <div class="skeleton mb-2" style="width:40%; height:12px;"></div>
+                <div class="skeleton mb-3" style="width:90%; height:18px;"></div>
+                <div class="skeleton mb-4" style="width:60%; height:12px;"></div>
+                <div class="d-flex justify-content-between mt-auto">
+                  <div class="skeleton" style="width:40%; height:24px;"></div>
+                  <div class="skeleton" style="width:30%; height:24px;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="col-12">
+            <div class="product-card-premium product-card-list">
+              <div class="product-card-img"><div class="skeleton w-100 h-100"></div></div>
+              <div class="product-card-body w-100">
+                <div class="skeleton mb-2" style="width:20%; height:14px;"></div>
+                <div class="skeleton mb-3" style="width:60%; height:22px;"></div>
+                <div class="skeleton mb-4" style="width:80%; height:14px;"></div>
+                <div class="d-flex gap-3 mt-auto">
+                  <div class="skeleton" style="width:120px; height:35px;"></div>
+                  <div class="skeleton" style="width:120px; height:35px;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+    return html;
+  }
+
+  let cachedProducts = [];
+
+  async function loadProducts(append = false, fromCache = false) {
+    if (isLoading && !fromCache) return;
+    isLoading = true;
+
+    const grid = document.getElementById('store-products-grid');
+    if (!append && !fromCache) {
+      grid.innerHTML = generateSkeleton();
+    }
+
+    if (!fromCache) {
+      const search = document.getElementById('store-search').value;
+      const categories = Array.from(document.querySelectorAll('.cat-filter:checked')).map(cb => cb.value);
+      const brands = Array.from(document.querySelectorAll('.brand-filter:checked')).map(cb => cb.value);
+      const minPrice = document.getElementById('minPrice').value;
+      const maxPrice = document.getElementById('maxPrice').value;
+      const sort = document.getElementById('sort-select').value;
+      const inStock = document.getElementById('inStockFilter').checked;
+
+      if (!append) currentPage = 1;
+
+      const params = new URLSearchParams({
+        page: currentPage,
+        limit,
+        search,
+        categories: categories.join(','),
+        brands: brands.join(','),
+        minPrice,
+        maxPrice,
+        sort,
+        inStock: inStock ? 'true' : 'false'
+      });
+
+      try {
+        const res = await fetch('/api/store/products?' + params.toString());
+        const data = await res.json();
+
+        if (data.success) {
+          document.getElementById('results-count').innerText = `Showing ${data.products.length} of ${data.pagination.total} products`;
+
+          if (data.pagination.total === 0) {
+            document.getElementById('no-results').classList.remove('d-none');
+            document.getElementById('load-more-container').style.display = 'none';
+            grid.innerHTML = '';
+            cachedProducts = [];
+            isLoading = false;
+            return;
+          } else {
+            document.getElementById('no-results').classList.add('d-none');
+            hasMore = currentPage < data.pagination.pages;
+            document.getElementById('load-more-container').style.display = hasMore ? 'block' : 'none';
+            
+            if (append) {
+              cachedProducts = cachedProducts.concat(data.products);
+            } else {
+              cachedProducts = data.products;
+            }
+          }
+        }
+      } catch(e) {
+        console.error(e);
+        document.getElementById('results-count').innerText = 'Error loading products.';
+        grid.innerHTML = '';
+        isLoading = false;
+        return;
+      }
+    }
+
+    const html = cachedProducts.map(p => {
+      const isWishlisted = userWishlist.includes(p.productId);
+      const isCompared = compareList.includes(p.productId);
+      const heartClass = isWishlisted ? 'bi-heart-fill text-accent' : 'bi-heart';
+      const compareClass = isCompared ? 'bi-bar-chart-fill text-accent' : 'bi-bar-chart';
+      
+      const escapedName = p.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      const imgSrc = p.images && p.images.length > 0 ? p.images[0] : '';
+      const sku = p.sku || '';
+      const cat = p.category || '';
+      const discountPrice = p.discountPrice || p.price;
+
+      let badgeHtml = '';
+      if (p.stock <= 0 || p.status === 'Out Of Stock') badgeHtml += `<span class="badge badge-sale shadow-sm">Out of Stock</span>`;
+      else if (p.stock <= 5) badgeHtml += `<span class="badge badge-bestseller shadow-sm">Only ${p.stock} left</span>`;
+      
+      if (p.discountPrice && p.price > p.discountPrice) {
+        const pct = Math.round(((p.price - p.discountPrice)/p.price)*100);
+        badgeHtml += `<span class="badge badge-stock shadow-sm">${pct}% OFF</span>`;
+      }
+      
+      if(p.badges && p.badges.length) {
+         p.badges.forEach(b => {
+           badgeHtml += `<span class="badge bg-dark shadow-sm">${b}</span>`;
+         });
+      }
+
+      let priceHtml = '';
+      if (p.discountPrice && p.discountPrice < p.price) {
+        priceHtml = `
+          <div class="price-current">₹${p.discountPrice}</div>
+          <div class="price-old">₹${p.price}</div>
+        `;
+      } else {
+        priceHtml = `<div class="price-current">₹${p.price}</div>`;
+      }
+
+      const ratingNum = p.ratings && p.ratings.average ? p.ratings.average : 4.5;
+      const ratingCount = p.ratings && p.ratings.count ? p.ratings.count : 0;
+      let stars = '';
+      for(let i=1; i<=5; i++){
+         stars += `<i class="bi ${i <= ratingNum ? 'bi-star-fill' : 'bi-star'}"></i>`;
+      }
+
+      let buttonsHtml = '';
+      if (p.stock > 0 && p.status !== 'Out Of Stock') {
+        buttonsHtml = `
+          <button class="btn btn-outline" onclick="event.stopPropagation(); addToCart('${escapedName}', ${discountPrice}, ${p.price}, '${imgSrc}', '${sku}', '${cat}')">Add to Cart</button>
+          <button class="btn btn-accent" onclick="event.stopPropagation(); buyNowDirect({name: '${escapedName}', price: ${discountPrice}, originalPrice: ${p.price}, image: '${imgSrc}', sku: '${sku}', category: '${cat}', type: 'product'})">Buy Now</button>
+        `;
+      } else {
+        buttonsHtml = `<button class="btn btn-outline disabled w-100" disabled>Sold Out</button>`;
+      }
+
+      const gridClass = currentView === 'grid' ? 'col-12 col-md-6 col-lg-4 col-xl-3' : 'col-12';
+      const cardClass = currentView === 'grid' ? 'product-card-premium' : 'product-card-premium product-card-list';
+
+      return `
+        <div class="${gridClass}">
+          <div class="${cardClass}" onclick="window.location.href='/product/${p.productId}'" style="cursor: pointer;">
+            
+            <div class="product-card-img">
+               <div class="product-card-badges">${badgeHtml}</div>
+               <div class="product-card-actions">
+                 <div class="btn-icon" title="Wishlist" onclick="event.stopPropagation(); toggleStoreWishlist('${p.productId}', this)"><i class="bi ${heartClass}"></i></div>
+                 <div class="btn-icon" title="Compare" onclick="toggleCompare('${p.productId}', event)"><i class="bi ${compareClass}"></i></div>
+                 <div class="btn-icon" title="Quick View" onclick="event.stopPropagation(); window.location.href='/product/${p.productId}'"><i class="bi bi-eye"></i></div>
+               </div>
+               ${imgSrc ? `<img src="${imgSrc}" loading="lazy" alt="${escapedName}" />` : `<i class="bi bi-image text-muted" style="font-size: 3rem;"></i>`}
+            </div>
+            
+            <div class="product-card-body">
+              <div class="product-brand">${p.brand || 'Premium'}</div>
+              <h3 class="product-title">${p.name}</h3>
+              <div class="product-rating">${stars} <span class="text-muted ms-1">(${ratingCount})</span></div>
+              
+              <div class="product-price-row">${priceHtml}</div>
+              <div class="product-buttons">${buttonsHtml}</div>
+            </div>
+
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    grid.innerHTML = html;
+    isLoading = false;
+  }
+
+  async function toggleStoreWishlist(productId, btn) {
+    try {
+      const res = await fetch('/api/wishlist/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        const icon = btn.querySelector('i');
+        if (data.action === 'added') {
+          icon.classList.remove('bi-heart');
+          icon.classList.add('bi-heart-fill', 'text-accent');
+          showToast('Added to wishlist');
+          userWishlist.push(productId);
+        } else {
+          icon.classList.remove('bi-heart-fill', 'text-accent');
+          icon.classList.add('bi-heart');
+          showToast('Removed from wishlist');
+          userWishlist = userWishlist.filter(id => id !== productId);
+        }
+        const badge = document.getElementById('wishlist-badge');
+        if (badge) {
+          badge.innerText = data.count;
+          badge.style.display = data.count > 0 ? 'block' : 'none';
+        }
+      } else {
+        if (data.message === 'Unauthorized' || data.message.includes('Session expired')) {
+           window.location.href = '/login';
+        } else {
+           showToast('Failed to update wishlist');
+        }
+      }
+    } catch(e) {
+      showToast('Error updating wishlist');
+    }
+  }
+
+  function resetFilters() {
+    document.getElementById('store-search').value = '';
+    document.getElementById('minPrice').value = '';
+    document.getElementById('maxPrice').value = '';
+    document.getElementById('inStockFilter').checked = false;
+    document.querySelectorAll('.cat-filter').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.brand-filter').forEach(cb => cb.checked = false);
+    document.getElementById('sort-select').value = 'newest';
+    loadProducts();
+  }
+
+  // Event Listeners
+  document.getElementById('store-search').addEventListener('input', debounce(() => loadProducts(), 300));
+  document.querySelectorAll('.cat-filter, .brand-filter, #inStockFilter').forEach(cb => {
+    cb.addEventListener('change', () => loadProducts());
+  });
+  document.getElementById('sort-select').addEventListener('change', () => loadProducts());
+  document.getElementById('minPrice').addEventListener('change', debounce(() => loadProducts(), 500));
+  document.getElementById('maxPrice').addEventListener('change', debounce(() => loadProducts(), 500));
+
+  document.getElementById('load-more-btn').addEventListener('click', () => {
+    currentPage++;
+    loadProducts(true);
+  });
+
+  // Init
+  document.addEventListener('DOMContentLoaded', async () => {
+    await fetchUserWishlist();
+    loadProducts();
+  });
+
   const socket = io();
   socket.on('product_updated', (data) => {
-    // Show a toast that prompts the user to refresh
-    let msg = 'Store inventory updated! Refreshing...';
-    showToast(msg);
+    showToast('Store inventory updated! Refreshing...');
     setTimeout(() => {
-      window.location.reload();
+      loadProducts(false);
     }, 2000);
   });
 </script>

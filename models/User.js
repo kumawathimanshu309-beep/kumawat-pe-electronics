@@ -38,6 +38,20 @@ const UserSchema = new mongoose.Schema({
     lat: { type: Number },
     lng: { type: Number }
   }],
+  cart: [{
+    productId: { type: String },
+    name: { type: String, required: true },
+    price: { type: Number, required: true },
+    originalPrice: { type: Number },
+    quantity: { type: Number, required: true, default: 1 },
+    image: { type: String, default: '' },
+    sku: { type: String, default: '' },
+    category: { type: String, default: '' }
+  }],
+  wishlist: [{
+    productId: { type: String, required: true },
+    addedAt: { type: Date, default: Date.now }
+  }],
   password: {
     type: String,
     required: false

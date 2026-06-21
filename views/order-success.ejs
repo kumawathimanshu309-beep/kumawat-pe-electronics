@@ -90,7 +90,20 @@
           </div>
           <div class="col-md-6 col-12 mb-3">
             <h5 class="text-muted" style="font-size: 0.8rem; text-transform: uppercase;">Delivery Location</h5>
-            <p style="font-weight: 600;"><%= order.deliveryAddress %></p>
+            <%
+              let addressStr = "Address Not Available";
+              if (typeof order.deliveryAddress === 'object' && order.deliveryAddress !== null) {
+                addressStr = `${order.deliveryAddress.house || ''}, ${order.deliveryAddress.street || ''}\n${order.deliveryAddress.city || ''}, ${order.deliveryAddress.state || ''} - ${order.deliveryAddress.pincode || ''}`;
+              } else if (typeof order.deliveryAddress === 'string' && order.deliveryAddress.trim() !== '') {
+                try {
+                  const parsed = JSON.parse(order.deliveryAddress);
+                  addressStr = `${parsed.house || ''}, ${parsed.street || ''}\n${parsed.city || ''}, ${parsed.state || ''} - ${parsed.pincode || ''}`;
+                } catch (e) {
+                  addressStr = order.deliveryAddress;
+                }
+              }
+            %>
+            <p style="font-weight: 600; white-space: pre-wrap;"><%= addressStr %></p>
           </div>
           <div class="col-md-6 col-12 mb-3">
             <h5 class="text-muted" style="font-size: 0.8rem; text-transform: uppercase;">Payment Details</h5>
@@ -130,10 +143,24 @@
         <div class="text-center mt-4">
           <a href="/dashboard" class="btn btn-outline btn-full mb-2"><i class="bi bi-speedometer"></i> View Order History</a>
           <a href="/services" class="btn btn-accent btn-full"><i class="bi bi-cart"></i> Create New Booking</a>
+          <div class="col-12 mt-4 text-center">
+            <a href="/services" class="btn btn-primary btn-lg" style="border-radius: 8px; font-weight: 600; padding: 12px 30px;">
+              <i class="bi bi-cart-plus me-2"></i>Continue Shopping
+            </a>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
+
+<script>
+  // Auto clear cart from LocalStorage to match backend state
+  localStorage.removeItem('cartItems');
+  
+  // Optionally reset UI cart badge if present on this page
+  const cartBadge = document.getElementById('cart-badge');
+  if(cartBadge) cartBadge.textContent = '0';
+</script>
 
 <%- include('partials/footer') %>

@@ -1,4 +1,27 @@
 require('dotenv').config();
+
+// ----------------------------------------------------
+// ENVIRONMENT VALIDATION
+// ----------------------------------------------------
+const requiredEnvVars = [
+  'MONGO_URI', 'SESSION_SECRET', 
+  'RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET',
+  'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET',
+  'PORT', 'NODE_ENV'
+];
+
+let missingEnv = [];
+requiredEnvVars.forEach(envVar => {
+  if (!process.env[envVar]) missingEnv.push(envVar);
+});
+
+if (missingEnv.length > 0) {
+  console.error('\n[FATAL ERROR] Server cannot start due to missing environment variables:');
+  missingEnv.forEach(envVar => console.error(` - ${envVar}`));
+  console.error('\nPlease verify your .env file and try again.\n');
+  process.exit(1);
+}
+
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -12,6 +35,7 @@ const jwt = require('jsonwebtoken');
 const QRCode = require('qrcode');
 const { rateLimit } = require('express-rate-limit');
 const path = require('path');
+const csvParser = require('csv-parser');
 const fs = require('fs');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
@@ -19,10 +43,23 @@ const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const morgan = require('morgan');
+const compression = require('compression');
+const logger = require('./utils/logger');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
+
+app.set('io', io);
+
+// -----------------------------------------------------------------------------------------
+// COMPRESSION, LOGGING & SECURITY MIDDLEWARE
+// -----------------------------------------------------------------------------------------
+app.use(compression()); 
+
+const morganFormat = process.env.NODE_ENV === 'production' ? 'combined' : 'dev';
+app.use(morgan(morganFormat, { stream: { write: message => logger.info(message.trim()) } }));
 
 // Multer storage setup for products
 const storage = multer.diskStorage({
@@ -53,6 +90,9 @@ const OtpLog = require('./models/OtpLog');
 const PaymentRecord = require('./models/PaymentRecord');
 const Product = require('./models/Product');
 const OrderLog = require('./models/OrderLog');
+const Notification = require('./models/Notification');
+const Coupon = require('./models/Coupon');
+const Review = require('./models/Review');
 
 // In-Memory Simulated Database (Fallback for testing if local Mongo is not running)
 const mockDB = {
@@ -65,6 +105,7 @@ const mockDB = {
   paymentRecords: [],
   products: [],
   orderLogs: [],
+  notifications: [],
   storeEnabled: true
 };
 
@@ -73,19 +114,30 @@ const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'kumawathimanshu309@gmail
 const DEFAULT_ADMIN_PHONE = process.env.ADMIN_PHONE || '+919462759965';
 const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'HIMANSHU@2005';
 
-mongoose
-  .connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/himanshu-kumawat')
-  .then(async () => {
-    console.log('✓ MongoDB Connected Successfully.');
-    isMongoConnected = true;
+async function startServer() {
+  try {
+    mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 5000
+    }).then(() => {
+      isMongoConnected = true;
+      logger.info('MongoDB Connected successfully.');
+    }).catch(err => {
+      logger.error('Primary MongoDB Connection Failed:', err.message);
+      logger.info('Falling back to pure array Mock Mode.');
+    });
+
     await seedMongoDatabase();
-  })
-  .catch(err => {
-    console.warn('⚠️ MongoDB connection failed. Falling back to IN-MEMORY database mode for evaluation.');
-    console.error(err.message);
-    isMongoConnected = false;
-    seedInMemoryDatabase();
-  });
+
+    server.listen(PORT, () => {
+      logger.info(`🚀 Kumawat P&E Express Server running at http://localhost:${PORT}`);
+    });
+  } catch (err) {
+    logger.error("Server Startup Failed:", err);
+    process.exit(1);
+  }
+}
+
+startServer();
 
 // ── DATABASE SEEDERS ─────────────────────────────────────────────
 async function seedMongoDatabase() {
@@ -121,10 +173,10 @@ async function seedMongoDatabase() {
       adminUser.cardNumber = cardNum;
       await adminUser.save();
       
-      console.log('✓ Seeded MongoDB default admin account successfully.');
+      logger.info('✓ Seeded MongoDB default admin account successfully.');
     }
   } catch (error) {
-    console.error('Failed to seed MongoDB:', error);
+    logger.error('Failed to seed MongoDB:', error);
   }
 }
 
@@ -159,18 +211,18 @@ async function seedInMemoryDatabase() {
   });
 
   mockDB.users.push(adminUser);
-  console.log('✓ Seeded IN-MEMORY default admin account successfully.');
+  logger.info('✓ Seeded IN-MEMORY default admin account successfully.');
 }
 
 // ── EXPRESS MIDDLEWARES ──────────────────────────────────────────
-app.use(helmet({ contentSecurityPolicy: false })); // Disabled CSP for inline EJS scripts support
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(mongoSanitize());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Static Folder
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1d' }));
 
 // Create public directories if missing
 const publicCss = path.join(__dirname, 'public', 'css');
@@ -185,7 +237,7 @@ if (!fs.existsSync(publicImg)) {
 // Write a fallback QR image placeholder for safety
 const qrPlaceholder = path.join(publicImg, 'qr-placeholder.png');
 if (!fs.existsSync(qrPlaceholder)) {
-  fs.writeFileSync(qrPlaceholder, ''); // Empty file just as placeholder
+  fs.writeFileSync(qrPlaceholder, ''); 
 }
 
 // Sessions
@@ -202,6 +254,11 @@ app.use(
     }
   })
 );
+
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  next();
+});
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -310,6 +367,9 @@ const generalLimiter = rateLimit({
   legacyHeaders: false,
   message: 'Too many requests from this IP. Please try again after 15 minutes.'
 });
+
+// Apply globally to all API routes
+app.use('/api/', generalLimiter);
 
 const loginLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 mins
@@ -490,14 +550,14 @@ app.post('/auth/login', loginLimiter, async (req, res) => {
     }
 
     if (!user) {
-      console.error(`[AUTH FAILED] Login failed: User not found for username/mobile: '${username}'`);
+      logger.error(`[AUTH FAILED] Login failed: User not found for username/mobile: '${username}'`);
       await logLoginAttempt(username, 'Failed', 'User not found', ip, userAgent);
       return res.render('login', { activePage: 'login', error: 'Invalid username/mobile or password.', redirect });
     }
 
     const isMatch = await bcrypt.compare(cleanedPassword, user.password);
     if (!isMatch) {
-      console.error(`[AUTH FAILED] Login failed: Incorrect password for user: '${user.email}'`);
+      logger.error(`[AUTH FAILED] Login failed: Incorrect password for user: '${user.email}'`);
       await logLoginAttempt(username, 'Failed', 'Incorrect password', ip, userAgent);
       return res.render('login', { activePage: 'login', error: 'Invalid username/mobile or password.', redirect });
     }
@@ -510,7 +570,8 @@ app.post('/auth/login', loginLimiter, async (req, res) => {
       mobile: user.mobile,
       address: user.address,
       role: user.role,
-      createdAt: user.createdAt
+      createdAt: user.createdAt,
+      cart: user.cart || []
     };
 
     // Session Remember Me Option
@@ -546,7 +607,7 @@ app.post('/auth/login', loginLimiter, async (req, res) => {
     }
 
   } catch (error) {
-    console.error('Login Error:', error);
+    logger.error('Login Error:', error);
     res.status(500).render('500', { error });
   }
 });
@@ -653,7 +714,7 @@ app.post('/auth/register', async (req, res) => {
     }
 
     // Log the registration user history audit
-    console.log(`✓ Registered User: ${name} (ID: ${userId})`);
+    logger.info(`✓ Registered User: ${name} (ID: ${userId})`);
 
     // Auto Login after registration
     req.session.user = {
@@ -673,14 +734,14 @@ app.post('/auth/register', async (req, res) => {
     }
 
   } catch (error) {
-    console.error('Registration Error:', error);
+    logger.error('Registration Error:', error);
     res.status(500).render('500', { error });
   }
 });
 
 app.get('/auth/logout', (req, res) => {
   req.session.destroy(err => {
-    if (err) console.error('[AUTH ERROR] Session destroy error:', err);
+    if (err) logger.error('[AUTH ERROR] Session destroy error:', err);
     res.clearCookie('connect.sid'); // Clear session cookie securely
     res.redirect('/');
   });
@@ -709,7 +770,7 @@ async function logLoginAttempt(emailOrMobile, status, reason, ip, ua) {
       });
     }
   } catch (e) {
-    console.error(e);
+    logger.error(e);
   }
 }
 
@@ -764,12 +825,12 @@ app.post('/forgot-password/request', otpRateLimiterMiddleware, async (req, res) 
     }
 
     // Log the generated OTP to the system terminal console
-    console.log(`\n=============================================`);
-    console.log(`[SMS OTP GATEWAY MOCK]`);
-    console.log(`OTP generated for number: ${mobile}`);
-    console.log(`OTP Verification Code: ${otp}`);
-    console.log(`Expires at: ${expiresAt.toLocaleTimeString()}`);
-    console.log(`=============================================\n`);
+    logger.info(`\n=============================================`);
+    logger.info(`[SMS OTP GATEWAY MOCK]`);
+    logger.info(`OTP generated for number: ${mobile}`);
+    logger.info(`OTP Verification Code: ${otp}`);
+    logger.info(`Expires at: ${expiresAt.toLocaleTimeString()}`);
+    logger.info(`=============================================\n`);
 
     // Render verification step, passing OTP code directly for preview UI testing
     res.render('forgot-password', {
@@ -781,7 +842,7 @@ app.post('/forgot-password/request', otpRateLimiterMiddleware, async (req, res) 
     });
 
   } catch (error) {
-    console.error('OTP request error:', error);
+    logger.error('OTP request error:', error);
     res.status(500).render('500', { error });
   }
 });
@@ -830,7 +891,7 @@ app.post('/forgot-password/verify', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('OTP Verification error:', error);
+    logger.error('OTP Verification error:', error);
     res.status(500).render('500', { error });
   }
 });
@@ -888,7 +949,7 @@ app.post('/forgot-password/reset', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Reset password error:', error);
+    logger.error('Reset password error:', error);
     res.status(500).render('500', { error });
   }
 });
@@ -900,10 +961,12 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
   try {
     let userOrders = [];
     let userCard = null;
+    let userNotifications = [];
 
     if (isMongoConnected) {
-      userOrders = await Order.find({ userId: sessionUser.userId });
+      userOrders = await Order.find({ userId: sessionUser.userId }).sort({ createdAt: -1 });
       userCard = await Card.findOne({ userId: sessionUser.userId });
+      userNotifications = await Notification.find({ userId: sessionUser.userId }).sort({ createdAt: -1 });
       
       // Safety: Create user card if it does not exist (e.g. for pre-existing users seeded)
       if (!userCard) {
@@ -919,8 +982,9 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
         await User.updateOne({ userId: sessionUser.userId }, { $set: { cardNumber: cardNum } });
       }
     } else {
-      userOrders = mockDB.orders.filter(o => o.userId === sessionUser.userId);
+      userOrders = mockDB.orders.filter(o => o.userId === sessionUser.userId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       userCard = mockDB.cards.find(c => c.userId === sessionUser.userId);
+      userNotifications = mockDB.notifications.filter(n => n.userId === sessionUser.userId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
       if (!userCard) {
         const cardNum = 'CARD-' + Math.floor(10000000 + Math.random() * 90000000);
@@ -943,11 +1007,12 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
       activePage: 'dashboard',
       user: sessionUser,
       orders: userOrders,
-      card: userCard
+      card: userCard,
+      notifications: userNotifications
     });
 
   } catch (error) {
-    console.error('Dashboard loading error:', error);
+    logger.error('Dashboard loading error:', error);
     res.status(500).render('500', { error });
   }
 });
@@ -1061,136 +1126,204 @@ app.get('/dashboard/download-card', isAuthenticated, async (req, res) => {
 });
 
 // ── CHECKOUT & ORDER BOOKING SYSTEM ──────────────────────────────
-app.post('/api/create-razorpay-order', isAuthenticated, async (req, res) => {
-  try {
-    const { amount, paymentMethod, cartData } = req.body;
-    const sessionUser = req.session.user;
+// --- NEW MODULAR PAYMENT ROUTES ---
+const paymentRoutes = require('./routes/paymentRoutes');
+app.use('/api/payment', paymentRoutes);
 
-    console.log(`\n--- PAYMENT DEBUG LOG ---`);
-    console.log(`User Data: ${JSON.stringify({ id: sessionUser.userId, name: sessionUser.name, email: sessionUser.email })}`);
-    console.log(`Payment Method: ${paymentMethod}`);
-    console.log(`Order Amount (Original): ${amount}`);
-    
-    // 1. Verify Amount
-    const numericAmount = parseFloat(amount);
-    if (!numericAmount || isNaN(numericAmount) || numericAmount <= 0) {
-      console.error(`Invalid Amount Error: ${amount}`);
-      return res.status(400).json({ success: false, message: "Amount invalid: Must be a valid positive number." });
-    }
-
-    // 2. Verify Razorpay Configuration
-    const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder';
-    const keySecret = process.env.RAZORPAY_KEY_SECRET || 'rzp_test_secret_placeholder';
-    
-    console.log(`Razorpay Config check - Key ID present: ${!!process.env.RAZORPAY_KEY_ID}, Key Secret present: ${!!process.env.RAZORPAY_KEY_SECRET}`);
-
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET || keyId === 'rzp_test_placeholder') {
-      console.error(`Razorpay keys missing or invalid in environment variables.`);
-      return res.status(500).json({ success: false, message: "Razorpay keys missing: Please configure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in your environment." });
-    }
-
-    // 3. Create Order Options (Convert to paise)
-    const options = {
-      amount: Math.round(numericAmount * 100),
-      currency: "INR",
-      receipt: "rcpt_" + Date.now()
-    };
-    
-    console.log(`Razorpay Options: ${JSON.stringify(options)}`);
-
-    // 4. Call Razorpay API
-    const order = await razorpay.orders.create(options);
-    
-    console.log(`Razorpay Response: ${JSON.stringify({ id: order.id, amount: order.amount, status: order.status })}`);
-    console.log(`--- END PAYMENT DEBUG ---\n`);
-
-    res.json({
-      success: true,
-      order_id: order.id,
-      amount: order.amount,
-      currency: order.currency,
-      key: keyId
-    });
-  } catch (error) {
-    console.error(`\n--- PAYMENT ERROR LOG ---`);
-    console.error(`Error Stack:`, error);
-    console.error(`--- END PAYMENT ERROR ---\n`);
-    
-    let errorMessage = "Failed to generate payment intent";
-    if (error.statusCode === 401 || (error.error && error.error.code === 'BAD_REQUEST_ERROR')) {
-      errorMessage = "Razorpay authentication failed. Verify API keys.";
-    } else if (error.error && error.error.description) {
-      errorMessage = `Razorpay error: ${error.error.description}`;
-    }
-
-    res.status(500).json({ success: false, message: errorMessage });
-  }
-});
 
 app.get('/checkout', isAuthenticated, (req, res) => {
   res.render('checkout', { activePage: 'services' });
 });
 
 app.post('/checkout', isAuthenticated, validateCsrf, async (req, res) => {
-  const { cartData, totalAmount, deliveryFee, discountAmount, deliveryAddressJSON, preferredDate, timeSlot, notes, paymentMethod, razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
+  const { cartData, totalAmount, deliveryFee, discountAmount, deliveryAddressJSON, preferredDate, timeSlot, notes, paymentMethod, razorpay_payment_id, razorpay_order_id, razorpay_signature, paymentId, couponCode } = req.body;
   const sessionUser = req.session.user;
+  const paymentVerification = require('./middleware/paymentVerification');
+  const paymentService = require('./services/paymentService');
 
   try {
+    if (!deliveryAddressJSON) {
+      return res.status(400).json({ success: false, message: "Please select a delivery address" });
+    }
+
     const items = JSON.parse(cartData);
     let parsedAddress = {};
     try {
       parsedAddress = JSON.parse(deliveryAddressJSON);
     } catch (e) {
-      console.warn("Could not parse deliveryAddressJSON, falling back to string", deliveryAddressJSON);
-      parsedAddress = { street: deliveryAddressJSON }; // fallback
+      parsedAddress = { street: deliveryAddressJSON };
     }
-    
-    // Generate Order ID & Confirmation Code
-    let totalOrderCount = 0;
+
+    // Security: Recalculate totals
+    let dbProducts = [];
     if (isMongoConnected) {
-      totalOrderCount = await Order.countDocuments();
+      const itemNames = items.map(i => i.name);
+      dbProducts = await Product.find({ name: { $in: itemNames } });
     } else {
-      totalOrderCount = mockDB.orders.length;
+      dbProducts = mockDB.products;
     }
-    const orderId = 'ORD' + String(totalOrderCount + 1).padStart(3, '0');
-    const confirmationCode = String(Math.floor(1000 + Math.random() * 9000)); // 4-digit code
 
-    let paymentStatus = 'Pending';
-    let transactionId = '';
+    let calculatedItemsTotal = 0;
+    let calculatedDiscount = 0;
 
-    // Verify Razorpay Signature if not COD
-    if (paymentMethod !== 'Cash On Delivery' && paymentMethod !== 'Cash') {
-      const secret = process.env.RAZORPAY_KEY_SECRET || 'rzp_test_secret_placeholder';
-      const body = razorpay_order_id + "|" + razorpay_payment_id;
-      const expectedSignature = crypto.createHmac('sha256', secret).update(body.toString()).digest('hex');
+    for (let item of items) {
+      const product = dbProducts.find(p => p.name === item.name);
+      if (!product) {
+        const price = parseFloat(item.price) || 0;
+        const origPrice = parseFloat(item.originalPrice) || price;
+        calculatedItemsTotal += (origPrice * item.quantity);
+        calculatedDiscount += ((origPrice - price) * item.quantity);
+        continue;
+      }
       
-      if (expectedSignature === razorpay_signature) {
-        paymentStatus = 'Completed';
-        transactionId = razorpay_payment_id;
+      const dbPrice = product.price;
+      const dbDiscountPrice = product.discountPrice || product.price;
+      
+      calculatedItemsTotal += (dbPrice * item.quantity);
+      calculatedDiscount += ((dbPrice - dbDiscountPrice) * item.quantity);
+      
+      item.price = dbDiscountPrice;
+      item.originalPrice = dbPrice;
+      item.productId = product.productId;
+    }
+
+    const handlingCharge = 11;
+    const finalDeliveryFee = 0; // FREE DELIVERY
+    
+    // Server-side Coupon Application
+    let couponDiscount = 0;
+    let appliedCouponDoc = null;
+    if (couponCode && isMongoConnected) {
+      appliedCouponDoc = await Coupon.findOne({ code: couponCode.toUpperCase(), status: 'Active' });
+      const expiryBoundary = appliedCouponDoc ? new Date(appliedCouponDoc.expiryDate) : null;
+      if (expiryBoundary) expiryBoundary.setUTCHours(23, 59, 59, 999);
+
+      if (appliedCouponDoc && new Date() <= expiryBoundary) {
+         let validUsage = true;
+         if (appliedCouponDoc.usageLimit && appliedCouponDoc.usedCount >= appliedCouponDoc.usageLimit) validUsage = false;
+         
+         const userUsage = appliedCouponDoc.usedBy.find(u => u.userId === sessionUser.userId);
+         if (userUsage && userUsage.count >= appliedCouponDoc.perUserLimit) validUsage = false;
+         
+         const taxableAmount = calculatedItemsTotal;
+         if (validUsage && taxableAmount >= appliedCouponDoc.minOrderValue) {
+            if (appliedCouponDoc.type === 'fixed') {
+              couponDiscount = appliedCouponDoc.discount;
+            } else if (appliedCouponDoc.type === 'percentage') {
+              couponDiscount = (taxableAmount * appliedCouponDoc.discount) / 100;
+              if (appliedCouponDoc.maxDiscount && couponDiscount > appliedCouponDoc.maxDiscount) {
+                couponDiscount = appliedCouponDoc.maxDiscount;
+              }
+            }
+            if (couponDiscount > taxableAmount) couponDiscount = taxableAmount;
+         } else {
+           appliedCouponDoc = null; // invalid
+         }
       } else {
-        return res.status(400).render('500', { error: new Error('Payment Signature Verification Failed! Potential Fraudulent Transaction.') });
+        appliedCouponDoc = null;
       }
     }
 
-    let order = null;
-    let delivery = null;
-    let payment = null;
+    let safeTotalAmount = calculatedItemsTotal + handlingCharge + finalDeliveryFee - calculatedDiscount - couponDiscount;
+    if (safeTotalAmount < 0) safeTotalAmount = 0;
+    const safeDiscountAmount = calculatedDiscount + couponDiscount;
+
+    let totalOrderCount = isMongoConnected ? await Order.countDocuments() : mockDB.orders.length;
+    const orderId = 'ORD' + String(totalOrderCount + 1).padStart(3, '0');
+    const confirmationCode = String(Math.floor(1000 + Math.random() * 9000));
+
+    let finalPaymentStatus = 'Pending';
+    let transactionId = '';
+    let finalPaymentRecordId = null;
+
+    if (paymentMethod === 'Cash On Delivery' || paymentMethod === 'Cash') {
+      finalPaymentStatus = 'COD Pending';
+      if (isMongoConnected) {
+        for (let item of items) {
+          if (item.productId) {
+            const product = await Product.findOne({ productId: item.productId });
+            if (product && product.stock < item.quantity) {
+              return res.status(400).json({ success: false, message: `Insufficient stock for ${product.name}.` });
+            }
+            await Product.updateOne({ productId: item.productId }, { $inc: { stock: -item.quantity } });
+          }
+        }
+        const payId = 'PAY' + Date.now();
+        const record = new PaymentRecord({
+          paymentId: payId,
+          orderId,
+          userId: sessionUser.userId,
+          method: paymentMethod,
+          amount: safeTotalAmount,
+          status: finalPaymentStatus
+        });
+        await record.save();
+        finalPaymentRecordId = record._id;
+        await paymentService.logPaymentEvent(sessionUser.userId, orderId, payId, 'Payment Success', 'COD Order Placed', req.ip);
+      } else {
+        // MockDB logic
+        for (let item of items) {
+          const prod = mockDB.products.find(p => p.name === item.name);
+          if (prod && prod.stock !== undefined) {
+            prod.stock -= item.quantity;
+          }
+        }
+        const payId = 'PAY' + Date.now();
+        finalPaymentRecordId = payId;
+        mockDB.paymentRecords.push({ paymentId: payId, orderId, userId: sessionUser.userId, method: paymentMethod, amount: safeTotalAmount, status: finalPaymentStatus, transactionTime: new Date() });
+      }
+    } else {
+      // Online Payment Verification
+      const isValid = paymentVerification.verifyPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
+      if (!isValid) {
+        return res.status(400).render('500', { error: new Error('Payment Signature Verification Failed! Potential Fraudulent Transaction.') });
+      }
+
+      if (isMongoConnected) {
+        const record = await PaymentRecord.findOne({ paymentId });
+        if (!record || record.userId !== sessionUser.userId) {
+          return res.status(400).render('500', { error: new Error('Invalid Payment Record.') });
+        }
+        if (record.status !== 'Pending') {
+           // Idempotency or timeout
+           return res.status(400).render('500', { error: new Error('Payment Record already processed or cancelled.') });
+        }
+        
+        record.status = 'Paid';
+        record.razorpayPaymentId = razorpay_payment_id;
+        record.orderId = orderId;
+        await record.save();
+
+        finalPaymentStatus = 'Paid';
+        transactionId = razorpay_payment_id;
+        finalPaymentRecordId = record._id;
+
+        // Deduct inventory permanently (release from reserved)
+        await paymentService.deductInventory(items);
+        await paymentService.logPaymentEvent(sessionUser.userId, orderId, paymentId, 'Payment Success', `Payment verified successfully: ${transactionId}`, req.ip);
+      } else {
+        finalPaymentStatus = 'Paid';
+        transactionId = razorpay_payment_id;
+        const payId = paymentId || 'PAY_MOCK_' + Date.now();
+        finalPaymentRecordId = payId;
+        mockDB.paymentRecords.push({ paymentId: payId, orderId, userId: sessionUser.userId, method: paymentMethod, amount: safeTotalAmount, status: finalPaymentStatus, transactionTime: new Date(), razorpayPaymentId: transactionId });
+      }
+    }
 
     if (isMongoConnected) {
-      order = new Order({
+      const order = new Order({
         orderId,
         userId: sessionUser.userId,
         customerName: sessionUser.name,
         customerPhone: sessionUser.mobile,
         customerEmail: sessionUser.email,
         items,
-        totalAmount: parseFloat(totalAmount),
-        deliveryFee: parseFloat(deliveryFee) || 0,
-        discountAmount: parseFloat(discountAmount) || 0,
-        paymentMethod,
-        paymentStatus,
-        transactionId,
-        paymentDate: paymentStatus === 'Completed' ? new Date() : null,
+        totalAmount: safeTotalAmount,
+        deliveryFee: finalDeliveryFee,
+        discountAmount: safeDiscountAmount,
+        paymentRecordId: finalPaymentRecordId,
+        paymentMethod: paymentMethod,
+        paymentStatus: finalPaymentStatus,
         deliveryAddress: parsedAddress,
         deliveryStatus: 'Pending',
         notes,
@@ -1199,8 +1332,19 @@ app.post('/checkout', isAuthenticated, validateCsrf, async (req, res) => {
       });
       await order.save();
 
-      // Create Delivery Record
-      delivery = new Delivery({
+      // Update Coupon Usage
+      if (appliedCouponDoc) {
+        appliedCouponDoc.usedCount += 1;
+        const userUsageIndex = appliedCouponDoc.usedBy.findIndex(u => u.userId === sessionUser.userId);
+        if (userUsageIndex >= 0) {
+          appliedCouponDoc.usedBy[userUsageIndex].count += 1;
+        } else {
+          appliedCouponDoc.usedBy.push({ userId: sessionUser.userId, count: 1 });
+        }
+        await appliedCouponDoc.save();
+      }
+
+      const delivery = new Delivery({
         orderId,
         deliveryStatus: 'Pending',
         deliveryAddress: parsedAddress.street ? `${parsedAddress.house}, ${parsedAddress.street}, ${parsedAddress.city}, ${parsedAddress.state} - ${parsedAddress.pincode}` : JSON.stringify(parsedAddress),
@@ -1210,92 +1354,42 @@ app.post('/checkout', isAuthenticated, validateCsrf, async (req, res) => {
       });
       await delivery.save();
 
-      // Create Payment Record
-      const payId = 'PAY' + String(await PaymentRecord.countDocuments() + 1).padStart(3, '0');
-      payment = new PaymentRecord({
-        paymentId: payId,
-        orderId,
-        userId: sessionUser.userId,
-        method: paymentMethod,
-        amount: parseFloat(totalAmount),
-        status: paymentStatus,
-        razorpayOrderId: razorpay_order_id || '',
-        razorpayPaymentId: razorpay_payment_id || ''
-      });
-      await payment.save();
-
-      // Add activity log to User
       await User.updateOne(
         { userId: sessionUser.userId },
         {
-          $push: {
-            activities: { action: `Placed order ${orderId} total: ₹${totalAmount}`, timestamp: new Date() }
-          }
+          $push: { activities: { action: `Placed order ${orderId} total: ₹${safeTotalAmount}`, timestamp: new Date() } },
+          $set: { cart: [] }
         }
       );
-
     } else {
-      // In-Memory
-      order = {
-        orderId,
-        userId: sessionUser.userId,
-        customerName: sessionUser.name,
-        customerPhone: sessionUser.mobile,
-        customerEmail: sessionUser.email,
-        items,
-        totalAmount: parseFloat(totalAmount),
-        paymentMethod,
-        paymentStatus,
-        deliveryAddress,
-        deliveryStatus: 'Pending',
-        notes,
-        preferredDate: new Date(preferredDate),
-        timeSlot,
-        createdAt: new Date()
-      };
-      mockDB.orders.push(order);
-
-      delivery = {
-        orderId,
-        deliveryStatus: 'Pending',
-        deliveryAddress,
-        statusLogs: [{ status: 'Pending', remarks: 'Order placed, awaiting confirmation.', updatedAt: new Date() }],
-        assignedTo: 'Deepak Kumawat',
-        confirmationCode,
-        createdAt: new Date()
-      };
-      mockDB.deliveries.push(delivery);
-
-      const payId = 'PAY' + String(mockDB.paymentRecords.length + 1).padStart(3, '0');
-      payment = {
-        paymentId: payId,
-        orderId,
-        userId: sessionUser.userId,
-        method: paymentMethod,
-        amount: parseFloat(totalAmount),
-        status: paymentStatus,
-        transactionTime: new Date()
-      };
-      mockDB.paymentRecords.push(payment);
-
+      mockDB.orders.push({
+        orderId, userId: sessionUser.userId, customerName: sessionUser.name, customerPhone: sessionUser.mobile, customerEmail: sessionUser.email,
+        items, totalAmount: safeTotalAmount, paymentRecordId: finalPaymentRecordId, deliveryAddress: parsedAddress, deliveryStatus: 'Pending', notes,
+        preferredDate: new Date(preferredDate), timeSlot, createdAt: new Date()
+      });
+      mockDB.deliveries.push({
+        orderId, deliveryStatus: 'Pending', deliveryAddress: parsedAddress.street ? `${parsedAddress.house}, ${parsedAddress.street}, ${parsedAddress.city}, ${parsedAddress.state} - ${parsedAddress.pincode}` : JSON.stringify(parsedAddress),
+        statusLogs: [{ status: 'Pending', remarks: 'Order placed, awaiting confirmation.', updatedAt: new Date() }], assignedTo: 'Deepak Kumawat', confirmationCode, createdAt: new Date()
+      });
       const user = mockDB.users.find(u => u.userId === sessionUser.userId);
       if (user) {
-        user.activities.push({ action: `Placed order ${orderId} total: ₹${totalAmount}`, timestamp: new Date() });
+        user.activities.push({ action: `Placed order ${orderId} total: ₹${safeTotalAmount}`, timestamp: new Date() });
+        user.cart = [];
       }
     }
 
-    console.log(`✓ Order Created: ${orderId} (Confirmation Code: ${confirmationCode})`);
+    logger.info(`✓ Order Created: ${orderId} (Confirmation Code: ${confirmationCode})`);
     
-    // Notify admin
-    io.emit('admin_notification', {
-      type: 'new_order',
-      message: `New Order Received! ID: ${orderId} Amount: ₹${totalAmount}`
+    io.emit('admin_notification', { type: 'new_order', message: `New Order Received! ID: ${orderId} Amount: ₹${totalAmount}` });
+
+    req.session.cart = [];
+    req.session.save((err) => {
+      if(err) logger.error("Error saving session after checkout", err);
+      res.redirect(`/order-success/${orderId}`);
     });
 
-    res.redirect(`/order-success/${orderId}`);
-
   } catch (error) {
-    console.error('Checkout failed:', error);
+    logger.error('Checkout failed:', error);
     res.status(500).render('500', { error });
   }
 });
@@ -1331,17 +1425,336 @@ app.get('/order-success/:orderId', isAuthenticated, async (req, res) => {
   }
 });
 // ── ADDRESS & DELIVERY LOGIC ─────────────────────────────────
+// Cart API
+app.get('/api/cart', isAuthenticated, async (req, res) => {
+  try {
+    if (!isMongoConnected) {
+      const userIdx = mockDB.users.findIndex(u => u.userId === req.session.user.userId);
+      const cart = userIdx !== -1 ? (mockDB.users[userIdx].cart || []) : [];
+      return res.json({ success: true, cart });
+    }
+    
+    const user = await User.findOne({ userId: req.session.user.userId });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    
+    res.json({ success: true, cart: user.cart || [] });
+  } catch (err) {
+    logger.error("Cart GET Error:", err);
+    res.status(500).json({ success: false, message: err.message, stack: err.stack });
+  }
+});
+
+app.post('/api/cart/sync', isAuthenticated, async (req, res) => {
+  try {
+    const localCart = req.body.cart || [];
+    
+    if (!isMongoConnected) {
+      const userIdx = mockDB.users.findIndex(u => u.userId === req.session.user.userId);
+      if (userIdx === -1) return res.status(404).json({ success: false, message: 'User not found' });
+      
+      let dbCart = mockDB.users[userIdx].cart || [];
+      // Merge logic: Add new items, ignore duplicates by name
+      localCart.forEach(localItem => {
+        const exists = dbCart.find(dbItem => dbItem.name === localItem.name);
+        if (!exists) {
+          dbCart.push(localItem);
+        }
+      });
+      mockDB.users[userIdx].cart = dbCart;
+      req.session.user.cart = dbCart;
+      return res.json({ success: true, cart: dbCart });
+    }
+
+    const user = await User.findOne({ userId: req.session.user.userId });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    let dbCart = user.cart || [];
+    localCart.forEach(localItem => {
+      const exists = dbCart.find(dbItem => dbItem.name === localItem.name);
+      if (!exists) {
+        dbCart.push(localItem);
+      }
+    });
+
+    user.cart = dbCart;
+    await user.save();
+    req.session.user.cart = dbCart; // update session
+    
+    res.json({ success: true, cart: dbCart });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/cart/overwrite', isAuthenticated, async (req, res) => {
+  try {
+    const localCart = req.body.cart || [];
+    
+    if (!isMongoConnected) {
+      const userIdx = mockDB.users.findIndex(u => u.userId === req.session.user.userId);
+      if (userIdx !== -1) {
+        mockDB.users[userIdx].cart = localCart;
+        req.session.user.cart = localCart;
+      }
+      return res.json({ success: true, cart: localCart });
+    }
+
+    const user = await User.findOne({ userId: req.session.user.userId });
+    if (!user) return res.status(404).json({ success: false });
+
+    user.cart = localCart;
+    await user.save();
+    req.session.user.cart = localCart;
+    res.json({ success: true, cart: localCart });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/cart/update', isAuthenticated, async (req, res) => {
+  try {
+    const { productId, quantity } = req.body;
+    
+    if (!isMongoConnected) {
+      const userIdx = mockDB.users.findIndex(u => u.userId === req.session.user.userId);
+      if (userIdx !== -1 && mockDB.users[userIdx].cart) {
+        const item = mockDB.users[userIdx].cart.find(i => i.productId === productId || i.name === productId); // name fallback
+        if (item) item.quantity = quantity;
+        req.session.user.cart = mockDB.users[userIdx].cart;
+      }
+      return res.json({ success: true });
+    }
+
+    const user = await User.findOne({ userId: req.session.user.userId });
+    if (!user) return res.status(404).json({ success: false });
+
+    const item = user.cart.find(i => i.productId === productId || i.name === productId);
+    if (item) {
+      item.quantity = quantity;
+      await user.save();
+      req.session.user.cart = user.cart;
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/cart/remove', isAuthenticated, async (req, res) => {
+  try {
+    const { productId } = req.body;
+    
+    if (!isMongoConnected) {
+      const userIdx = mockDB.users.findIndex(u => u.userId === req.session.user.userId);
+      if (userIdx !== -1 && mockDB.users[userIdx].cart) {
+        mockDB.users[userIdx].cart = mockDB.users[userIdx].cart.filter(i => i.productId !== productId && i.name !== productId);
+        req.session.user.cart = mockDB.users[userIdx].cart;
+      }
+      return res.json({ success: true });
+    }
+
+    const user = await User.findOne({ userId: req.session.user.userId });
+    if (!user) return res.status(404).json({ success: false });
+
+    user.cart = user.cart.filter(i => i.productId !== productId && i.name !== productId);
+    await user.save();
+    req.session.user.cart = user.cart;
+    
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// --- Wishlist APIs ---
+// --- VERIFIED REVIEWS API ---
+app.post('/api/reviews', isAuthenticated, async (req, res) => {
+  if (!isMongoConnected) return res.status(400).json({ success: false, message: 'Database offline' });
+  try {
+    const { productId, rating, title, text } = req.body;
+    const userId = req.session.user.userId;
+    const userName = req.session.user.name;
+
+    const product = await Product.findById(productId);
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+
+    // Verify purchase
+    const hasBought = await Order.exists({ userId, "items.name": product.name, deliveryStatus: 'Delivered' });
+
+    const review = new Review({
+      productId, userId, userName, rating, title, text, verifiedBuyer: !!hasBought
+    });
+    await review.save();
+
+    const reviews = await Review.find({ productId });
+    const count = reviews.length;
+    const average = reviews.reduce((a, b) => a + b.rating, 0) / count;
+    await Product.findByIdAndUpdate(productId, { ratings: { average: average.toFixed(1), count } });
+
+    res.json({ success: true, message: 'Review submitted successfully' });
+  } catch (error) {
+    if (error.code === 11000) return res.status(400).json({ success: false, message: 'You have already reviewed this product' });
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.get('/api/reviews/:productId', async (req, res) => {
+  if (!isMongoConnected) return res.json({ success: true, reviews: [] });
+  try {
+    const reviews = await Review.find({ productId: req.params.productId }).sort({ createdAt: -1 });
+    res.json({ success: true, reviews });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/wishlist/toggle', isAuthenticated, async (req, res) => {
+  try {
+    const { productId } = req.body;
+    if (!isMongoConnected) return res.json({ success: true, action: 'added', count: 1 });
+
+    const user = await User.findOne({ userId: req.session.user.userId });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    if (!user.wishlist) user.wishlist = [];
+
+    const existingIndex = user.wishlist.findIndex(item => item.productId === productId);
+    let action = 'added';
+
+    if (existingIndex > -1) {
+      user.wishlist.splice(existingIndex, 1);
+      action = 'removed';
+    } else {
+      user.wishlist.push({ productId });
+    }
+
+    await user.save();
+    res.json({ success: true, action, count: user.wishlist.length });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.get('/api/wishlist', isAuthenticated, async (req, res) => {
+  try {
+    if (!isMongoConnected) return res.json({ success: true, wishlist: [], count: 0 });
+
+    const user = await User.findOne({ userId: req.session.user.userId });
+    if (!user || !user.wishlist) return res.json({ success: true, wishlist: [], count: 0 });
+
+    const productIds = user.wishlist.map(item => item.productId);
+    const products = await Product.find({ productId: { $in: productIds }, status: { $ne: 'Deleted' } }).lean();
+
+    // Remove automatically if product is permanently deleted
+    if (products.length !== user.wishlist.length) {
+      const activeIds = products.map(p => p.productId);
+      user.wishlist = user.wishlist.filter(item => activeIds.includes(item.productId));
+      await user.save();
+    }
+
+    // Map products to keep the addedAt timestamp
+    const populatedWishlist = user.wishlist.map(wItem => {
+      const product = products.find(p => p.productId === wItem.productId);
+      return product ? { ...product, addedAt: wItem.addedAt } : null;
+    }).filter(Boolean);
+
+    res.json({ success: true, wishlist: populatedWishlist, count: user.wishlist.length });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.get('/api/wishlist/count', isAuthenticated, async (req, res) => {
+  try {
+    if (!isMongoConnected) return res.json({ success: true, count: 0 });
+    const user = await User.findOne({ userId: req.session.user.userId }).select('wishlist').lean();
+    res.json({ success: true, count: user && user.wishlist ? user.wishlist.length : 0 });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// --- Coupon API ---
+app.post('/api/coupon/validate', isAuthenticated, async (req, res) => {
+  try {
+    const { code, cartTotal } = req.body;
+    if (!code) return res.json({ success: false, message: 'Coupon code is required' });
+
+    const coupon = await Coupon.findOne({ code: code.toUpperCase() });
+    if (!coupon) return res.json({ success: false, message: 'Invalid coupon code' });
+
+    if (coupon.status !== 'Active') return res.json({ success: false, message: 'Coupon is inactive' });
+    
+    const expiryBoundary = new Date(coupon.expiryDate);
+    expiryBoundary.setUTCHours(23, 59, 59, 999);
+
+    logger.info('\n--- COUPON EXPIRY VALIDATION ---');
+    logger.info('Current Server Date/Time (UTC):', new Date().toISOString());
+    logger.info('Current Server Date/Time (Local):', new Date().toLocaleString());
+    logger.info('Stored Expiry Date (Raw):', coupon.expiryDate);
+    logger.info('Normalized Expiry Date (End of Day UTC):', expiryBoundary.toISOString());
+    logger.info('Server Timezone Offset (mins):', new Date().getTimezoneOffset());
+    logger.info('Validation Check (Now <= Expiry):', new Date() <= expiryBoundary);
+    logger.info('--------------------------------\n');
+
+    if (new Date() > expiryBoundary) return res.json({ success: false, message: 'Coupon has expired' });
+
+    if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
+      return res.json({ success: false, message: 'Coupon usage limit reached' });
+    }
+
+    if (cartTotal < coupon.minOrderValue) {
+      return res.json({ success: false, message: `Minimum order value of ₹${coupon.minOrderValue} required` });
+    }
+
+    // Check per-user limit
+    const userId = req.session.user.userId;
+    const userUsage = coupon.usedBy.find(u => u.userId === userId);
+    if (userUsage && userUsage.count >= coupon.perUserLimit) {
+      return res.json({ success: false, message: 'You have reached the usage limit for this coupon' });
+    }
+
+    let discountAmount = 0;
+    if (coupon.type === 'fixed') {
+      discountAmount = coupon.discount;
+    } else if (coupon.type === 'percentage') {
+      discountAmount = (cartTotal * coupon.discount) / 100;
+      if (coupon.maxDiscount && discountAmount > coupon.maxDiscount) {
+        discountAmount = coupon.maxDiscount;
+      }
+    }
+
+    // Ensure discount doesn't exceed total
+    if (discountAmount > cartTotal) discountAmount = cartTotal;
+
+    res.json({
+      success: true,
+      coupon: {
+        code: coupon.code,
+        discountAmount,
+        type: coupon.type,
+        discount: coupon.discount,
+        maxDiscount: coupon.maxDiscount,
+        minOrderValue: coupon.minOrderValue,
+        message: 'Coupon applied successfully'
+      }
+    });
+
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 app.post('/api/user/address', isAuthenticated, async (req, res) => {
   try {
     if (!isMongoConnected) {
-      // In-Memory Mode
-      const userIdx = inMemoryData.users.findIndex(u => u.userId === req.session.user.userId);
+      const userIdx = mockDB.users.findIndex(u => u.userId === req.session.user.userId);
       if (userIdx === -1) return res.status(404).json({ success: false, message: 'User not found' });
-      if (!inMemoryData.users[userIdx].addresses) inMemoryData.users[userIdx].addresses = [];
-      if (inMemoryData.users[userIdx].addresses.length === 0) req.body.isDefault = true;
-      inMemoryData.users[userIdx].addresses.push(req.body);
-      req.session.user = inMemoryData.users[userIdx];
-      return res.json({ success: true, addresses: inMemoryData.users[userIdx].addresses });
+      if (!mockDB.users[userIdx].addresses) mockDB.users[userIdx].addresses = [];
+      if (mockDB.users[userIdx].addresses.length === 0) req.body.isDefault = true;
+      mockDB.users[userIdx].addresses.push(req.body);
+      req.session.user = mockDB.users[userIdx];
+      return res.json({ success: true, addresses: mockDB.users[userIdx].addresses });
     }
     
     const user = await User.findOne({ userId: req.session.user.userId });
@@ -1361,14 +1774,65 @@ app.post('/api/user/address', isAuthenticated, async (req, res) => {
   }
 });
 
-app.post('/api/calculate-delivery', async (req, res) => {
+app.put('/api/user/address/:index', isAuthenticated, async (req, res) => {
   try {
-    const { lat, lng } = req.body;
-    
-    if (!lat || !lng) {
-      return res.json({ success: true, deliveryFee: 0, serviceable: false, distanceKm: 0, message: "Missing coordinates" });
+    const idx = parseInt(req.params.index);
+    if (!isMongoConnected) {
+      const userIdx = mockDB.users.findIndex(u => u.userId === req.session.user.userId);
+      if (userIdx !== -1 && mockDB.users[userIdx].addresses[idx]) {
+        mockDB.users[userIdx].addresses[idx] = { ...mockDB.users[userIdx].addresses[idx], ...req.body };
+        req.session.user = mockDB.users[userIdx];
+      }
+      return res.json({ success: true });
     }
 
+    const user = await User.findOne({ userId: req.session.user.userId });
+    if (!user || !user.addresses[idx]) return res.status(404).json({ success: false });
+
+    if (req.body.isDefault) user.addresses.forEach(a => a.isDefault = false);
+    
+    // update address at index
+    const addressDoc = user.addresses[idx];
+    Object.keys(req.body).forEach(key => {
+      addressDoc[key] = req.body[key];
+    });
+
+    await user.save();
+    req.session.user = user;
+    res.json({ success: true, addresses: user.addresses });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.delete('/api/user/address/:index', isAuthenticated, async (req, res) => {
+  try {
+    const idx = parseInt(req.params.index);
+    if (!isMongoConnected) {
+      const userIdx = mockDB.users.findIndex(u => u.userId === req.session.user.userId);
+      if (userIdx !== -1) {
+        mockDB.users[userIdx].addresses.splice(idx, 1);
+        req.session.user = mockDB.users[userIdx];
+      }
+      return res.json({ success: true });
+    }
+
+    const user = await User.findOne({ userId: req.session.user.userId });
+    if (!user || !user.addresses[idx]) return res.status(404).json({ success: false });
+
+    user.addresses.splice(idx, 1);
+    await user.save();
+    req.session.user = user;
+    res.json({ success: true, addresses: user.addresses });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/calculate-delivery', async (req, res) => {
+  try {
+    const { lat, lng, pincode } = req.body;
+    
     let settings = null;
     if (isMongoConnected) settings = await DeliverySetting.findOne();
     
@@ -1378,14 +1842,20 @@ app.post('/api/calculate-delivery', async (req, res) => {
         maxDeliveryDistance: 50,
         defaultDeliveryFee: 100,
         distanceRules: [
-          { minKm: 0, maxKm: 5, deliveryFee: 30 },
-          { minKm: 5, maxKm: 15, deliveryFee: 60 },
-          { minKm: 15, maxKm: 30, deliveryFee: 100 },
+          { minKm: 0, maxKm: 10, deliveryFee: 0 },
+          { minKm: 10, maxKm: 20, deliveryFee: 50 },
+          { minKm: 20, maxKm: 30, deliveryFee: 100 },
           { minKm: 30, maxKm: 50, deliveryFee: 150 }
         ]
       };
     }
-    
+
+    if (!lat || !lng) {
+      // Pincode fallback. If pincode starts with '30' or is present, assume serviceable and return default fee.
+      // The user specified "Checkout must never fail because of location issues."
+      return res.json({ success: true, deliveryFee: settings.defaultDeliveryFee, serviceable: true, distanceKm: 'N/A' });
+    }
+
     const storeLat = settings.storeLocation?.lat || 27.4243;
     const storeLng = settings.storeLocation?.lng || 74.3722;
     
@@ -1432,15 +1902,93 @@ app.post('/api/calculate-delivery', async (req, res) => {
   }
 });
 
+// Cancel Order API
+app.post('/api/order/:id/cancel', isAuthenticated, async (req, res) => {
+  const orderId = req.params.id;
+  const userId = req.session.user.userId;
+
+  try {
+    let order = null;
+    if (isMongoConnected) {
+      order = await Order.findOne({ orderId, userId });
+    } else {
+      order = mockDB.orders.find(o => o.orderId === orderId && o.userId === userId);
+    }
+
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    if (order.deliveryStatus !== 'Pending' && order.deliveryStatus !== 'Confirmed') {
+      return res.status(400).json({ success: false, message: 'Order cannot be cancelled at this stage. It is already ' + order.deliveryStatus });
+    }
+
+    // Update status to Cancelled
+    if (isMongoConnected) {
+      order.deliveryStatus = 'Cancelled';
+      await order.save();
+      await Delivery.updateOne({ orderId }, { deliveryStatus: 'Cancelled' });
+      
+      // Restore stock
+      for (let item of order.items) {
+        if (item.productId) {
+          await Product.updateOne({ productId: item.productId }, { $inc: { stock: item.quantity } });
+        } else {
+          await Product.updateOne({ name: item.name }, { $inc: { stock: item.quantity } });
+        }
+      }
+
+      // Create Notification
+      const notif = new Notification({
+        userId,
+        title: 'Order Cancelled',
+        message: `Your order ${orderId} has been successfully cancelled.`,
+        type: 'order_update',
+        orderId
+      });
+      await notif.save();
+    } else {
+      order.deliveryStatus = 'Cancelled';
+      const delivery = mockDB.deliveries.find(d => d.orderId === orderId);
+      if (delivery) delivery.deliveryStatus = 'Cancelled';
+
+      // Restore stock
+      for (let item of order.items) {
+        const prod = mockDB.products.find(p => p.name === item.name);
+        if (prod && prod.stock !== undefined) {
+          prod.stock += item.quantity;
+        }
+      }
+
+      mockDB.notifications.push({
+        userId,
+        title: 'Order Cancelled',
+        message: `Your order ${orderId} has been successfully cancelled.`,
+        type: 'order_update',
+        orderId,
+        read: false,
+        createdAt: new Date()
+      });
+    }
+
+    res.json({ success: true, message: 'Order cancelled successfully' });
+  } catch (error) {
+    logger.error('Cancel order error:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+});
+
 // Customer My Orders
 app.get('/my-orders', isAuthenticated, async (req, res) => {
   const userId = req.session.user.userId;
   try {
     let orders = [];
     if (isMongoConnected) {
-      orders = await Order.find({ userId }).sort({ createdAt: -1 });
+      orders = await Order.find({ userId }).populate('paymentRecordId').sort({ createdAt: -1 });
     } else {
       orders = mockDB.orders.filter(o => o.userId === userId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      // Populate mock payment record
+      orders.forEach(o => {
+        o.paymentRecordId = mockDB.paymentRecords.find(p => p.paymentId === o.paymentRecordId);
+      });
     }
     res.render('my-orders', { activePage: 'dashboard', orders });
   } catch (err) {
@@ -1457,19 +2005,47 @@ app.get('/order/:id', isAuthenticated, async (req, res) => {
       order = await Order.findOne({ orderId, userId });
       if(order) {
         delivery = await Delivery.findOne({ orderId });
-        payment = await PaymentRecord.findOne({ orderId });
+        payment = await PaymentRecord.findById(order.paymentRecordId);
       }
     } else {
       order = mockDB.orders.find(o => o.orderId === orderId && o.userId === userId);
       if(order) {
         delivery = mockDB.deliveries.find(d => d.orderId === orderId);
-        payment = mockDB.paymentRecords.find(p => p.orderId === orderId);
+        payment = mockDB.paymentRecords.find(p => p.paymentId === order.paymentRecordId);
       }
     }
     
     if (!order) return res.status(404).render('404');
     res.render('order-details', { activePage: 'dashboard', order, delivery, payment });
   } catch (err) {
+    res.status(500).render('500', { error: err });
+  }
+});
+
+// Invoice Route
+app.get('/invoice/:id', isAuthenticated, async (req, res) => {
+  const orderId = req.params.id;
+  const user = req.session.user;
+  try {
+    let order;
+    if (isMongoConnected) {
+      if (user.role === 'admin' || user.role === 'super_admin') {
+        order = await Order.findOne({ orderId });
+      } else {
+        order = await Order.findOne({ orderId, userId: user.userId });
+      }
+    } else {
+      order = mockDB.orders.find(o => o.orderId === orderId);
+      if (order && user.role !== 'admin' && user.role !== 'super_admin' && order.userId !== user.userId) {
+        order = null;
+      }
+    }
+
+    if (!order) return res.status(404).render('404', { message: 'Invoice not found or unauthorized' });
+
+    res.render('invoice', { order });
+  } catch (err) {
+    logger.error('Invoice error:', err);
     res.status(500).render('500', { error: err });
   }
 });
@@ -1529,6 +2105,168 @@ app.post('/admin/api/delivery-settings', isAdmin, async (req, res) => {
 });
 
 // ── ADMIN PORTAL LOGIC & DATA EXPORTS ────────────────────────────
+// Admin Order Status Update
+app.post('/api/admin/order/:id/status', isAdmin, validateCsrf, async (req, res) => {
+  const orderId = req.params.id;
+  const { status } = req.body;
+
+  try {
+    let order = null;
+    let oldStatus = null;
+    if (isMongoConnected) {
+      order = await Order.findOne({ orderId });
+    } else {
+      order = mockDB.orders.find(o => o.orderId === orderId);
+    }
+
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    if (isMongoConnected) {
+      oldStatus = order.deliveryStatus;
+      logger.info("Before:", oldStatus);
+      order.deliveryStatus = status;
+      if (status === 'Delivered' && order.paymentMethod === 'Cash') {
+        order.paymentStatus = 'Completed';
+        await PaymentRecord.updateOne({ orderId }, { $set: { status: 'Completed' } });
+      }
+      const updatedOrder = await order.save();
+      logger.info("After:", updatedOrder.deliveryStatus);
+      await Delivery.updateOne({ orderId }, { deliveryStatus: status });
+
+      const adminName = req.session.user ? req.session.user.name : 'Admin';
+      await new OrderLog({
+        orderId, oldStatus, newStatus: status, changedBy: adminName, cancelReason: ''
+      }).save();
+
+      // Create Notification
+      const notif = new Notification({
+        userId: order.userId,
+        title: 'Order Update',
+        message: `Your order ${orderId} status has been updated to ${status}.`,
+        type: 'order_update',
+        orderId
+      });
+      await notif.save();
+    } else {
+      oldStatus = order.deliveryStatus;
+      order.deliveryStatus = status;
+      if (status === 'Delivered' && order.paymentMethod === 'Cash') {
+        order.paymentStatus = 'Completed';
+        const payRecord = mockDB.paymentRecords.find(p => p.orderId === orderId);
+        if (payRecord) payRecord.status = 'Completed';
+      }
+
+      const adminName = req.session.user ? req.session.user.name : 'Admin';
+      mockDB.orderLogs.push({
+        orderId, oldStatus, newStatus: status, changedBy: adminName, cancelReason: '', changedAt: new Date()
+      });
+
+      const delivery = mockDB.deliveries.find(d => d.orderId === orderId);
+      if (delivery) delivery.deliveryStatus = status;
+
+      mockDB.notifications.push({
+        userId: order.userId,
+        title: 'Order Update',
+        message: `Your order ${orderId} status has been updated to ${status}.`,
+        type: 'order_update',
+        orderId,
+        read: false,
+        createdAt: new Date()
+      });
+    }
+
+    logger.info(`[Admin Update] Order ID: ${orderId}`);
+    logger.info(`[Admin Update] Old Status: ${oldStatus}`);
+    logger.info(`[Admin Update] New Status: ${status}`);
+    logger.info(`[Admin Update] Database update result: Success`);
+
+    io.emit('order_status_updated', {
+      orderId,
+      status,
+      paymentStatus: order.paymentStatus,
+      message: `Your order ${orderId} status has been updated to ${status}.`
+    });
+
+    res.json({ success: true, deliveryStatus: order.deliveryStatus });
+  } catch (error) {
+    logger.error('Admin update status error:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+});
+
+// Admin Coupon CRUD
+app.get('/api/admin/coupons', isAdmin, async (req, res) => {
+  try {
+    const coupons = await Coupon.find().sort({ createdAt: -1 }).lean();
+    res.json({ success: true, coupons });
+  } catch (err) {
+    logger.error('GET COUPONS ERROR:', err);
+    res.status(500).json({ success: false, message: err.message, error: err.message, stack: err.stack });
+  }
+});
+
+app.post('/api/admin/coupon', isAdmin, async (req, res) => {
+  try {
+    if (!req.body.code) return res.status(400).json({ success: false, message: 'Coupon code is required' });
+
+    const existing = await Coupon.findOne({ code: req.body.code.toUpperCase() });
+    if (existing) return res.json({ success: false, message: 'Coupon code already exists' });
+
+    const newCoupon = new Coupon({
+      ...req.body,
+      code: req.body.code.toUpperCase()
+    });
+    await newCoupon.save();
+    res.json({ success: true, message: 'Coupon created successfully' });
+  } catch (err) {
+    logger.error('CREATE COUPON ERROR:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: err.message, 
+      error: err.message, 
+      stack: err.stack,
+      validationErrors: err.errors,
+      requestBody: req.body
+    });
+  }
+});
+
+app.put('/api/admin/coupon/:id', isAdmin, async (req, res) => {
+  try {
+    const { code } = req.body;
+    
+    // Check duplicate code if changed
+    if (code) {
+      const existing = await Coupon.findOne({ code: code.toUpperCase(), _id: { $ne: req.params.id } });
+      if (existing) return res.json({ success: false, message: 'Coupon code already exists' });
+      req.body.code = code.toUpperCase();
+    }
+
+    await Coupon.findByIdAndUpdate(req.params.id, req.body, { runValidators: true });
+    res.json({ success: true, message: 'Coupon updated successfully' });
+  } catch (err) {
+    logger.error('UPDATE COUPON ERROR:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: err.message, 
+      error: err.message, 
+      stack: err.stack,
+      validationErrors: err.errors,
+      requestBody: req.body 
+    });
+  }
+});
+
+app.delete('/api/admin/coupon/:id', isAdmin, async (req, res) => {
+  try {
+    await Coupon.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Coupon deleted successfully' });
+  } catch (err) {
+    logger.error('DELETE COUPON ERROR:', err);
+    res.status(500).json({ success: false, message: err.message, error: err.message, stack: err.stack });
+  }
+});
+
 app.get('/admin', isAdmin, async (req, res) => {
   const adminUser = req.session.user;
 
@@ -1538,6 +2276,7 @@ app.get('/admin', isAdmin, async (req, res) => {
     let otpLogsList = [];
     let loginLogsList = [];
     let productsList = [];
+    let paymentsList = [];
     
     // Stats calculation variables
     let totalUsers = 0;
@@ -1551,16 +2290,17 @@ app.get('/admin', isAdmin, async (req, res) => {
       otpLogsList = await OtpLog.find({});
       loginLogsList = await LoginLog.find({});
       productsList = await Product.find({});
+      paymentsList = await PaymentRecord.find({}).sort({ transactionTime: -1 });
       
       const st = await Product.findOne({ productId: '__STORE_SETTINGS__' });
-      if (st) { mockDB.storeEnabled = st.deliveryAvailable; } // Using deliveryAvailable field to store the boolean flag in MongoDB since we didn't define a settings schema
+      if (st) { mockDB.storeEnabled = st.deliveryAvailable; }
       
       totalUsers = await User.countDocuments({ role: 'user' });
       totalOrders = await Order.countDocuments({});
       
-      const revenueAggr = await Order.aggregate([
-        { $match: { paymentStatus: 'Completed' } },
-        { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+      const revenueAggr = await PaymentRecord.aggregate([
+        { $match: { status: { $in: ['Paid', 'COD Completed'] } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
       ]);
       totalRevenue = revenueAggr.length > 0 ? revenueAggr[0].total : 0;
       
@@ -1571,12 +2311,13 @@ app.get('/admin', isAdmin, async (req, res) => {
       otpLogsList = mockDB.otpLogs;
       loginLogsList = mockDB.loginLogs;
       productsList = mockDB.products;
+      paymentsList = mockDB.paymentRecords || [];
       
       totalUsers = usersList.filter(u => u.role === 'user').length;
       
-      totalRevenue = mockDB.orders
-        .filter(o => o.paymentStatus === 'Completed')
-        .reduce((sum, o) => sum + o.totalAmount, 0);
+      totalRevenue = (mockDB.paymentRecords || [])
+        .filter(p => p.status === 'Paid' || p.status === 'COD Completed')
+        .reduce((sum, p) => sum + p.amount, 0);
         
       pendingDeliveries = mockDB.deliveries
         .filter(d => d.deliveryStatus !== 'Delivered')
@@ -1590,6 +2331,7 @@ app.get('/admin', isAdmin, async (req, res) => {
       otpLogs: otpLogsList,
       loginLogs: loginLogsList,
       products: productsList,
+      payments: paymentsList,
       stats: {
         totalUsers,
         totalOrders,
@@ -1599,7 +2341,7 @@ app.get('/admin', isAdmin, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Admin page load error:', error);
+    logger.error('Admin page load error:', error);
     res.status(500).render('500', { error });
   }
 });
@@ -1617,6 +2359,7 @@ app.post('/admin/api/order/status', isAdmin, express.json(), async (req, res) =>
       if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
       
       oldStatus = order.deliveryStatus;
+      logger.info("Before:", oldStatus);
       order.deliveryStatus = newStatus;
       
       // Auto payment status
@@ -1624,7 +2367,8 @@ app.post('/admin/api/order/status', isAdmin, express.json(), async (req, res) =>
         order.paymentStatus = 'Completed';
         await PaymentRecord.updateOne({ orderId }, { $set: { status: 'Completed' } });
       }
-      await order.save();
+      const updatedOrder = await order.save();
+      logger.info("After:", updatedOrder.deliveryStatus);
 
       // OrderLog
       await new OrderLog({
@@ -1638,6 +2382,27 @@ app.post('/admin/api/order/status', isAdmin, express.json(), async (req, res) =>
         if (newStatus === 'Delivered') delivery.deliveredAt = new Date();
         await delivery.save();
       }
+
+      // Stock restore on cancel
+      if (newStatus === 'Cancelled') {
+        for (let item of order.items) {
+          if (item.productId) {
+            await Product.updateOne({ productId: item.productId }, { $inc: { stock: item.quantity } });
+          } else {
+            await Product.updateOne({ name: item.name }, { $inc: { stock: item.quantity } });
+          }
+        }
+      }
+
+      // Create Notification
+      const notif = new Notification({
+        userId: order.userId,
+        title: 'Order Update',
+        message: `Your order ${orderId} status has been updated to ${newStatus}.`,
+        type: 'order_update',
+        orderId
+      });
+      await notif.save();
     } else {
       order = mockDB.orders.find(o => o.orderId === orderId);
       if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
@@ -1661,10 +2426,33 @@ app.post('/admin/api/order/status', isAdmin, express.json(), async (req, res) =>
         delivery.statusLogs.push({ status: newStatus, remarks: `Status updated by ${adminName} to ${newStatus}`, updatedAt: new Date() });
         if (newStatus === 'Delivered') delivery.deliveredAt = new Date();
       }
-    }
 
-    console.log(`✓ Admin updated order ${orderId} to status: ${newStatus}`);
+      // Stock restore on cancel
+      if (newStatus === 'Cancelled') {
+        for (let item of order.items) {
+          const prod = mockDB.products.find(p => p.name === item.name);
+          if (prod && prod.stock !== undefined) {
+            prod.stock += item.quantity;
+          }
+        }
+      }
+
+      mockDB.notifications.push({
+        userId: order.userId,
+        title: 'Order Update',
+        message: `Your order ${orderId} status has been updated to ${newStatus}.`,
+        type: 'order_update',
+        orderId,
+        read: false,
+        createdAt: new Date()
+      });
+    }
     
+    logger.info(`[Admin Update] Order ID: ${orderId}`);
+    logger.info(`[Admin Update] Old Status: ${oldStatus}`);
+    logger.info(`[Admin Update] New Status: ${newStatus}`);
+    logger.info(`[Admin Update] Database update result: Success`);
+
     io.emit('order_status_updated', {
       orderId,
       status: newStatus,
@@ -1672,10 +2460,72 @@ app.post('/admin/api/order/status', isAdmin, express.json(), async (req, res) =>
       message: `Your order ${orderId} status has been updated to ${newStatus}.`
     });
 
-    res.json({ success: true, message: 'Status updated successfully', order });
+    res.json({ success: true, deliveryStatus: order.deliveryStatus });
   } catch (error) {
-    console.error('Update status error:', error);
+    logger.error('Update status error:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+app.get('/admin/export-users', isAdmin, async (req, res) => {
+  try {
+    let users = isMongoConnected ? await User.find({}) : mockDB.users;
+    let csv = "ID,Name,Email,Phone,Role\n";
+    users.forEach(u => {
+      csv += `${u.userId},"${u.name}","${u.email}",${u.mobile},${u.role}\n`;
+    });
+    res.header('Content-Type', 'text/csv');
+    res.attachment('users-export.csv');
+    return res.send(csv);
+  } catch (err) {
+    res.status(500).send("Error generating export");
+  }
+});
+
+app.get('/admin/api/export-payments', isAdmin, async (req, res) => {
+  try {
+    let payments = isMongoConnected ? await PaymentRecord.find({}) : (mockDB.paymentRecords || []);
+    let csv = "Date,Payment ID,Order ID,Method,Amount,Status,Razorpay Txn ID\n";
+    payments.forEach(p => {
+      const date = new Date(p.transactionTime).toLocaleString();
+      csv += `"${date}",${p.paymentId},${p.orderId},"${p.method}",${p.amount},${p.status},${p.razorpayPaymentId || ''}\n`;
+    });
+    res.header('Content-Type', 'text/csv');
+    res.attachment('payments-export.csv');
+    return res.send(csv);
+  } catch (err) {
+    res.status(500).send("Error generating payment export");
+  }
+});
+
+app.post('/admin/api/refund', isAdmin, express.json(), async (req, res) => {
+  try {
+    const { paymentId } = req.body;
+    const paymentService = require('./services/paymentService');
+    
+    if (isMongoConnected) {
+      const record = await PaymentRecord.findOne({ paymentId });
+      if (!record) return res.json({ success: false, message: 'Payment not found' });
+      if (record.status !== 'Paid') return res.json({ success: false, message: 'Cannot refund a non-paid transaction' });
+      
+      record.status = 'Refunded';
+      record.refundStatus = 'Approved';
+      record.refundDate = new Date();
+      record.refundAmount = record.amount;
+      await record.save();
+
+      await paymentService.logPaymentEvent('Admin', record.orderId, record.paymentId, 'Refund Approved', 'Manual refund by admin');
+    } else {
+      const record = mockDB.paymentRecords.find(p => p.paymentId === paymentId);
+      if (record) {
+        record.status = 'Refunded';
+        record.refundStatus = 'Approved';
+      }
+    }
+    res.json({ success: true });
+  } catch (err) {
+    logger.error(err);
+    res.status(500).json({ success: false, message: 'Error processing refund' });
   }
 });
 
@@ -1731,7 +2581,7 @@ app.get('/admin/export-users', isAdmin, async (req, res) => {
     res.status(200).send(csvContent);
 
   } catch (error) {
-    console.error('CSV export failed:', error);
+    logger.error('CSV export failed:', error);
     res.status(500).render('500', { error });
   }
 });
@@ -1739,8 +2589,115 @@ app.get('/admin/export-users', isAdmin, async (req, res) => {
 // ── STORE MANAGEMENT ROUTES ─────────────────────────────────────
 // Public Store Page
 app.get('/store', (req, res) => {
-  // Store page is now integrated into the homepage
-  res.redirect('/#featured-products');
+  if (!mockDB.storeEnabled) return res.status(404).render('404');
+  res.render('store', { 
+    activePage: 'store',
+    seo: {
+      title: 'Premium Electronics Store | Kumawat P&E',
+      description: 'Shop premium electronics, home appliances, electrical fittings, and tools at the best prices.',
+      keywords: 'electronics store, appliances, electrical tools, plumbing parts, buy electronics online'
+    }
+  });
+});
+
+// Advanced Store API
+app.get('/api/store/products', async (req, res) => {
+  try {
+    if (!mockDB.storeEnabled) return res.json({ success: false, message: 'Store is disabled' });
+
+    let { q, category, brand, minPrice, maxPrice, sort, page, limit } = req.query;
+    
+    page = parseInt(page) || 1;
+    limit = parseInt(limit) || 12;
+    const skip = (page - 1) * limit;
+
+    let query = { status: { $ne: 'Deleted' } };
+    
+    if (q) {
+      query.$or = [
+        { name: { $regex: q, $options: 'i' } },
+        { category: { $regex: q, $options: 'i' } },
+        { brand: { $regex: q, $options: 'i' } }
+      ];
+    }
+    
+    if (category) {
+      // support multiple categories separated by comma
+      const categories = category.split(',').map(c => c.trim());
+      query.category = { $in: categories };
+    }
+    
+    if (brand) {
+      const brands = brand.split(',').map(b => b.trim());
+      query.brand = { $in: brands };
+    }
+
+    if (minPrice || maxPrice) {
+      query.price = {};
+      if (minPrice) query.price.$gte = parseFloat(minPrice);
+      if (maxPrice) query.price.$lte = parseFloat(maxPrice);
+    }
+
+    let sortObj = {};
+    if (sort === 'price_asc') sortObj.price = 1;
+    else if (sort === 'price_desc') sortObj.price = -1;
+    else if (sort === 'newest') sortObj.createdAt = -1;
+    else sortObj.createdAt = -1; // default newest
+
+    if (isMongoConnected) {
+      const total = await Product.countDocuments(query);
+      const products = await Product.find(query)
+        .sort(sortObj)
+        .skip(skip)
+        .limit(limit)
+        .lean();
+        
+      res.json({
+        success: true,
+        products,
+        pagination: {
+          total,
+          page,
+          pages: Math.ceil(total / limit)
+        }
+      });
+    } else {
+      // MockDB fallback
+      let results = mockDB.products.filter(p => p.status !== 'Deleted');
+      
+      if (q) {
+        const lowerQ = q.toLowerCase();
+        results = results.filter(p => p.name.toLowerCase().includes(lowerQ) || p.category.toLowerCase().includes(lowerQ));
+      }
+      
+      if (category) {
+        const categories = category.split(',').map(c => c.trim().toLowerCase());
+        results = results.filter(p => categories.includes(p.category.toLowerCase()));
+      }
+      
+      if (minPrice) results = results.filter(p => p.price >= parseFloat(minPrice));
+      if (maxPrice) results = results.filter(p => p.price <= parseFloat(maxPrice));
+      
+      if (sort === 'price_asc') results.sort((a,b) => a.price - b.price);
+      else if (sort === 'price_desc') results.sort((a,b) => b.price - a.price);
+      else results.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      const total = results.length;
+      const paginated = results.slice(skip, skip + limit);
+      
+      res.json({
+        success: true,
+        products: paginated,
+        pagination: {
+          total,
+          page,
+          pages: Math.ceil(total / limit)
+        }
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 // Public Product Details Page
@@ -1748,13 +2705,44 @@ app.get('/product/:productId', async (req, res) => {
   if (!mockDB.storeEnabled) return res.status(404).render('404');
   try {
     let product = isMongoConnected 
-      ? await Product.findOne({ productId: req.params.productId, status: { $ne: 'Deleted' } })
+      ? await Product.findOne({ productId: req.params.productId, status: { $ne: 'Deleted' } }).populate('accessories')
       : mockDB.products.find(p => p.productId === req.params.productId && p.status !== 'Deleted');
       
     if (!product) return res.status(404).render('404');
-    res.render('product-details', { product, activePage: 'store' });
+    
+    // Dynamic SEO from product data
+    const seo = {
+      title: `${product.name} | Kumawat P&E`,
+      description: product.description ? product.description.substring(0, 160) : `Buy ${product.name} online at the best price.`,
+      keywords: `${product.name}, ${product.category}, ${product.brand || 'electronics'}, buy online`
+    };
+    
+    res.render('product-details', { product, activePage: 'store', seo });
   } catch (error) {
     res.status(500).render('500', { error });
+  }
+});
+
+app.get('/compare', (req, res) => {
+  if (!mockDB.storeEnabled) return res.status(404).render('404');
+  res.render('compare', { activePage: 'store' });
+});
+
+app.post('/api/products/compare', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids)) return res.json({ success: false, products: [] });
+    
+    let products = isMongoConnected
+      ? await Product.find({ productId: { $in: ids } })
+      : mockDB.products.filter(p => ids.includes(p.productId));
+      
+    // Sort products based on input array order
+    products = ids.map(id => products.find(p => p.productId === id)).filter(Boolean);
+    
+    res.json({ success: true, products });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -1792,9 +2780,11 @@ app.get('/admin/products/edit/:productId', isAdmin, async (req, res) => {
 // Admin Add Product API
 app.post('/admin/products/add', isAdmin, upload.array('images', 5), async (req, res) => {
   try {
-    const { name, category, description, price, discountPrice, stock, sku, deliveryAvailable } = req.body;
+    const { name, category, description, price, discountPrice, stock, sku, deliveryAvailable, video, badges, features, packageContents, accessories, spec_warranty, spec_voltage, spec_wattage, spec_weight } = req.body;
     const images = req.files ? req.files.map(f => '/uploads/products/' + f.filename) : [];
     const productId = 'PRD-' + uuidv4().substring(0, 8).toUpperCase();
+    
+    const parseCommaList = (str) => str ? str.split(',').map(s => s.trim()).filter(Boolean) : [];
     
     const pData = {
       productId, name, category, description, images,
@@ -1802,6 +2792,18 @@ app.post('/admin/products/add', isAdmin, upload.array('images', 5), async (req, 
       stock: Number(stock), sku,
       status: Number(stock) > 0 ? 'Active' : 'Out Of Stock',
       deliveryAvailable: deliveryAvailable === 'true',
+      video: video || '',
+      badges: parseCommaList(badges),
+      features: parseCommaList(features),
+      packageContents: parseCommaList(packageContents),
+      accessories: parseCommaList(accessories),
+      specifications: {
+        general: {},
+        electrical: { voltage: spec_voltage, wattage: spec_wattage },
+        physical: { weight: spec_weight },
+        warranty: { duration: spec_warranty },
+        technical: {}
+      },
       createdAt: new Date(), updatedAt: new Date()
     };
 
@@ -1819,7 +2821,7 @@ app.post('/admin/products/add', isAdmin, upload.array('images', 5), async (req, 
     io.emit('product_updated', { action: 'add', product: pData });
     res.redirect('/admin?success=product-added');
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).render('500', { error });
   }
 });
@@ -1828,13 +2830,27 @@ app.post('/admin/products/add', isAdmin, upload.array('images', 5), async (req, 
 app.post('/admin/products/edit/:productId', isAdmin, upload.array('images', 5), async (req, res) => {
   try {
     const productId = req.params.productId;
-    const { name, category, description, price, discountPrice, stock, sku, status, deliveryAvailable } = req.body;
+    const { name, category, description, price, discountPrice, stock, sku, status, deliveryAvailable, video, badges, features, packageContents, accessories, spec_warranty, spec_voltage, spec_wattage, spec_weight } = req.body;
     
+    const parseCommaList = (str) => str ? str.split(',').map(s => s.trim()).filter(Boolean) : [];
+
     let updates = {
       name, category, description,
       price: Number(price), discountPrice: discountPrice ? Number(discountPrice) : undefined,
       stock: Number(stock), sku, status,
       deliveryAvailable: deliveryAvailable === 'true',
+      video: video || '',
+      badges: parseCommaList(badges),
+      features: parseCommaList(features),
+      packageContents: parseCommaList(packageContents),
+      accessories: parseCommaList(accessories),
+      specifications: {
+        general: {},
+        electrical: { voltage: spec_voltage, wattage: spec_wattage },
+        physical: { weight: spec_weight },
+        warranty: { duration: spec_warranty },
+        technical: {}
+      },
       updatedAt: new Date()
     };
     
@@ -1852,7 +2868,7 @@ app.post('/admin/products/edit/:productId', isAdmin, upload.array('images', 5), 
     io.emit('product_updated', { action: 'edit', productId, updates });
     res.redirect('/admin?success=product-updated');
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).render('500', { error });
   }
 });
@@ -1869,7 +2885,7 @@ app.get('/admin/products/delete/:productId', isAdmin, async (req, res) => {
     io.emit('product_updated', { action: 'delete', productId });
     res.redirect('/admin?success=product-deleted');
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).render('500', { error });
   }
 });
@@ -1882,14 +2898,8 @@ app.use((req, res, next) => {
 
 // 500 Route
 app.use((err, req, res, next) => {
-  console.error('[Global Handler] Error:', err);
+  logger.error('[Global Handler] Error:', err);
   res.status(500).render('500', { error: err });
 });
 
-// Start Server
-server.listen(PORT, () => {
-  console.log(`\n========================================================`);
-  console.log(`🚀 Kumawat P&E Express Server running at http://localhost:${PORT}`);
-  console.log(`📅 Started at: ${new Date().toLocaleString()}`);
-  console.log(`========================================================\n`);
-});
+// Server automatically started in startServer()

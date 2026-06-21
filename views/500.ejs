@@ -1,21 +1,25 @@
 <%- include('partials/header', { title: 'Server Error | Kumawat P&E', activePage: '' }) %>
 
-<div class="container error-page">
-  <div class="error-code"><i class="bi bi-exclamation-octagon text-danger"></i></div>
-  <h2 class="error-message">Internal Server Error</h2>
-  <p class="error-description">Something went wrong on our server. We are looking into the issue. Please try again later or contact support if the problem persists.</p>
-  
-  <% if (typeof error !== 'undefined' && error && process.env.NODE_ENV !== 'production') { %>
-    <div class="text-start p-3 bg-white border border-danger rounded mb-4" style="max-width: 600px; font-family: monospace; font-size: 0.82rem; overflow-x: auto; white-space: pre;">
-      <strong>Error:</strong> <%= error.message %>
-      <hr style="margin: 8px 0;" />
-      <%= error.stack %>
+<div class="container py-5" style="min-height: 80vh; display: flex; align-items: center; justify-content: center;">
+  <div class="modern-card text-center p-5 shadow-lg" style="max-width: 600px; width: 100%;">
+    <div style="font-size: 5rem; color: var(--red); line-height: 1; margin-bottom: 20px;">
+      <i class="bi bi-exclamation-triangle-fill"></i>
     </div>
-  <% } %>
+    <h2 style="font-family: var(--font-display); font-weight: 700; color: var(--ink); margin-bottom: 16px;">Internal Server Error</h2>
+    <p style="color: var(--ink-light); font-size: 1rem; margin-bottom: 30px;">We're experiencing some technical difficulties. Please try again later or contact our support team.</p>
+    
+    <% if (typeof error !== 'undefined' && error && process.env.NODE_ENV !== 'production') { %>
+      <div class="text-start p-3 bg-light border border-danger rounded mb-4 shadow-sm" style="font-family: monospace; font-size: 0.82rem; overflow-x: auto; white-space: pre-wrap; color: var(--ink);">
+        <strong class="text-danger">Error:</strong> <%= error.message %>
+        <hr style="margin: 8px 0; border-color: rgba(200,0,0,0.1);" />
+        <%= error.stack %>
+      </div>
+    <% } %>
 
-  <div>
-    <a href="/" class="btn btn-accent"><i class="bi bi-house"></i> Back to Safety</a>
-    <a href="https://wa.me/919462759965" target="_blank" class="btn btn-whatsapp ms-2"><i class="bi bi-whatsapp"></i> Chat Support</a>
+    <div class="d-flex justify-content-center gap-3">
+      <a href="/" class="btn btn-accent"><i class="bi bi-arrow-left me-1"></i> Back to Safety</a>
+      <a href="https://wa.me/919462759965" target="_blank" class="btn btn-whatsapp"><i class="bi bi-whatsapp me-1"></i> Support</a>
+    </div>
   </div>
 </div>
 

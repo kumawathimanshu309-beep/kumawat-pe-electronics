@@ -1,12 +1,14 @@
 <%- include('partials/header', { title: 'Page Not Found | Kumawat P&E', activePage: '' }) %>
 
-<div class="container error-page">
-  <div class="error-code">404</div>
-  <h2 class="error-message">Oops! Page Not Found</h2>
-  <p class="error-description">The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.</p>
-  <div>
-    <a href="/" class="btn btn-accent"><i class="bi bi-house"></i> Go to Homepage</a>
-    <a href="/services" class="btn btn-outline ms-2"><i class="bi bi-cart"></i> Browse Services</a>
+<div class="container py-5" style="min-height: 80vh; display: flex; align-items: center; justify-content: center;">
+  <div class="modern-card text-center p-5 shadow-lg" style="max-width: 600px; width: 100%;">
+    <div style="font-family: var(--font-display); font-size: clamp(4rem, 10vw, 6rem); font-weight: 800; color: var(--accent); line-height: 1; margin-bottom: 20px;">404</div>
+    <h2 style="font-family: var(--font-display); font-weight: 700; color: var(--ink); margin-bottom: 16px;">Page Not Found</h2>
+    <p style="color: var(--ink-light); font-size: 1rem; margin-bottom: 30px;">The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.</p>
+    <div class="d-flex justify-content-center gap-3">
+      <a href="/" class="btn btn-accent"><i class="bi bi-house me-1"></i> Go Home</a>
+      <a href="/store" class="btn btn-outline"><i class="bi bi-shop me-1"></i> Browse Store</a>
+    </div>
   </div>
 </div>
 

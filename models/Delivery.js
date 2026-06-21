@@ -14,7 +14,7 @@ const DeliverySchema = new mongoose.Schema({
   },
   deliveryStatus: {
     type: String,
-    enum: ['Pending', 'In Transit', 'Delivered', 'Cancelled'],
+    enum: ['Pending', 'Confirmed', 'Processing', 'Packed', 'Shipped', 'Out For Delivery', 'Delivered', 'Cancelled'],
     default: 'Pending'
   },
   deliveryAddress: {

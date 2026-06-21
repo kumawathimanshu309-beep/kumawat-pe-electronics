@@ -1,0 +1,170 @@
+<%- include('partials/header') %>
+
+<section class="hero-section" style="padding-top: 100px; padding-bottom: 50px; background: var(--bg-dark); color: var(--white);">
+  <div class="container text-center">
+    <h1 style="font-family: var(--font-display); font-size: 2.5rem; margin-bottom: 10px;">Product Comparison</h1>
+    <p style="color: rgba(255,255,255,0.7); font-size: 1.1rem;">Compare up to 4 products side-by-side.</p>
+  </div>
+</section>
+
+<section class="py-5" style="background: var(--bg); min-height: 60vh;">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <a href="/store" class="btn btn-outline btn-sm"><i class="bi bi-arrow-left"></i> Back to Store</a>
+      <div>
+        <button class="btn btn-outline btn-sm me-2" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+        <button class="btn btn-outline btn-sm" onclick="clearComparison()"><i class="bi bi-trash"></i> Clear All</button>
+      </div>
+    </div>
+
+    <div id="compare-container" class="modern-card p-4 bg-white" style="overflow-x: auto;">
+      <div class="text-center py-5" id="compare-loader">
+        <div class="spinner-border text-secondary" role="status"><span class="sr-only">Loading...</span></div>
+        <p class="mt-3 text-muted">Loading comparison data...</p>
+      </div>
+      <div id="compare-content" class="d-none">
+        <table class="table table-bordered compare-table" style="min-width: 800px; table-layout: fixed;">
+          <thead id="compare-head" style="position: sticky; top: 64px; background: white; z-index: 10; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <!-- Headers dynamically injected -->
+          </thead>
+          <tbody id="compare-body">
+            <!-- Data dynamically injected -->
+          </tbody>
+        </table>
+      </div>
+      <div id="compare-empty" class="text-center py-5 d-none">
+        <i class="bi bi-bar-chart text-muted" style="font-size: 4rem;"></i>
+        <h4 class="mt-3" style="font-family: var(--font-display); font-weight:700;">No Products Selected</h4>
+        <p class="text-muted">Browse our store and add products to comparison.</p>
+        <a href="/store" class="btn btn-accent mt-2">Go to Store</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .compare-table th, .compare-table td { padding: 15px; vertical-align: middle; }
+  .compare-table th { background: var(--bg); color: var(--ink-light); font-weight: 600; width: 20%; }
+  .compare-table td { width: 20%; text-align: center; }
+  .compare-col-header { display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; }
+  .remove-compare-btn { position: absolute; top: 5px; right: 5px; background: rgba(255,255,255,0.8); border: none; border-radius: 50%; padding: 2px 6px; cursor: pointer; color: var(--red); }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', loadComparison);
+
+  async function loadComparison() {
+    const list = JSON.parse(localStorage.getItem('compareList') || '[]');
+    if (list.length === 0) {
+      document.getElementById('compare-loader').classList.add('d-none');
+      document.getElementById('compare-empty').classList.remove('d-none');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/products/compare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: list })
+      });
+      const data = await res.json();
+      
+      if (data.success && data.products.length > 0) {
+        renderComparisonTable(data.products);
+      } else {
+        clearComparison();
+      }
+    } catch(err) {
+      document.getElementById('compare-loader').innerHTML = '<div class="text-danger">Error loading comparison data.</div>';
+    }
+  }
+
+  function renderComparisonTable(products) {
+    document.getElementById('compare-loader').classList.add('d-none');
+    document.getElementById('compare-content').classList.remove('d-none');
+
+    const thead = document.getElementById('compare-head');
+    const tbody = document.getElementById('compare-body');
+
+    // Render Headers (Images, Titles, Prices, Buy Buttons)
+    let trHead = `<tr><th style="border-top:none; border-left:none;"></th>`;
+    products.forEach(p => {
+      const imgSrc = p.images && p.images.length ? p.images[0] : '';
+      const escapedName = p.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      const price = p.discountPrice || p.price;
+      trHead += `
+        <td style="position:relative; background:white;">
+          <button class="remove-compare-btn shadow-sm" onclick="removeFromCompare('${p.productId}')"><i class="bi bi-x"></i></button>
+          <div class="compare-col-header">
+            ${imgSrc ? `<img src="${imgSrc}" style="height:120px; object-fit:contain; margin-bottom:10px; cursor:pointer;" onclick="window.location.href='/product/${p.productId}'">` : `<div style="height:120px; background:#eee; width:100%; margin-bottom:10px;"></div>`}
+            <h6 style="font-weight:700; font-size:0.95rem; line-height:1.3; min-height:40px;">${p.name}</h6>
+            <div style="color:var(--accent); font-weight:700; font-size:1.2rem; margin-bottom:10px;">₹${price}</div>
+            <button class="btn btn-accent btn-sm w-100" onclick="buyNowDirect({name: '${escapedName}', price: ${price}, originalPrice: ${p.price}, image: '${imgSrc}', sku: '${p.sku || ''}', category: '${p.category || ''}', type: 'product'})"><i class="bi bi-cart"></i> Buy</button>
+          </div>
+        </td>
+      `;
+    });
+    // Add empty columns to maintain table layout if less than 4 products
+    for(let i = products.length; i < 4; i++) {
+      trHead += `<td style="background:#fafafa;"></td>`;
+    }
+    trHead += `</tr>`;
+    thead.innerHTML = trHead;
+
+    // Helper to get spec value safely
+    const getSpec = (p, cat, key) => {
+      if(p.specifications && p.specifications[cat] && p.specifications[cat][key]) return p.specifications[cat][key];
+      return '-';
+    };
+
+    // Render Rows
+    const rows = [
+      { label: 'Brand', cat: null, key: 'brand', extract: p => p.brand || '-' },
+      { label: 'Category', cat: null, key: 'category', extract: p => p.category || '-' },
+      { label: 'Stock Status', cat: null, key: 'stock', extract: p => p.stock > 0 ? (p.status==='Out Of Stock'?'Out of Stock':'In Stock') : 'Out of Stock' },
+      { label: 'Warranty', cat: 'warranty', key: 'duration', extract: p => getSpec(p, 'warranty', 'duration') },
+      { label: 'Voltage', cat: 'electrical', key: 'voltage', extract: p => getSpec(p, 'electrical', 'voltage') },
+      { label: 'Power/Wattage', cat: 'electrical', key: 'wattage', extract: p => getSpec(p, 'electrical', 'wattage') },
+      { label: 'Current', cat: 'electrical', key: 'current', extract: p => getSpec(p, 'electrical', 'current') },
+      { label: 'Weight', cat: 'physical', key: 'weight', extract: p => getSpec(p, 'physical', 'weight') },
+      { label: 'Dimensions', cat: 'physical', key: 'dimensions', extract: p => getSpec(p, 'physical', 'dimensions') },
+      { label: 'Material', cat: 'physical', key: 'material', extract: p => getSpec(p, 'physical', 'material') },
+      { label: 'Color', cat: 'physical', key: 'color', extract: p => getSpec(p, 'physical', 'color') },
+      { label: 'Average Rating', cat: null, key: 'rating', extract: p => p.ratings ? `${p.ratings.average} ★ (${p.ratings.count})` : '-' }
+    ];
+
+    let trBody = '';
+    rows.forEach(r => {
+      trBody += `<tr><th>${r.label}</th>`;
+      
+      // Determine if there is a difference to highlight
+      const values = products.map(p => r.extract(p));
+      const isDifferent = new Set(values.filter(v => v !== '-')).size > 1;
+      const highlightClass = isDifferent ? 'bg-light font-weight-bold text-dark' : '';
+
+      products.forEach(p => {
+        trBody += `<td class="${highlightClass}">${r.extract(p)}</td>`;
+      });
+      for(let i = products.length; i < 4; i++) {
+        trBody += `<td></td>`;
+      }
+      trBody += `</tr>`;
+    });
+
+    tbody.innerHTML = trBody;
+  }
+
+  function removeFromCompare(productId) {
+    let list = JSON.parse(localStorage.getItem('compareList') || '[]');
+    list = list.filter(id => id !== productId);
+    localStorage.setItem('compareList', JSON.stringify(list));
+    location.reload();
+  }
+
+  function clearComparison() {
+    localStorage.removeItem('compareList');
+    location.reload();
+  }
+</script>
+
+<%- include('partials/footer') %>
