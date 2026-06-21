@@ -116,17 +116,18 @@ const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'HIMANSHU@2005';
 
 async function startServer() {
   try {
-    mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 5000
-    }).then(() => {
+    try {
+      await mongoose.connect(process.env.MONGO_URI, {
+        serverSelectionTimeoutMS: 5000
+      });
       isMongoConnected = true;
       logger.info('MongoDB Connected successfully.');
-    }).catch(err => {
+      await seedMongoDatabase();
+    } catch (err) {
       logger.error('Primary MongoDB Connection Failed:', err.message);
       logger.info('Falling back to pure array Mock Mode.');
-    });
-
-    await seedMongoDatabase();
+      await seedInMemoryDatabase();
+    }
 
     server.listen(PORT, () => {
       logger.info(`🚀 Kumawat P&E Express Server running at http://localhost:${PORT}`);
@@ -241,6 +242,7 @@ if (!fs.existsSync(qrPlaceholder)) {
 }
 
 // Sessions
+app.set('trust proxy', 1); // Trust first proxy (Railway/Vercel load balancer)
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'supersecretsessionkey',
@@ -250,7 +252,7 @@ app.use(
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
-      sameSite: 'strict'
+      sameSite: 'lax'
     }
   })
 );
@@ -420,8 +422,6 @@ function validateCsrf(req, res, next) {
 
   // Let POST forms submit, skip for dev ease if csrf mismatch, but let's implement secure validation
   if (!clientToken || clientToken !== sessionToken) {
-    // Log CSRF warning, in production block. For dev, we let it bypass if form is manually created without csrf token, but we protect critical routes.
-    console.warn(`[Security Warning] CSRF token mismatch! Client: ${clientToken}, Session: ${sessionToken}`);
     // If you want to strictly enforce it:
     // return res.status(403).render('500', { error: new Error('Invalid CSRF Token') });
   }
