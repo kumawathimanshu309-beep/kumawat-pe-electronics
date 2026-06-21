@@ -26,7 +26,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const multer = require('multer');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
@@ -2782,7 +2782,7 @@ app.post('/admin/products/add', isAdmin, upload.array('images', 5), async (req, 
   try {
     const { name, category, description, price, discountPrice, stock, sku, deliveryAvailable, video, badges, features, packageContents, accessories, spec_warranty, spec_voltage, spec_wattage, spec_weight } = req.body;
     const images = req.files ? req.files.map(f => '/uploads/products/' + f.filename) : [];
-    const productId = 'PRD-' + uuidv4().substring(0, 8).toUpperCase();
+    const productId = 'PRD-' + randomUUID().substring(0, 8).toUpperCase();
     
     const parseCommaList = (str) => str ? str.split(',').map(s => s.trim()).filter(Boolean) : [];
     
