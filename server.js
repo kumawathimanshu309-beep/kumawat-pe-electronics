@@ -485,14 +485,83 @@ async function seedInMemoryDatabase() {
 }
 
 // ── EXPRESS MIDDLEWARES ──────────────────────────────────────────
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://checkout.razorpay.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+      imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://checkout.razorpay.com"],
+      connectSrc: ["'self'", "https://lumberjack-cx.razorpay.com"]
+    }
+  },
+  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+  frameguard: { action: 'deny' },
+  xssFilter: true,
+  noSniff: true,
+  hidePoweredBy: true
+}));
+
 app.use(mongoSanitize());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10kb' })); // Limit body size to prevent DOS
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());
 
+// XSS Protection via sanitize-html
+const sanitizeHtml = require('sanitize-html');
+const sanitizeInput = (obj) => {
+  if (typeof obj !== 'object' || obj === null) return obj;
+  for (let key in obj) {
+    if (key.toLowerCase().includes('password')) continue; // Skip passwords to preserve special characters
+    if (typeof obj[key] === 'string') {
+      // Allow some basic formatting but remove dangerous tags
+      obj[key] = sanitizeHtml(obj[key], {
+        allowedTags: sanitizeHtml.defaults.allowedTags.concat([ 'img' ]),
+        allowedAttributes: {
+          '*': ['href', 'align', 'alt', 'center', 'bgcolor']
+        }
+      });
+    } else if (typeof obj[key] === 'object') {
+      sanitizeInput(obj[key]);
+    }
+  }
+};
+app.use((req, res, next) => {
+  if (req.body) sanitizeInput(req.body);
+  if (req.query) sanitizeInput(req.query);
+  if (req.params) sanitizeInput(req.params);
+  next();
+});
+
+// Rate Limiting
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // Limit each IP to 1000 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests from this IP, please try again later.' }
+});
+app.use(globalLimiter);
+
+// Specific stricter limiters for Auth & Payments
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, 
+  max: 20, 
+  message: { success: false, message: 'Too many authentication attempts, please try again later.' }
+});
+app.use('/login', authLimiter);
+app.use('/register', authLimiter);
+app.use('/api/user/generate-otp', authLimiter);
+app.use('/api/user/verify-otp', authLimiter);
+
 // Static Folder
-app.use(express.static(path.join(__dirname, 'public'), { maxAge: '30d' }));
+app.use(express.static(path.join(__dirname, 'public'), { 
+  maxAge: '30d',
+  setHeaders: (res, path) => {
+    if (path.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
+  }
+}));
 
 // Create public directories if missing
 const publicCss = path.join(__dirname, 'public', 'css');
@@ -514,6 +583,7 @@ if (!fs.existsSync(qrPlaceholder)) {
 app.set('trust proxy', 1); // Trust first proxy (Railway/Vercel load balancer)
 app.use(
   session({
+    name: 'sessionId', // Obfuscate session cookie name
     secret: process.env.SESSION_SECRET || 'supersecretsessionkey',
     resave: false,
     saveUninitialized: false,
@@ -521,13 +591,16 @@ app.use(
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
-      sameSite: 'lax'
+      sameSite: 'strict' // Native CSRF protection
     }
   })
 );
 
 app.use((req, res, next) => {
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  // Disabling global no-store cache to allow static caching
+  if (!req.path.startsWith('/public') && !req.path.includes('.')) {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  }
   next();
 });
 
@@ -560,6 +633,39 @@ passport.deserializeUser(async (id, done) => {
   } catch (err) {
     logger.error(`[Auth] Deserialize error:`, err);
     done(err, null);
+  }
+});
+
+// --- SEO Routes ---
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain');
+  res.send(`User-agent: *
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /api/
+Sitemap: https://kumawatelectricals.com/sitemap.xml`);
+});
+
+app.get('/sitemap.xml', async (req, res) => {
+  try {
+    const products = isMongoConnected ? await Product.find({ status: 'Active' }).select('productId updatedAt').lean() : mockDB.products.filter(p => p.status === 'Active');
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://kumawatelectricals.com/</loc><priority>1.0</priority></url>
+  <url><loc>https://kumawatelectricals.com/store</loc><priority>0.9</priority></url>
+  <url><loc>https://kumawatelectricals.com/about</loc><priority>0.8</priority></url>
+  <url><loc>https://kumawatelectricals.com/services</loc><priority>0.8</priority></url>
+  <url><loc>https://kumawatelectricals.com/contact</loc><priority>0.7</priority></url>`;
+    
+    products.forEach(p => {
+      xml += `\n  <url><loc>https://kumawatelectricals.com/product/${p.productId}</loc><priority>0.8</priority></url>`;
+    });
+    xml += '\n</urlset>';
+    
+    res.header('Content-Type', 'application/xml');
+    res.send(xml);
+  } catch (err) {
+    res.status(500).end();
   }
 });
 
@@ -789,7 +895,7 @@ app.get('/', async (req, res) => {
   try {
     let productsList = [];
     if (mockDB.storeEnabled) {
-      productsList = isMongoConnected ? await Product.find({ status: { $ne: 'Deleted' } }) : mockDB.products.filter(p => p.status !== 'Deleted');
+      productsList = isMongoConnected ? await Product.find({ status: { $ne: 'Deleted' } }).lean() : mockDB.products.filter(p => p.status !== 'Deleted');
     }
     // Only pass Active products to the homepage featured section
     const featuredProducts = productsList.filter(p => p.status === 'Active' || !p.status).reverse().slice(0, 12);
@@ -804,7 +910,7 @@ app.get('/services', async (req, res) => {
   try {
     let productsList = [];
     if (mockDB.storeEnabled) {
-      productsList = isMongoConnected ? await Product.find({ status: { $ne: 'Deleted' } }) : mockDB.products.filter(p => p.status !== 'Deleted');
+      productsList = isMongoConnected ? await Product.find({ status: { $ne: 'Deleted' } }).lean() : mockDB.products.filter(p => p.status !== 'Deleted');
     }
     const activeProducts = productsList.filter(p => p.status === 'Active' || !p.status);
     
@@ -1375,9 +1481,9 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
     let userNotifications = [];
 
     if (isMongoConnected) {
-      userOrders = await Order.find({ userId: sessionUser.userId }).sort({ createdAt: -1 });
+      userOrders = await Order.find({ userId: sessionUser.userId }).sort({ createdAt: -1 }).lean();
       userCard = await Card.findOne({ userId: sessionUser.userId });
-      userNotifications = await Notification.find({ userId: sessionUser.userId }).sort({ createdAt: -1 });
+      userNotifications = await Notification.find({ userId: sessionUser.userId }).sort({ createdAt: -1 }).lean();
       
       // Safety: Create user card if it does not exist (e.g. for pre-existing users seeded)
       if (!userCard) {
@@ -2012,7 +2118,7 @@ app.post('/api/reviews', isAuthenticated, async (req, res) => {
 app.get('/api/reviews/:productId', async (req, res) => {
   if (!isMongoConnected) return res.json({ success: true, reviews: [] });
   try {
-    const reviews = await Review.find({ productId: req.params.productId }).sort({ createdAt: -1 });
+    const reviews = await Review.find({ productId: req.params.productId }).sort({ createdAt: -1 }).lean();
     res.json({ success: true, reviews });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -2324,7 +2430,7 @@ app.get('/my-orders', isAuthenticated, async (req, res) => {
   try {
     let orders = [];
     if (isMongoConnected) {
-      orders = await Order.find({ userId }).populate('paymentRecordId').sort({ createdAt: -1 });
+      orders = await Order.find({ userId }).populate('paymentRecordId').sort({ createdAt: -1 }).lean();
     } else {
       orders = mockDB.orders.filter(o => o.userId === userId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       // Populate mock payment record
@@ -2556,9 +2662,9 @@ app.get('/admin', isAdmin, async (req, res) => {
     let pendingDeliveries = 0;
 
     if (isMongoConnected) {
-      usersList = await User.find({});
-      ordersList = await Order.find({});
-      otpLogsList = await OtpLog.find({});
+      usersList = await User.find({}).lean();
+      ordersList = await Order.find({}).lean();
+      otpLogsList = await OtpLog.find({}).lean();
       loginLogsList = await LoginLog.find({});
       productsList = await Product.find({});
       paymentsList = await PaymentRecord.find({}).sort({ transactionTime: -1 });
@@ -2976,7 +3082,7 @@ app.get('/product/:productId', async (req, res) => {
   if (!mockDB.storeEnabled) return res.status(404).render('404');
   try {
     let product = isMongoConnected 
-      ? await Product.findOne({ productId: req.params.productId, status: { $ne: 'Deleted' } }).populate('accessories')
+      ? await Product.findOne({ productId: req.params.productId, status: { $ne: 'Deleted' } }).populate('accessories').lean()
       : mockDB.products.find(p => p.productId === req.params.productId && p.status !== 'Deleted');
       
     if (!product) return res.status(404).render('404');

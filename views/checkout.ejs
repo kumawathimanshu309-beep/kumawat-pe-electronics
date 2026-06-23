@@ -844,7 +844,7 @@
       return `
         <div class="summary-item">
           <div class="summary-item-img">
-            ${item.image ? `<img src="${item.image}" style="max-width: 100%; max-height: 100%; object-fit: contain;">` : `<i class="bi bi-image text-muted" style="font-size: 1.5rem;"></i>`}
+            ${item.image ? `<img alt="Image" loading="lazy" decoding="async" src="${item.image}" style="max-width: 100%; max-height: 100%; object-fit: contain;">` : `<i class="bi bi-image text-muted" style="font-size: 1.5rem;"></i>`}
           </div>
           <div class="summary-item-details">
             <div class="summary-item-title" title="${item.name}">${item.name}</div>

@@ -513,7 +513,7 @@
                       <tr class="product-row" data-search="<%= (p.name + ' ' + p.sku).toLowerCase() %>">
                         <td>
                           <% if (p.images && p.images.length > 0) { %>
-                            <img src="<%= p.images[0] %>" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;" />
+                            <img alt="Image" loading="lazy" decoding="async" src="<%= p.images[0] %>" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;" />
                           <% } else { %>
                             <div style="width: 50px; height: 50px; background: #eee; border-radius: 4px; display:flex; align-items:center; justify-content:center;"><i class="bi bi-image text-muted"></i></div>
                           <% } %>

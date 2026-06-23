@@ -335,7 +335,7 @@
                  <div class="btn-icon" title="Compare" onclick="toggleCompare('${p.productId}', event)"><i class="bi ${compareClass}"></i></div>
                  <div class="btn-icon" title="Quick View" onclick="event.stopPropagation(); window.location.href='/product/${p.productId}'"><i class="bi bi-eye"></i></div>
                </div>
-               ${imgSrc ? `<img src="${imgSrc}" loading="lazy" alt="${escapedName}" />` : `<i class="bi bi-image text-muted" style="font-size: 3rem;"></i>`}
+               ${imgSrc ? `<img src="${imgSrc}" loading="lazy" decoding="async" alt="${escapedName}" />` : `<i class="bi bi-image text-muted" style="font-size: 3rem;"></i>`}
             </div>
             
             <div class="product-card-body">

@@ -25,7 +25,21 @@
       "contactType": "customer service"
     }
   }
-  </script>
+</script>
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="<%= (typeof seo !== 'undefined' && seo.ogType) ? seo.ogType : 'website' %>" />
+  <meta property="og:url" content="<%= (typeof seo !== 'undefined' && seo.canonicalUrl) ? seo.canonicalUrl : 'https://kumawatelectricals.com' %>" />
+  <meta property="og:title" content="<%= (typeof seo !== 'undefined' && seo.title) ? seo.title : (typeof title !== 'undefined' ? title : 'Kumawat Plumbing & Electricals') %>" />
+  <meta property="og:description" content="<%= (typeof seo !== 'undefined' && seo.description) ? seo.description : 'Premium electronics, home appliances, and electrical tools.' %>" />
+  <meta property="og:image" content="<%= (typeof seo !== 'undefined' && seo.image) ? seo.image : 'https://kumawatelectricals.com/images/logo.png' %>" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="<%= (typeof seo !== 'undefined' && seo.canonicalUrl) ? seo.canonicalUrl : 'https://kumawatelectricals.com' %>" />
+  <meta property="twitter:title" content="<%= (typeof seo !== 'undefined' && seo.title) ? seo.title : (typeof title !== 'undefined' ? title : 'Kumawat Plumbing & Electricals') %>" />
+  <meta property="twitter:description" content="<%= (typeof seo !== 'undefined' && seo.description) ? seo.description : 'Premium electronics, home appliances, and electrical tools.' %>" />
+  <meta property="twitter:image" content="<%= (typeof seo !== 'undefined' && seo.image) ? seo.image : 'https://kumawatelectricals.com/images/logo.png' %>" />
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -40,6 +54,7 @@
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
+<a href="#main-content" class="skip-link sr-only sr-only-focusable">Skip to main content</a>
 
 <header class="site-header">
   <div class="container">

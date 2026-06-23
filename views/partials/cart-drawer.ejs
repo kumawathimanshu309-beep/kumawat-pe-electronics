@@ -323,7 +323,7 @@
           totalPrice += item.price * item.quantity;
           
           let imgHtml = item.image 
-            ? `<img src="${item.image}" alt="${item.name}">` 
+            ? `<img loading="lazy" decoding="async" src="${item.image}" alt="${item.name}">` 
             : `<div style="width:80px; height:80px; background:#eee; border-radius:8px; display:flex; align-items:center; justify-content:center;"><i class="bi bi-image text-muted"></i></div>`;
             
           drawerBody.innerHTML += `

@@ -96,7 +96,7 @@
         <td style="position:relative; background:white;">
           <button class="remove-compare-btn shadow-sm" onclick="removeFromCompare('${p.productId}')"><i class="bi bi-x"></i></button>
           <div class="compare-col-header">
-            ${imgSrc ? `<img src="${imgSrc}" style="height:120px; object-fit:contain; margin-bottom:10px; cursor:pointer;" onclick="window.location.href='/product/${p.productId}'">` : `<div style="height:120px; background:#eee; width:100%; margin-bottom:10px;"></div>`}
+            ${imgSrc ? `<img alt="Image" loading="lazy" decoding="async" src="${imgSrc}" style="height:120px; object-fit:contain; margin-bottom:10px; cursor:pointer;" onclick="window.location.href='/product/${p.productId}'">` : `<div style="height:120px; background:#eee; width:100%; margin-bottom:10px;"></div>`}
             <h6 style="font-weight:700; font-size:0.95rem; line-height:1.3; min-height:40px;">${p.name}</h6>
             <div style="color:var(--accent); font-weight:700; font-size:1.2rem; margin-bottom:10px;">₹${price}</div>
             <button class="btn btn-accent btn-sm w-100" onclick="buyNowDirect({name: '${escapedName}', price: ${price}, originalPrice: ${p.price}, image: '${imgSrc}', sku: '${p.sku || ''}', category: '${p.category || ''}', type: 'product'})"><i class="bi bi-cart"></i> Buy</button>
