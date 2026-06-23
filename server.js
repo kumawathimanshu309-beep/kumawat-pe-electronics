@@ -1,5 +1,7 @@
 require('dotenv').config();
 
+const logger = require('./utils/logger');
+
 // ----------------------------------------------------
 // ENVIRONMENT VALIDATION
 // ----------------------------------------------------
@@ -16,9 +18,9 @@ requiredEnvVars.forEach(envVar => {
 });
 
 if (missingEnv.length > 0) {
-  console.error('\n[FATAL ERROR] Server cannot start due to missing environment variables:');
-  missingEnv.forEach(envVar => console.error(` - ${envVar}`));
-  console.error('\nPlease verify your .env file and try again.\n');
+  logger.error('\n[FATAL ERROR] Server cannot start due to missing environment variables:');
+  missingEnv.forEach(envVar => logger.error(` - ${envVar}`));
+  logger.error('\nPlease verify your .env file and try again.\n');
   process.exit(1);
 }
 
@@ -45,7 +47,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const morgan = require('morgan');
 const compression = require('compression');
-const logger = require('./utils/logger');
+
 
 const app = express();
 const server = http.createServer(app);
@@ -117,6 +119,7 @@ const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'HIMANSHU@2005';
 async function startServer() {
   try {
     try {
+      mongoose.set('strictQuery', false);
       await mongoose.connect(process.env.MONGO_URI, {
         serverSelectionTimeoutMS: 5000
       });
@@ -223,7 +226,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Static Folder
-app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1d' }));
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: '30d' }));
 
 // Create public directories if missing
 const publicCss = path.join(__dirname, 'public', 'css');
@@ -267,31 +270,66 @@ app.use(passport.session());
 
 // Passport serialization
 passport.serializeUser((user, done) => {
-  done(null, user);
+  logger.info(`[Auth] Serializing user: ${user.userId}`);
+  done(null, user.userId);
 });
-passport.deserializeUser((user, done) => {
-  done(null, user);
+passport.deserializeUser(async (id, done) => {
+  try {
+    logger.info(`[Auth] Deserializing user: ${id}`);
+    if (isMongoConnected) {
+      const user = await User.findOne({ userId: id });
+      if (!user) {
+        logger.error(`[Auth] Deserialization failed: User ${id} not found in DB`);
+        return done(null, false);
+      }
+      done(null, user);
+    } else {
+      const user = mockDB.users.find(u => u.userId === id);
+      if (!user) {
+        logger.error(`[Auth] Deserialization failed: User ${id} not found in mockDB`);
+        return done(null, false);
+      }
+      done(null, user);
+    }
+  } catch (err) {
+    logger.error(`[Auth] Deserialize error:`, err);
+    done(err, null);
+  }
 });
 
 // Google OAuth Strategy
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID || 'PLACEHOLDER_CLIENT_ID',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'PLACEHOLDER_CLIENT_SECRET',
-    callbackURL: "/auth/google/callback"
+    callbackURL: "/auth/google/callback",
+    proxy: true
   },
   async function(accessToken, refreshToken, profile, cb) {
     try {
-      const email = profile.emails[0].value;
+      logger.info(`[Google OAuth] Callback received for profile.id: ${profile.id}`);
+      
+      const email = profile.emails?.[0]?.value?.toLowerCase();
+      
+      if (!email) {
+        logger.error(`[Google OAuth] Missing email in Google profile for ID: ${profile.id}`);
+        return cb(new Error("Google_Email_Missing"), null);
+      }
+      
+      logger.info(`[Google OAuth] Searching for existing user by email: ${email}`);
       let user = isMongoConnected ? await User.findOne({ email }) : mockDB.users.find(u => u.email === email);
       
       if (!user) {
-        // Create new user
-        const newUserId = 'USER' + String(Date.now()).slice(-6);
+        logger.info(`[Google OAuth] User not found, creating new account`);
+        const newUserId = 'USER' + String(Date.now()).slice(-6) + Math.floor(Math.random() * 1000);
+        
+        // Use a highly unique placeholder for the required mobile field to prevent E11000 duplicate keys
+        const uniqueMobile = `GOOGLE_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+        
         const newUserObj = {
           userId: newUserId,
-          name: profile.displayName,
+          name: profile.displayName || 'Google User',
           email: email,
-          mobile: 'N/A_' + Date.now(), // mobile required in schema, setting placeholder
+          mobile: uniqueMobile,
           profilePhoto: profile.photos && profile.photos[0] ? profile.photos[0].value : '',
           googleId: profile.id,
           role: 'user',
@@ -301,34 +339,56 @@ passport.use(new GoogleStrategy({
         };
 
         if (isMongoConnected) {
-          user = new User(newUserObj);
-          await user.save();
+          try {
+            user = new User(newUserObj);
+            logger.info(`[Google OAuth] Saving new user to MongoDB...`);
+            await user.save();
+            logger.info(`[Google OAuth] New user saved successfully.`);
+          } catch (saveErr) {
+            logger.error(`[Google OAuth] Error saving new user:`, saveErr);
+            if (saveErr.name === 'ValidationError') return cb(new Error("Schema_Validation_Error"), null);
+            if (saveErr.code === 11000) return cb(new Error("Duplicate_Key_Error"), null);
+            throw saveErr;
+          }
         } else {
           user = newUserObj;
           mockDB.users.push(user);
         }
       } else {
-        // Update existing user with googleId if missing
+        logger.info(`[Google OAuth] User found! Updating login activity...`);
+        let needsSave = false;
+        
         if (!user.googleId) {
-          if (isMongoConnected) {
-            user.googleId = profile.id;
-            if(profile.photos && profile.photos[0]) user.profilePhoto = profile.photos[0].value;
-            await user.save();
-          } else {
-            user.googleId = profile.id;
-            if(profile.photos && profile.photos[0]) user.profilePhoto = profile.photos[0].value;
+          user.googleId = profile.id;
+          if (profile.photos && profile.photos[0] && !user.profilePhoto) {
+            user.profilePhoto = profile.photos[0].value;
           }
+          needsSave = true;
+          logger.info(`[Google OAuth] Linking Google ID to existing email account.`);
         }
         
-        // Log login
-        if (isMongoConnected) {
-          user.lastLoginAt = new Date();
-          user.activities.push({ action: 'Logged in via Google', timestamp: new Date() });
-          await user.save();
+        user.lastLoginAt = new Date();
+        user.activities.push({ action: 'Logged in via Google', timestamp: new Date() });
+        needsSave = true;
+
+        if (isMongoConnected && needsSave) {
+          try {
+            logger.info(`[Google OAuth] Updating existing user in MongoDB...`);
+            await user.save();
+            logger.info(`[Google OAuth] Existing user updated successfully.`);
+          } catch (updateErr) {
+            logger.error(`[Google OAuth] Error updating existing user:`, updateErr);
+            if (updateErr.name === 'ValidationError') return cb(new Error("Schema_Validation_Error"), null);
+            if (updateErr.code === 11000) return cb(new Error("Duplicate_Key_Error"), null);
+            throw updateErr;
+          }
         }
       }
+      
+      logger.info(`[Google OAuth] Strategy completed successfully, proceeding to serialize.`);
       return cb(null, user);
     } catch (err) {
+      logger.error(`[Google OAuth] Unhandled exception in Strategy:`, err);
       return cb(err, null);
     }
   }
@@ -505,27 +565,88 @@ app.get('/login', (req, res) => {
 
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-app.get('/auth/google/callback', 
-  passport.authenticate('google', { failureRedirect: '/login' }),
-  function(req, res) {
-    req.session.user = {
-      userId: req.user.userId,
-      name: req.user.name,
-      email: req.user.email,
-      mobile: req.user.mobile,
-      role: req.user.role,
-      profilePhoto: req.user.profilePhoto
-    };
-    
-    // Send admin notification
-    io.emit('admin_notification', {
-      type: 'new_user',
-      message: `New user joined via Google! ${req.user.name}`
-    });
-    
-    res.redirect('/dashboard');
+app.get('/auth/google/callback', async function(req, res, next) {
+  try {
+    logger.info('[Google OAuth] Entering /auth/google/callback route');
+    passport.authenticate('google', function(err, user, info) {
+      try {
+        logger.info(`[Google OAuth] passport.authenticate callback invoked. err: ${err ? 'yes' : 'no'}, user: ${user ? 'yes' : 'no'}`);
+        if (err) {
+          logger.error('[Google OAuth] Strategy Error:', err);
+          return res.redirect('/auth/google/failure?reason=' + encodeURIComponent(err.message || 'Strategy_Error'));
+        }
+        if (!user) {
+          logger.error('[Google OAuth] No user returned from strategy. Info:', info);
+          return res.redirect('/auth/google/failure?reason=User_Not_Found');
+        }
+        
+        logger.info(`[Google OAuth] Proceeding to req.logIn for user: ${user.email}`);
+        req.logIn(user, function(loginErr) {
+          if (loginErr) {
+            logger.error('[Google OAuth] req.logIn Session Error:', loginErr);
+            return res.redirect('/auth/google/failure?reason=' + encodeURIComponent(loginErr.message || 'Session_Error'));
+          }
+          
+          logger.info(`[Google OAuth] req.logIn success. Populating req.session.user...`);
+          try {
+            req.session.user = {
+              userId: user.userId,
+              name: user.name,
+              email: user.email,
+              mobile: user.mobile,
+              role: user.role,
+              profilePhoto: user.profilePhoto
+            };
+          } catch (sessionPopulateErr) {
+            logger.error(`[Google OAuth] Exception while populating req.session.user:`, sessionPopulateErr);
+            throw sessionPopulateErr;
+          }
+          
+          logger.info(`[Google OAuth] Emitting admin_notification...`);
+          try {
+            io.emit('admin_notification', {
+              type: 'new_user',
+              message: `New user joined via Google! ${user.name}`
+            });
+          } catch (emitErr) {
+            logger.error(`[Google OAuth] Exception in io.emit:`, emitErr);
+          }
+          
+          logger.info(`[Google OAuth] Saving session...`);
+          req.session.save((saveErr) => {
+            if (saveErr) {
+              logger.error('[Google OAuth] Session Save Error after login:', saveErr);
+              return res.redirect('/auth/google/failure?reason=' + encodeURIComponent('Session_Save_Error'));
+            }
+            logger.info(`[Google OAuth] Session saved. Redirecting to /dashboard...`);
+            res.redirect('/dashboard');
+          });
+        });
+      } catch (innerErr) {
+        logger.error(`[Google OAuth] Uncaught exception inside inner callback!`, innerErr);
+        next(innerErr);
+      }
+    })(req, res, next);
+  } catch (outerErr) {
+    logger.error(`[Google OAuth] Uncaught exception in outer route wrapper!`, outerErr);
+    next(outerErr);
   }
-);
+});
+
+app.get('/auth/google/failure', (req, res) => {
+  const reason = req.query.reason || 'Unknown Error';
+  logger.error(`[Google Auth Failure] Reason: ${reason}`);
+  res.status(401).send(`
+    <html>
+      <body style="font-family: sans-serif; text-align: center; margin-top: 50px;">
+        <h2>Authentication Failed</h2>
+        <p style="color: red;">${reason}</p>
+        <p>There was an issue signing you in with Google. Please try again or use email login.</p>
+        <a href="/login" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;">Back to Login</a>
+      </body>
+    </html>
+  `);
+});
 
 app.post('/auth/login', loginLimiter, async (req, res) => {
   const { username, password, rememberMe, redirect } = req.body;
@@ -1440,7 +1561,7 @@ app.get('/api/cart', isAuthenticated, async (req, res) => {
     res.json({ success: true, cart: user.cart || [] });
   } catch (err) {
     logger.error("Cart GET Error:", err);
-    res.status(500).json({ success: false, message: err.message, stack: err.stack });
+    res.status(500).json({ success: false, message: err.message, stack: process.env.NODE_ENV === 'production' ? undefined : err.stack });
   }
 });
 
@@ -1677,8 +1798,12 @@ app.get('/api/wishlist/count', isAuthenticated, async (req, res) => {
 // --- Coupon API ---
 app.post('/api/coupon/validate', isAuthenticated, async (req, res) => {
   try {
-    const { code, cartTotal } = req.body;
+    const { code } = req.body;
+    let { cartTotal } = req.body;
     if (!code) return res.json({ success: false, message: 'Coupon code is required' });
+    
+    cartTotal = Number(cartTotal);
+    if (isNaN(cartTotal) || cartTotal < 0) return res.json({ success: false, message: 'Invalid cart total' });
 
     const coupon = await Coupon.findOne({ code: code.toUpperCase() });
     if (!coupon) return res.json({ success: false, message: 'Invalid coupon code' });
@@ -1724,8 +1849,12 @@ app.post('/api/coupon/validate', isAuthenticated, async (req, res) => {
       }
     }
 
-    // Ensure discount doesn't exceed total
+    // Ensure discount doesn't exceed total and is not negative
     if (discountAmount > cartTotal) discountAmount = cartTotal;
+    discountAmount = Math.max(0, discountAmount);
+    
+    // Prevent NaN
+    if (isNaN(discountAmount)) discountAmount = 0;
 
     res.json({
       success: true,
@@ -2201,7 +2330,7 @@ app.get('/api/admin/coupons', isAdmin, async (req, res) => {
     res.json({ success: true, coupons });
   } catch (err) {
     logger.error('GET COUPONS ERROR:', err);
-    res.status(500).json({ success: false, message: err.message, error: err.message, stack: err.stack });
+    res.status(500).json({ success: false, message: err.message, error: err.message, stack: process.env.NODE_ENV === 'production' ? undefined : err.stack });
   }
 });
 
@@ -2220,13 +2349,13 @@ app.post('/api/admin/coupon', isAdmin, async (req, res) => {
     res.json({ success: true, message: 'Coupon created successfully' });
   } catch (err) {
     logger.error('CREATE COUPON ERROR:', err);
-    res.status(500).json({ 
+    const status = err.name === 'ValidationError' ? 400 : 500;
+    res.status(status).json({ 
       success: false, 
-      message: err.message, 
+      message: err.name === 'ValidationError' ? 'Invalid coupon data: ' + err.message : 'Failed to create coupon', 
       error: err.message, 
-      stack: err.stack,
-      validationErrors: err.errors,
-      requestBody: req.body
+      stack: process.env.NODE_ENV === 'production' ? undefined : err.stack,
+      validationErrors: err.errors
     });
   }
 });
@@ -2246,13 +2375,13 @@ app.put('/api/admin/coupon/:id', isAdmin, async (req, res) => {
     res.json({ success: true, message: 'Coupon updated successfully' });
   } catch (err) {
     logger.error('UPDATE COUPON ERROR:', err);
-    res.status(500).json({ 
+    const status = err.name === 'ValidationError' ? 400 : 500;
+    res.status(status).json({ 
       success: false, 
-      message: err.message, 
+      message: err.name === 'ValidationError' ? 'Invalid coupon data: ' + err.message : 'Failed to update coupon', 
       error: err.message, 
-      stack: err.stack,
-      validationErrors: err.errors,
-      requestBody: req.body 
+      stack: process.env.NODE_ENV === 'production' ? undefined : err.stack,
+      validationErrors: err.errors
     });
   }
 });
@@ -2263,7 +2392,7 @@ app.delete('/api/admin/coupon/:id', isAdmin, async (req, res) => {
     res.json({ success: true, message: 'Coupon deleted successfully' });
   } catch (err) {
     logger.error('DELETE COUPON ERROR:', err);
-    res.status(500).json({ success: false, message: err.message, error: err.message, stack: err.stack });
+    res.status(500).json({ success: false, message: err.message, error: err.message, stack: process.env.NODE_ENV === 'production' ? undefined : err.stack });
   }
 });
 
@@ -2891,6 +3020,14 @@ app.get('/admin/products/delete/:productId', isAdmin, async (req, res) => {
 });
 
 // ── ERROR HANDLING MIDDLEWARES ──────────────────────────────────
+// Dedicated Google OAuth Error Handler
+app.use('/auth/google', (err, req, res, next) => {
+  logger.error('[OAuth Middleware] Crash Dump:');
+  logger.error(err.stack || err);
+  // Render the error page explicitly to avoid exposing sensitive internal stack traces to the client
+  res.status(500).render('500', { error: new Error("An internal authentication error occurred. Please try again.") });
+});
+
 // 404 Route
 app.use((req, res, next) => {
   res.status(404).render('404');
