@@ -373,26 +373,32 @@ function registerCouponRoutes() {
 }
 
 async function startServer() {
+  console.log("1 Starting Server");
   try {
     try {
       mongoose.set('strictQuery', false);
+      console.log("2 Connecting Mongo");
       await mongoose.connect(process.env.MONGO_URI, {
-        serverSelectionTimeoutMS: 5000
+        serverSelectionTimeoutMS: 30000 // Increased from 5000 to 30000 for Railway
       });
       isMongoConnected = true;
-      console.log("Mongo Connected Successfully");
+      console.log("3 Mongo Connected");
       logger.info('MongoDB Connected successfully.');
       await seedMongoDatabase();
     } catch (err) {
+      console.error('2.1 Mongo Connection Error:', err);
       logger.error('Primary MongoDB Connection Failed:', err.message);
       logger.info('Falling back to pure array Mock Mode.');
       await seedInMemoryDatabase();
     }
 
+    console.log("4 Register Coupon Routes");
     registerCouponRoutes();
     registerErrorHandlers();
 
+    console.log("5 Starting Express");
     server.listen(PORT, () => {
+      console.log("6 Server Ready");
       logger.info(`🚀 Kumawat P&E Express Server running at http://localhost:${PORT}`);
     });
   } catch (err) {
