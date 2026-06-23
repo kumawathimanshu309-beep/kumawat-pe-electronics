@@ -544,11 +544,12 @@ app.use(
     secret: process.env.SESSION_SECRET || 'supersecretsessionkey',
     resave: false,
     saveUninitialized: false,
+    proxy: true, // Required for secure cookies behind Railway reverse proxy
     cookie: {
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
-      sameSite: 'strict' // Native CSRF protection
+      sameSite: 'lax' // Native CSRF protection + allows OAuth redirects
     }
   })
 );
