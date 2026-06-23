@@ -316,7 +316,9 @@ passport.use(new GoogleStrategy({
       }
       
       logger.info(`[Google OAuth] Searching for existing user by email: ${email}`);
+      console.log("Before User.findOne()");
       let user = isMongoConnected ? await User.findOne({ email }) : mockDB.users.find(u => u.email === email);
+      console.log("After User.findOne()");
       
       if (!user) {
         logger.info(`[Google OAuth] User not found, creating new account`);
@@ -342,9 +344,13 @@ passport.use(new GoogleStrategy({
           try {
             user = new User(newUserObj);
             logger.info(`[Google OAuth] Saving new user to MongoDB...`);
+            console.log("Before User.save() (new user)");
             await user.save();
+            console.log("After User.save() (new user)");
             logger.info(`[Google OAuth] New user saved successfully.`);
           } catch (saveErr) {
+            console.error("GoogleStrategy Exception (save new):", saveErr);
+            console.error(saveErr.stack);
             logger.error(`[Google OAuth] Error saving new user:`, saveErr);
             if (saveErr.name === 'ValidationError') return cb(new Error("Schema_Validation_Error"), null);
             if (saveErr.code === 11000) return cb(new Error("Duplicate_Key_Error"), null);
@@ -374,9 +380,13 @@ passport.use(new GoogleStrategy({
         if (isMongoConnected && needsSave) {
           try {
             logger.info(`[Google OAuth] Updating existing user in MongoDB...`);
+            console.log("Before User.save() (existing user)");
             await user.save();
+            console.log("After User.save() (existing user)");
             logger.info(`[Google OAuth] Existing user updated successfully.`);
           } catch (updateErr) {
+            console.error("GoogleStrategy Exception (update existing):", updateErr);
+            console.error(updateErr.stack);
             logger.error(`[Google OAuth] Error updating existing user:`, updateErr);
             if (updateErr.name === 'ValidationError') return cb(new Error("Schema_Validation_Error"), null);
             if (updateErr.code === 11000) return cb(new Error("Duplicate_Key_Error"), null);
@@ -388,6 +398,8 @@ passport.use(new GoogleStrategy({
       logger.info(`[Google OAuth] Strategy completed successfully, proceeding to serialize.`);
       return cb(null, user);
     } catch (err) {
+      console.error("GoogleStrategy Unhandled Exception:");
+      console.error(err.stack || err);
       logger.error(`[Google OAuth] Unhandled exception in Strategy:`, err);
       return cb(err, null);
     }
@@ -567,11 +579,13 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
 
 app.get('/auth/google/callback', async function(req, res, next) {
   try {
+    console.log("Entered Google callback");
     logger.info('[Google OAuth] Entering /auth/google/callback route');
     passport.authenticate('google', function(err, user, info) {
       try {
         logger.info(`[Google OAuth] passport.authenticate callback invoked. err: ${err ? 'yes' : 'no'}, user: ${user ? 'yes' : 'no'}`);
         if (err) {
+          console.error("passport.authenticate error:", err);
           logger.error('[Google OAuth] Strategy Error:', err);
           return res.redirect('/auth/google/failure?reason=' + encodeURIComponent(err.message || 'Strategy_Error'));
         }
@@ -581,8 +595,11 @@ app.get('/auth/google/callback', async function(req, res, next) {
         }
         
         logger.info(`[Google OAuth] Proceeding to req.logIn for user: ${user.email}`);
+        console.log("Before req.logIn()");
         req.logIn(user, function(loginErr) {
+          console.log("After req.logIn()");
           if (loginErr) {
+            console.error("req.logIn Error:", loginErr);
             logger.error('[Google OAuth] req.logIn Session Error:', loginErr);
             return res.redirect('/auth/google/failure?reason=' + encodeURIComponent(loginErr.message || 'Session_Error'));
           }
@@ -613,8 +630,11 @@ app.get('/auth/google/callback', async function(req, res, next) {
           }
           
           logger.info(`[Google OAuth] Saving session...`);
+          console.log("Before req.session.save()");
           req.session.save((saveErr) => {
+            console.log("After req.session.save()");
             if (saveErr) {
+              console.error("req.session.save Error:", saveErr);
               logger.error('[Google OAuth] Session Save Error after login:', saveErr);
               return res.redirect('/auth/google/failure?reason=' + encodeURIComponent('Session_Save_Error'));
             }
@@ -623,11 +643,15 @@ app.get('/auth/google/callback', async function(req, res, next) {
           });
         });
       } catch (innerErr) {
+        console.error("Uncaught exception inside inner callback:", innerErr);
+        if (innerErr && innerErr.stack) console.error(innerErr.stack);
         logger.error(`[Google OAuth] Uncaught exception inside inner callback!`, innerErr);
         next(innerErr);
       }
     })(req, res, next);
   } catch (outerErr) {
+    console.error("Uncaught exception in outer route wrapper:", outerErr);
+    if (outerErr && outerErr.stack) console.error(outerErr.stack);
     logger.error(`[Google OAuth] Uncaught exception in outer route wrapper!`, outerErr);
     next(outerErr);
   }
@@ -3022,6 +3046,9 @@ app.get('/admin/products/delete/:productId', isAdmin, async (req, res) => {
 // ── ERROR HANDLING MIDDLEWARES ──────────────────────────────────
 // Dedicated Google OAuth Error Handler
 app.use('/auth/google', (err, req, res, next) => {
+  console.error("================ OAUTH MIDDLEWARE CRASH DUMP ================");
+  console.error(err);
+  console.error(err.stack || err);
   logger.error('[OAuth Middleware] Crash Dump:');
   logger.error(err.stack || err);
   // Render the error page explicitly to avoid exposing sensitive internal stack traces to the client
