@@ -446,10 +446,10 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://maps.googleapis.com", "https://maps.gstatic.com", "https://googleapis.com", "https://gstatic.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com", "https://googleapis.com", "https://gstatic.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com", "data:"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com", "data:", "https://cdn.jsdelivr.net"],
       imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com", "https://images.unsplash.com", "https://checkout.razorpay.com", "https://maps.gstatic.com", "https://maps.googleapis.com", "https://googleapis.com", "https://gstatic.com"],
-      frameSrc: ["'self'", "https://checkout.razorpay.com", "https://google.com", "https://maps.google.com"],
-      connectSrc: ["'self'", "https://lumberjack-cx.razorpay.com", "https://maps.googleapis.com", "https://googleapis.com", "https://gstatic.com"]
+      frameSrc: ["'self'", "https://www.google.com", "https://google.com", "https://maps.google.com", "https://www.google.com/maps", "https://checkout.razorpay.com"],
+      connectSrc: ["'self'", "https://lumberjack-cx.razorpay.com", "https://maps.googleapis.com", "https://googleapis.com", "https://gstatic.com", "https://cdn.jsdelivr.net"]
     }
   },
   hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
