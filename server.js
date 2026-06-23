@@ -118,9 +118,15 @@ const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'HIMANSHU@2005';
 
 function registerCouponRoutes() {
   console.log("Coupon Routes Registered");
+  console.log("Registered:");
+  console.log("GET /api/admin/coupons");
+  console.log("POST /api/admin/coupon");
+  console.log("PUT /api/admin/coupon/:id");
+  console.log("DELETE /api/admin/coupon/:id");
+  console.log("POST /api/coupon/validate");
 
   // --- Coupon API ---
-  app.post('/api/coupon/validate', isAuthenticated, async (req, res) => {
+  app.post(['/api/coupon/validate', '/api/coupons/validate'], isAuthenticated, async (req, res) => {
     try {
       console.log("===== Coupon Route =====");
       console.log("Route:", req.method, req.originalUrl);
@@ -221,7 +227,7 @@ function registerCouponRoutes() {
   });
 
   // Admin Coupon CRUD
-  app.get('/api/admin/coupons', isAdmin, async (req, res) => {
+  app.get(['/api/admin/coupons', '/api/admin/coupon'], isAdmin, async (req, res) => {
     try {
       console.log("===== Coupon Route =====");
       console.log("Route:", req.method, req.originalUrl);
@@ -248,7 +254,7 @@ function registerCouponRoutes() {
     }
   });
 
-  app.post('/api/admin/coupon', isAdmin, async (req, res) => {
+  app.post(['/api/admin/coupon', '/api/admin/coupons'], isAdmin, async (req, res) => {
     try {
       console.log("===== Coupon Route =====");
       console.log("Route:", req.method, req.originalUrl);
@@ -292,7 +298,7 @@ function registerCouponRoutes() {
     }
   });
 
-  app.put('/api/admin/coupon/:id', isAdmin, async (req, res) => {
+  app.put(['/api/admin/coupon/:id', '/api/admin/coupons/:id'], isAdmin, async (req, res) => {
     try {
       console.log("===== Coupon Route =====");
       console.log("Route:", req.method, req.originalUrl);
@@ -334,7 +340,7 @@ function registerCouponRoutes() {
     }
   });
 
-  app.delete('/api/admin/coupon/:id', isAdmin, async (req, res) => {
+  app.delete(['/api/admin/coupon/:id', '/api/admin/coupons/:id'], isAdmin, async (req, res) => {
     try {
       console.log("===== Coupon Route =====");
       console.log("Route:", req.method, req.originalUrl);
@@ -384,6 +390,7 @@ async function startServer() {
     }
 
     registerCouponRoutes();
+    registerErrorHandlers();
 
     server.listen(PORT, () => {
       logger.info(`🚀 Kumawat P&E Express Server running at http://localhost:${PORT}`);
@@ -3160,15 +3167,17 @@ app.use('/auth/google', (err, req, res, next) => {
   res.status(500).render('500', { error: new Error("An internal authentication error occurred. Please try again.") });
 });
 
-// 404 Route
-app.use((req, res, next) => {
-  res.status(404).render('404');
-});
+function registerErrorHandlers() {
+  // 404 Route
+  app.use((req, res, next) => {
+    res.status(404).render('404');
+  });
 
-// 500 Route
-app.use((err, req, res, next) => {
-  logger.error('[Global Handler] Error:', err);
-  res.status(500).render('500', { error: err });
-});
+  // 500 Route
+  app.use((err, req, res, next) => {
+    logger.error('[Global Handler] Error:', err);
+    res.status(500).render('500', { error: err });
+  });
+}
 
 // Server automatically started in startServer()
