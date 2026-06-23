@@ -123,6 +123,8 @@
     if (!el) {
       el = document.createElement('div');
       el.id = 'toast';
+      el.setAttribute('aria-live', 'polite');
+      el.setAttribute('role', 'alert');
       document.body.appendChild(el);
     }
     el.textContent = msg;

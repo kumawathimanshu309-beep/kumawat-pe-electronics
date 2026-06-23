@@ -6,7 +6,7 @@
   <meta name="description" content="<%= (typeof seo !== 'undefined' && seo.description) ? seo.description : 'Kumawat Plumbing & Electricals — Premium electronics, home appliances, and electrical tools. Managed by Himanshu Kumawat.' %>" />
   <meta name="keywords" content="<%= (typeof seo !== 'undefined' && seo.keywords) ? seo.keywords : 'electronics, appliances, electricals, plumbing, tools, govindgarh' %>" />
   <% if (typeof seo !== 'undefined' && seo.canonicalUrl) { %>
-    <link rel="canonical" href="<%= seo.canonicalUrl %>" />
+    <link rel="canonical" href="<%= optimizeImage(seo.canonicalUrl) %>" />
   <% } %>
   <meta name="theme-color" content="#1C2B2B" />
   <title><%= (typeof seo !== 'undefined' && seo.title) ? seo.title : (typeof title !== 'undefined' ? title : 'Kumawat Plumbing & Electricals | Electronics Store') %></title>
@@ -44,6 +44,7 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&family=Manrope:wght@400;500;600;700&display=swap" as="style" />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
   
   <!-- Bootstrap 5 CSS -->

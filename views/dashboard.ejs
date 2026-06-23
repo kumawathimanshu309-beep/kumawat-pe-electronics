@@ -74,7 +74,7 @@
                       <div class="uid">ID: <%= user.userId %></div>
                     </div>
                     <div class="qr-box">
-                      <img loading="lazy" decoding="async" src="<%= typeof card !== 'undefined' && card ? card.qrCodeData : '/images/qr-placeholder.png' %>" alt="QR" />
+                      <img loading="lazy" decoding="async" src="<%= optimizeImage(typeof card !== 'undefined' && card ? card.qrCodeData : '/images/qr-placeholder.png') %>" alt="QR" />
                     </div>
                   </div>
                   <div class="wallet-card-footer">
