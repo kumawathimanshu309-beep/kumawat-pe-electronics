@@ -1822,6 +1822,10 @@ app.get('/api/wishlist/count', isAuthenticated, async (req, res) => {
 // --- Coupon API ---
 app.post('/api/coupon/validate', isAuthenticated, async (req, res) => {
   try {
+    console.log("===== Coupon Route =====");
+    console.log("Route:", req.method, req.originalUrl);
+    console.log("Body:", req.body);
+
     const { code } = req.body;
     let { cartTotal } = req.body;
     if (!code) return res.json({ success: false, message: 'Coupon code is required' });
@@ -1829,7 +1833,10 @@ app.post('/api/coupon/validate', isAuthenticated, async (req, res) => {
     cartTotal = Number(cartTotal);
     if (isNaN(cartTotal) || cartTotal < 0) return res.json({ success: false, message: 'Invalid cart total' });
 
+    console.log("Before Coupon.findOne()");
     const coupon = await Coupon.findOne({ code: code.toUpperCase() });
+    console.log("Success");
+    
     if (!coupon) return res.json({ success: false, message: 'Invalid coupon code' });
 
     if (coupon.status !== 'Active') return res.json({ success: false, message: 'Coupon is inactive' });
@@ -1893,8 +1900,23 @@ app.post('/api/coupon/validate', isAuthenticated, async (req, res) => {
       }
     });
 
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+  } catch (error) {
+    console.error("Coupon API Error");
+    console.error(error);
+    console.error(error.stack);
+
+    if (typeof Coupon === 'undefined') {
+      console.error("Coupon model is undefined at server.js, line 1903");
+    }
+
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ success: false, message: 'Validation error: ' + error.message, error: error.message });
+    }
+    if (error.code === 11000) {
+      return res.status(409).json({ success: false, message: 'Duplicate key error', error: error.message });
+    }
+    
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -2350,73 +2372,145 @@ app.post('/api/admin/order/:id/status', isAdmin, validateCsrf, async (req, res) 
 // Admin Coupon CRUD
 app.get('/api/admin/coupons', isAdmin, async (req, res) => {
   try {
+    console.log("===== Coupon Route =====");
+    console.log("Route:", req.method, req.originalUrl);
+    console.log("Body:", req.body);
+    
+    console.log("Before Coupon.find()");
     const coupons = await Coupon.find().sort({ createdAt: -1 }).lean();
+    console.log("Success");
+    
     res.json({ success: true, coupons });
-  } catch (err) {
-    logger.error('GET COUPONS ERROR:', err);
-    res.status(500).json({ success: false, message: err.message, error: err.message, stack: process.env.NODE_ENV === 'production' ? undefined : err.stack });
+  } catch (error) {
+    console.error("Coupon API Error");
+    console.error(error);
+    console.error(error.stack);
+    
+    if (typeof Coupon === 'undefined') {
+      console.error("Coupon model is undefined at server.js, line 2355");
+    }
+    
+    if (error.name === 'ValidationError') return res.status(400).json({ success: false, message: 'Validation failed: ' + error.message, error: error.message });
+    if (error.code === 11000) return res.status(409).json({ success: false, message: 'Duplicate key error', error: error.message });
+    
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
 app.post('/api/admin/coupon', isAdmin, async (req, res) => {
   try {
+    console.log("===== Coupon Route =====");
+    console.log("Route:", req.method, req.originalUrl);
+    console.log("Body:", req.body);
+
     if (!req.body.code) return res.status(400).json({ success: false, message: 'Coupon code is required' });
 
+    console.log("Before Coupon.findOne()");
     const existing = await Coupon.findOne({ code: req.body.code.toUpperCase() });
-    if (existing) return res.json({ success: false, message: 'Coupon code already exists' });
+    console.log("Success");
+
+    if (existing) return res.status(409).json({ success: false, message: 'Coupon code already exists' });
 
     const newCoupon = new Coupon({
       ...req.body,
       code: req.body.code.toUpperCase()
     });
+    
+    console.log("Before Coupon.save()");
     await newCoupon.save();
+    console.log("Success");
+
     res.json({ success: true, message: 'Coupon created successfully' });
-  } catch (err) {
-    logger.error('CREATE COUPON ERROR:', err);
-    const status = err.name === 'ValidationError' ? 400 : 500;
-    res.status(status).json({ 
-      success: false, 
-      message: err.name === 'ValidationError' ? 'Invalid coupon data: ' + err.message : 'Failed to create coupon', 
-      error: err.message, 
-      stack: process.env.NODE_ENV === 'production' ? undefined : err.stack,
-      validationErrors: err.errors
-    });
+  } catch (error) {
+    console.error("Coupon API Error");
+    console.error(error);
+    console.error(error.stack);
+    
+    if (typeof Coupon === 'undefined') {
+      console.error("Coupon model is undefined at server.js, line 2385");
+    }
+
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ success: false, message: 'Validation error: ' + error.message, error: error.message });
+    }
+    if (error.code === 11000) {
+      return res.status(409).json({ success: false, message: 'Duplicate key error', error: error.message });
+    }
+    
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
 app.put('/api/admin/coupon/:id', isAdmin, async (req, res) => {
   try {
+    console.log("===== Coupon Route =====");
+    console.log("Route:", req.method, req.originalUrl);
+    console.log("Body:", req.body);
+
     const { code } = req.body;
     
-    // Check duplicate code if changed
     if (code) {
+      console.log("Before Coupon.findOne()");
       const existing = await Coupon.findOne({ code: code.toUpperCase(), _id: { $ne: req.params.id } });
-      if (existing) return res.json({ success: false, message: 'Coupon code already exists' });
+      console.log("Success");
+      
+      if (existing) return res.status(409).json({ success: false, message: 'Coupon code already exists' });
       req.body.code = code.toUpperCase();
     }
 
+    console.log("Before Coupon.update()");
     await Coupon.findByIdAndUpdate(req.params.id, req.body, { runValidators: true });
+    console.log("Success");
+
     res.json({ success: true, message: 'Coupon updated successfully' });
-  } catch (err) {
-    logger.error('UPDATE COUPON ERROR:', err);
-    const status = err.name === 'ValidationError' ? 400 : 500;
-    res.status(status).json({ 
-      success: false, 
-      message: err.name === 'ValidationError' ? 'Invalid coupon data: ' + err.message : 'Failed to update coupon', 
-      error: err.message, 
-      stack: process.env.NODE_ENV === 'production' ? undefined : err.stack,
-      validationErrors: err.errors
-    });
+  } catch (error) {
+    console.error("Coupon API Error");
+    console.error(error);
+    console.error(error.stack);
+
+    if (typeof Coupon === 'undefined') {
+      console.error("Coupon model is undefined at server.js, line 2420");
+    }
+
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ success: false, message: 'Validation error: ' + error.message, error: error.message });
+    }
+    if (error.code === 11000) {
+      return res.status(409).json({ success: false, message: 'Duplicate key error', error: error.message });
+    }
+    
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
 app.delete('/api/admin/coupon/:id', isAdmin, async (req, res) => {
   try {
+    console.log("===== Coupon Route =====");
+    console.log("Route:", req.method, req.originalUrl);
+    console.log("Body:", req.body);
+
+    console.log("Before Coupon.delete()");
     await Coupon.findByIdAndDelete(req.params.id);
+    console.log("Success");
+
     res.json({ success: true, message: 'Coupon deleted successfully' });
-  } catch (err) {
-    logger.error('DELETE COUPON ERROR:', err);
-    res.status(500).json({ success: false, message: err.message, error: err.message, stack: process.env.NODE_ENV === 'production' ? undefined : err.stack });
+  } catch (error) {
+    console.error("Coupon API Error");
+    console.error(error);
+    console.error(error.stack);
+
+    if (typeof Coupon === 'undefined') {
+      console.error("Coupon model is undefined at server.js, line 2450");
+    }
+
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ success: false, message: 'Validation error: ' + error.message, error: error.message });
+    }
+    if (error.code === 11000) {
+      return res.status(409).json({ success: false, message: 'Duplicate key error', error: error.message });
+    }
+    
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
