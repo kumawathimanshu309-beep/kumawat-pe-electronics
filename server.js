@@ -116,6 +116,256 @@ const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'kumawathimanshu309@gmail
 const DEFAULT_ADMIN_PHONE = process.env.ADMIN_PHONE || '+919462759965';
 const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'HIMANSHU@2005';
 
+function registerCouponRoutes() {
+  console.log("Coupon Routes Registered");
+
+  // --- Coupon API ---
+  app.post('/api/coupon/validate', isAuthenticated, async (req, res) => {
+    try {
+      console.log("===== Coupon Route =====");
+      console.log("Route:", req.method, req.originalUrl);
+      console.log("Body:", req.body);
+
+      const { code } = req.body;
+      let { cartTotal } = req.body;
+      if (!code) return res.json({ success: false, message: 'Coupon code is required' });
+      
+      cartTotal = Number(cartTotal);
+      if (isNaN(cartTotal) || cartTotal < 0) return res.json({ success: false, message: 'Invalid cart total' });
+
+      console.log("Before Coupon.findOne()");
+      const coupon = await Coupon.findOne({ code: code.toUpperCase() });
+      console.log("Success");
+      
+      if (!coupon) return res.json({ success: false, message: 'Invalid coupon code' });
+
+      if (coupon.status !== 'Active') return res.json({ success: false, message: 'Coupon is inactive' });
+      
+      const expiryBoundary = new Date(coupon.expiryDate);
+      expiryBoundary.setUTCHours(23, 59, 59, 999);
+
+      logger.info('\n--- COUPON EXPIRY VALIDATION ---');
+      logger.info('Current Server Date/Time (UTC):', new Date().toISOString());
+      logger.info('Current Server Date/Time (Local):', new Date().toLocaleString());
+      logger.info('Stored Expiry Date (Raw):', coupon.expiryDate);
+      logger.info('Normalized Expiry Date (End of Day UTC):', expiryBoundary.toISOString());
+      logger.info('Server Timezone Offset (mins):', new Date().getTimezoneOffset());
+      logger.info('Validation Check (Now <= Expiry):', new Date() <= expiryBoundary);
+      logger.info('--------------------------------\n');
+
+      if (new Date() > expiryBoundary) return res.json({ success: false, message: 'Coupon has expired' });
+
+      if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
+        return res.json({ success: false, message: 'Coupon usage limit reached' });
+      }
+
+      if (cartTotal < coupon.minOrderValue) {
+        return res.json({ success: false, message: `Minimum order value of ₹${coupon.minOrderValue} required` });
+      }
+
+      // Check per-user limit
+      const userId = req.session.user.userId;
+      const userUsage = coupon.usedBy.find(u => u.userId === userId);
+      if (userUsage && userUsage.count >= coupon.perUserLimit) {
+        return res.json({ success: false, message: 'You have reached the usage limit for this coupon' });
+      }
+
+      let discountAmount = 0;
+      if (coupon.type === 'fixed') {
+        discountAmount = coupon.discount;
+      } else if (coupon.type === 'percentage') {
+        discountAmount = (cartTotal * coupon.discount) / 100;
+        if (coupon.maxDiscount && discountAmount > coupon.maxDiscount) {
+          discountAmount = coupon.maxDiscount;
+        }
+      }
+
+      // Ensure discount doesn't exceed total and is not negative
+      if (discountAmount > cartTotal) discountAmount = cartTotal;
+      discountAmount = Math.max(0, discountAmount);
+      
+      // Prevent NaN
+      if (isNaN(discountAmount)) discountAmount = 0;
+
+      res.json({
+        success: true,
+        coupon: {
+          code: coupon.code,
+          discountAmount,
+          type: coupon.type,
+          discount: coupon.discount,
+          maxDiscount: coupon.maxDiscount,
+          minOrderValue: coupon.minOrderValue,
+          message: 'Coupon applied successfully'
+        }
+      });
+
+    } catch (error) {
+      console.error("Coupon API Error");
+      console.error(error);
+      console.error(error.stack);
+
+      if (typeof Coupon === 'undefined') {
+        console.error("Coupon model is undefined at server.js, line 1903");
+      }
+
+      if (error.name === 'ValidationError') {
+        return res.status(400).json({ success: false, message: 'Validation error: ' + error.message, error: error.message });
+      }
+      if (error.code === 11000) {
+        return res.status(409).json({ success: false, message: 'Duplicate key error', error: error.message });
+      }
+      
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Admin Coupon CRUD
+  app.get('/api/admin/coupons', isAdmin, async (req, res) => {
+    try {
+      console.log("===== Coupon Route =====");
+      console.log("Route:", req.method, req.originalUrl);
+      console.log("Body:", req.body);
+      
+      console.log("Before Coupon.find()");
+      const coupons = await Coupon.find().sort({ createdAt: -1 }).lean();
+      console.log("Success");
+      
+      res.json({ success: true, coupons });
+    } catch (error) {
+      console.error("Coupon API Error");
+      console.error(error);
+      console.error(error.stack);
+      
+      if (typeof Coupon === 'undefined') {
+        console.error("Coupon model is undefined at server.js, line 2355");
+      }
+      
+      if (error.name === 'ValidationError') return res.status(400).json({ success: false, message: 'Validation failed: ' + error.message, error: error.message });
+      if (error.code === 11000) return res.status(409).json({ success: false, message: 'Duplicate key error', error: error.message });
+      
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/admin/coupon', isAdmin, async (req, res) => {
+    try {
+      console.log("===== Coupon Route =====");
+      console.log("Route:", req.method, req.originalUrl);
+      console.log("Body:", req.body);
+
+      if (!req.body.code) return res.status(400).json({ success: false, message: 'Coupon code is required' });
+
+      console.log("Before Coupon.findOne()");
+      const existing = await Coupon.findOne({ code: req.body.code.toUpperCase() });
+      console.log("Success");
+
+      if (existing) return res.status(409).json({ success: false, message: 'Coupon code already exists' });
+
+      const newCoupon = new Coupon({
+        ...req.body,
+        code: req.body.code.toUpperCase()
+      });
+      
+      console.log("Before Coupon.save()");
+      await newCoupon.save();
+      console.log("Success");
+
+      res.json({ success: true, message: 'Coupon created successfully' });
+    } catch (error) {
+      console.error("Coupon API Error");
+      console.error(error);
+      console.error(error.stack);
+      
+      if (typeof Coupon === 'undefined') {
+        console.error("Coupon model is undefined at server.js, line 2385");
+      }
+
+      if (error.name === 'ValidationError') {
+        return res.status(400).json({ success: false, message: 'Validation error: ' + error.message, error: error.message });
+      }
+      if (error.code === 11000) {
+        return res.status(409).json({ success: false, message: 'Duplicate key error', error: error.message });
+      }
+      
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.put('/api/admin/coupon/:id', isAdmin, async (req, res) => {
+    try {
+      console.log("===== Coupon Route =====");
+      console.log("Route:", req.method, req.originalUrl);
+      console.log("Body:", req.body);
+
+      const { code } = req.body;
+      
+      if (code) {
+        console.log("Before Coupon.findOne()");
+        const existing = await Coupon.findOne({ code: code.toUpperCase(), _id: { $ne: req.params.id } });
+        console.log("Success");
+        
+        if (existing) return res.status(409).json({ success: false, message: 'Coupon code already exists' });
+        req.body.code = code.toUpperCase();
+      }
+
+      console.log("Before Coupon.update()");
+      await Coupon.findByIdAndUpdate(req.params.id, req.body, { runValidators: true });
+      console.log("Success");
+
+      res.json({ success: true, message: 'Coupon updated successfully' });
+    } catch (error) {
+      console.error("Coupon API Error");
+      console.error(error);
+      console.error(error.stack);
+
+      if (typeof Coupon === 'undefined') {
+        console.error("Coupon model is undefined at server.js, line 2420");
+      }
+
+      if (error.name === 'ValidationError') {
+        return res.status(400).json({ success: false, message: 'Validation error: ' + error.message, error: error.message });
+      }
+      if (error.code === 11000) {
+        return res.status(409).json({ success: false, message: 'Duplicate key error', error: error.message });
+      }
+      
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.delete('/api/admin/coupon/:id', isAdmin, async (req, res) => {
+    try {
+      console.log("===== Coupon Route =====");
+      console.log("Route:", req.method, req.originalUrl);
+      console.log("Body:", req.body);
+
+      console.log("Before Coupon.delete()");
+      await Coupon.findByIdAndDelete(req.params.id);
+      console.log("Success");
+
+      res.json({ success: true, message: 'Coupon deleted successfully' });
+    } catch (error) {
+      console.error("Coupon API Error");
+      console.error(error);
+      console.error(error.stack);
+
+      if (typeof Coupon === 'undefined') {
+        console.error("Coupon model is undefined at server.js, line 2450");
+      }
+
+      if (error.name === 'ValidationError') {
+        return res.status(400).json({ success: false, message: 'Validation error: ' + error.message, error: error.message });
+      }
+      if (error.code === 11000) {
+        return res.status(409).json({ success: false, message: 'Duplicate key error', error: error.message });
+      }
+      
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+}
+
 async function startServer() {
   try {
     try {
@@ -124,6 +374,7 @@ async function startServer() {
         serverSelectionTimeoutMS: 5000
       });
       isMongoConnected = true;
+      console.log("Mongo Connected Successfully");
       logger.info('MongoDB Connected successfully.');
       await seedMongoDatabase();
     } catch (err) {
@@ -131,6 +382,8 @@ async function startServer() {
       logger.info('Falling back to pure array Mock Mode.');
       await seedInMemoryDatabase();
     }
+
+    registerCouponRoutes();
 
     server.listen(PORT, () => {
       logger.info(`🚀 Kumawat P&E Express Server running at http://localhost:${PORT}`);
@@ -1819,106 +2072,7 @@ app.get('/api/wishlist/count', isAuthenticated, async (req, res) => {
   }
 });
 
-// --- Coupon API ---
-app.post('/api/coupon/validate', isAuthenticated, async (req, res) => {
-  try {
-    console.log("===== Coupon Route =====");
-    console.log("Route:", req.method, req.originalUrl);
-    console.log("Body:", req.body);
 
-    const { code } = req.body;
-    let { cartTotal } = req.body;
-    if (!code) return res.json({ success: false, message: 'Coupon code is required' });
-    
-    cartTotal = Number(cartTotal);
-    if (isNaN(cartTotal) || cartTotal < 0) return res.json({ success: false, message: 'Invalid cart total' });
-
-    console.log("Before Coupon.findOne()");
-    const coupon = await Coupon.findOne({ code: code.toUpperCase() });
-    console.log("Success");
-    
-    if (!coupon) return res.json({ success: false, message: 'Invalid coupon code' });
-
-    if (coupon.status !== 'Active') return res.json({ success: false, message: 'Coupon is inactive' });
-    
-    const expiryBoundary = new Date(coupon.expiryDate);
-    expiryBoundary.setUTCHours(23, 59, 59, 999);
-
-    logger.info('\n--- COUPON EXPIRY VALIDATION ---');
-    logger.info('Current Server Date/Time (UTC):', new Date().toISOString());
-    logger.info('Current Server Date/Time (Local):', new Date().toLocaleString());
-    logger.info('Stored Expiry Date (Raw):', coupon.expiryDate);
-    logger.info('Normalized Expiry Date (End of Day UTC):', expiryBoundary.toISOString());
-    logger.info('Server Timezone Offset (mins):', new Date().getTimezoneOffset());
-    logger.info('Validation Check (Now <= Expiry):', new Date() <= expiryBoundary);
-    logger.info('--------------------------------\n');
-
-    if (new Date() > expiryBoundary) return res.json({ success: false, message: 'Coupon has expired' });
-
-    if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
-      return res.json({ success: false, message: 'Coupon usage limit reached' });
-    }
-
-    if (cartTotal < coupon.minOrderValue) {
-      return res.json({ success: false, message: `Minimum order value of ₹${coupon.minOrderValue} required` });
-    }
-
-    // Check per-user limit
-    const userId = req.session.user.userId;
-    const userUsage = coupon.usedBy.find(u => u.userId === userId);
-    if (userUsage && userUsage.count >= coupon.perUserLimit) {
-      return res.json({ success: false, message: 'You have reached the usage limit for this coupon' });
-    }
-
-    let discountAmount = 0;
-    if (coupon.type === 'fixed') {
-      discountAmount = coupon.discount;
-    } else if (coupon.type === 'percentage') {
-      discountAmount = (cartTotal * coupon.discount) / 100;
-      if (coupon.maxDiscount && discountAmount > coupon.maxDiscount) {
-        discountAmount = coupon.maxDiscount;
-      }
-    }
-
-    // Ensure discount doesn't exceed total and is not negative
-    if (discountAmount > cartTotal) discountAmount = cartTotal;
-    discountAmount = Math.max(0, discountAmount);
-    
-    // Prevent NaN
-    if (isNaN(discountAmount)) discountAmount = 0;
-
-    res.json({
-      success: true,
-      coupon: {
-        code: coupon.code,
-        discountAmount,
-        type: coupon.type,
-        discount: coupon.discount,
-        maxDiscount: coupon.maxDiscount,
-        minOrderValue: coupon.minOrderValue,
-        message: 'Coupon applied successfully'
-      }
-    });
-
-  } catch (error) {
-    console.error("Coupon API Error");
-    console.error(error);
-    console.error(error.stack);
-
-    if (typeof Coupon === 'undefined') {
-      console.error("Coupon model is undefined at server.js, line 1903");
-    }
-
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({ success: false, message: 'Validation error: ' + error.message, error: error.message });
-    }
-    if (error.code === 11000) {
-      return res.status(409).json({ success: false, message: 'Duplicate key error', error: error.message });
-    }
-    
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 
 app.post('/api/user/address', isAuthenticated, async (req, res) => {
   try {
@@ -2369,150 +2523,7 @@ app.post('/api/admin/order/:id/status', isAdmin, validateCsrf, async (req, res) 
   }
 });
 
-// Admin Coupon CRUD
-app.get('/api/admin/coupons', isAdmin, async (req, res) => {
-  try {
-    console.log("===== Coupon Route =====");
-    console.log("Route:", req.method, req.originalUrl);
-    console.log("Body:", req.body);
-    
-    console.log("Before Coupon.find()");
-    const coupons = await Coupon.find().sort({ createdAt: -1 }).lean();
-    console.log("Success");
-    
-    res.json({ success: true, coupons });
-  } catch (error) {
-    console.error("Coupon API Error");
-    console.error(error);
-    console.error(error.stack);
-    
-    if (typeof Coupon === 'undefined') {
-      console.error("Coupon model is undefined at server.js, line 2355");
-    }
-    
-    if (error.name === 'ValidationError') return res.status(400).json({ success: false, message: 'Validation failed: ' + error.message, error: error.message });
-    if (error.code === 11000) return res.status(409).json({ success: false, message: 'Duplicate key error', error: error.message });
-    
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 
-app.post('/api/admin/coupon', isAdmin, async (req, res) => {
-  try {
-    console.log("===== Coupon Route =====");
-    console.log("Route:", req.method, req.originalUrl);
-    console.log("Body:", req.body);
-
-    if (!req.body.code) return res.status(400).json({ success: false, message: 'Coupon code is required' });
-
-    console.log("Before Coupon.findOne()");
-    const existing = await Coupon.findOne({ code: req.body.code.toUpperCase() });
-    console.log("Success");
-
-    if (existing) return res.status(409).json({ success: false, message: 'Coupon code already exists' });
-
-    const newCoupon = new Coupon({
-      ...req.body,
-      code: req.body.code.toUpperCase()
-    });
-    
-    console.log("Before Coupon.save()");
-    await newCoupon.save();
-    console.log("Success");
-
-    res.json({ success: true, message: 'Coupon created successfully' });
-  } catch (error) {
-    console.error("Coupon API Error");
-    console.error(error);
-    console.error(error.stack);
-    
-    if (typeof Coupon === 'undefined') {
-      console.error("Coupon model is undefined at server.js, line 2385");
-    }
-
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({ success: false, message: 'Validation error: ' + error.message, error: error.message });
-    }
-    if (error.code === 11000) {
-      return res.status(409).json({ success: false, message: 'Duplicate key error', error: error.message });
-    }
-    
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-app.put('/api/admin/coupon/:id', isAdmin, async (req, res) => {
-  try {
-    console.log("===== Coupon Route =====");
-    console.log("Route:", req.method, req.originalUrl);
-    console.log("Body:", req.body);
-
-    const { code } = req.body;
-    
-    if (code) {
-      console.log("Before Coupon.findOne()");
-      const existing = await Coupon.findOne({ code: code.toUpperCase(), _id: { $ne: req.params.id } });
-      console.log("Success");
-      
-      if (existing) return res.status(409).json({ success: false, message: 'Coupon code already exists' });
-      req.body.code = code.toUpperCase();
-    }
-
-    console.log("Before Coupon.update()");
-    await Coupon.findByIdAndUpdate(req.params.id, req.body, { runValidators: true });
-    console.log("Success");
-
-    res.json({ success: true, message: 'Coupon updated successfully' });
-  } catch (error) {
-    console.error("Coupon API Error");
-    console.error(error);
-    console.error(error.stack);
-
-    if (typeof Coupon === 'undefined') {
-      console.error("Coupon model is undefined at server.js, line 2420");
-    }
-
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({ success: false, message: 'Validation error: ' + error.message, error: error.message });
-    }
-    if (error.code === 11000) {
-      return res.status(409).json({ success: false, message: 'Duplicate key error', error: error.message });
-    }
-    
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-app.delete('/api/admin/coupon/:id', isAdmin, async (req, res) => {
-  try {
-    console.log("===== Coupon Route =====");
-    console.log("Route:", req.method, req.originalUrl);
-    console.log("Body:", req.body);
-
-    console.log("Before Coupon.delete()");
-    await Coupon.findByIdAndDelete(req.params.id);
-    console.log("Success");
-
-    res.json({ success: true, message: 'Coupon deleted successfully' });
-  } catch (error) {
-    console.error("Coupon API Error");
-    console.error(error);
-    console.error(error.stack);
-
-    if (typeof Coupon === 'undefined') {
-      console.error("Coupon model is undefined at server.js, line 2450");
-    }
-
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({ success: false, message: 'Validation error: ' + error.message, error: error.message });
-    }
-    if (error.code === 11000) {
-      return res.status(409).json({ success: false, message: 'Duplicate key error', error: error.message });
-    }
-    
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 
 app.get('/admin', isAdmin, async (req, res) => {
   const adminUser = req.session.user;
