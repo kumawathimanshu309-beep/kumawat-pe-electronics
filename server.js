@@ -741,7 +741,7 @@ app.use((req, res, next) => {
 
 // Middleware to inject user variables into layout template locals
 app.use((req, res, next) => {
-  res.locals.user = req.session.user || null;
+  res.locals.user = req.user || req.session.user || null;
   res.locals.isMongo = isMongoConnected;
   res.locals.storeEnabled = mockDB.storeEnabled;
   next();
@@ -820,21 +820,25 @@ function validateCsrf(req, res, next) {
 
 // ── SECURITY AUTHENTICATION MIDDLEWARES ──────────────────────────
 function isAuthenticated(req, res, next) {
-  if (req.session.user) {
+  if (req.isAuthenticated && req.isAuthenticated()) {
     return next();
+  }
+  if (req.xhr || (req.headers.accept && req.headers.accept.indexOf('json') > -1)) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
   }
   res.redirect('/login');
 }
 
 function isAdmin(req, res, next) {
-  if (!req.session.user) {
+  if (!req.isAuthenticated || !req.isAuthenticated()) {
     return res.redirect('/login');
   }
-  if (req.session.user.role === 'admin' || req.session.user.role === 'super_admin') {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'super_admin')) {
     return next();
   }
   res.status(403).send('403 Access Denied');
 }
+
 
 // ── PUBLIC PAGES ROUTES ──────────────────────────────────────────
 app.get('/', async (req, res) => {
@@ -899,7 +903,7 @@ app.get('/auth/check-status', (req, res) => {
 
 // ── USER AUTHENTICATION CONTROLLERS ──────────────────────────────
 app.get('/login', (req, res) => {
-  if (req.session.user) return res.redirect('/dashboard');
+  if (req.isAuthenticated && req.isAuthenticated()) return res.redirect('/dashboard');
   res.render('login', { activePage: 'login', redirect: req.query.redirect || '' });
 });
 
@@ -927,20 +931,7 @@ app.get('/auth/google/callback', async function(req, res, next) {
             return res.redirect('/auth/google/failure?reason=' + encodeURIComponent(loginErr.message || 'Session_Error'));
           }
           
-          logger.info(`[Google OAuth] req.logIn success. Populating req.session.user...`);
-          try {
-            req.session.user = {
-              userId: user.userId,
-              name: user.name,
-              email: user.email,
-              mobile: user.mobile,
-              role: user.role,
-              profilePhoto: user.profilePhoto
-            };
-          } catch (sessionPopulateErr) {
-            logger.error(`[Google OAuth] Exception while populating req.session.user:`, sessionPopulateErr);
-            throw sessionPopulateErr;
-          }
+          // req.session.user is no longer manually populated, handled by Passport
           
           logger.info(`[Google OAuth] Emitting admin_notification...`);
           try {
@@ -1023,49 +1014,48 @@ app.post('/auth/login', loginLimiter, async (req, res) => {
       return res.render('login', { activePage: 'login', error: 'Invalid username/mobile or password.', redirect });
     }
 
-    // Success login
-    req.session.user = {
-      userId: user.userId,
-      name: user.name,
-      email: user.email,
-      mobile: user.mobile,
-      address: user.address,
-      role: user.role,
-      createdAt: user.createdAt,
-      cart: user.cart || []
-    };
+    req.logIn(user, async (loginErr) => {
+      if (loginErr) {
+        logger.error(`[AUTH FAILED] req.logIn Error for user: '${user.email}'`, loginErr);
+        return res.status(500).render('500', { error: loginErr });
+      }
 
-    // Session Remember Me Option
-    if (rememberMe === 'true') {
-      req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-    } else {
-      req.session.cookie.expires = false; // Session cookie
-    }
+      // Session Remember Me Option
+      if (rememberMe === 'true') {
+        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+      } else {
+        req.session.cookie.expires = false; // Session cookie
+      }
 
-    // Record login time
-    if (isMongoConnected) {
-      await User.updateOne({ userId: user.userId }, { $set: { lastLoginAt: new Date() } });
-      await User.updateOne({ userId: user.userId }, {
-        $push: {
-          activities: { action: 'Logged in successfully', timestamp: new Date(), ip, userAgent }
+      // Record login time
+      if (isMongoConnected) {
+        await User.updateOne({ userId: user.userId }, { $set: { lastLoginAt: new Date() } });
+        await User.updateOne({ userId: user.userId }, {
+          $push: {
+            activities: { action: 'Logged in successfully', timestamp: new Date(), ip, userAgent }
+          }
+        });
+      } else {
+        user.lastLoginAt = new Date();
+        user.activities.push({ action: 'Logged in successfully', timestamp: new Date(), ip, userAgent });
+      }
+
+      await logLoginAttempt(username, 'Success', '', ip, userAgent);
+
+      req.session.save((saveErr) => {
+        if (saveErr) return res.status(500).render('500', { error: saveErr });
+        
+        if (redirect === 'checkout') {
+          return res.redirect('/checkout');
+        }
+        
+        if (user.role === 'admin' || user.role === 'super_admin') {
+          res.redirect('/admin');
+        } else {
+          res.redirect('/dashboard');
         }
       });
-    } else {
-      user.lastLoginAt = new Date();
-      user.activities.push({ action: 'Logged in successfully', timestamp: new Date(), ip, userAgent });
-    }
-
-    await logLoginAttempt(username, 'Success', '', ip, userAgent);
-
-    if (redirect === 'checkout') {
-      return res.redirect('/checkout');
-    }
-    
-    if (user.role === 'admin') {
-      res.redirect('/admin');
-    } else {
-      res.redirect('/dashboard');
-    }
+    });
 
   } catch (error) {
     logger.error('Login Error:', error);
@@ -1074,7 +1064,7 @@ app.post('/auth/login', loginLimiter, async (req, res) => {
 });
 
 app.get('/register', (req, res) => {
-  if (req.session.user) return res.redirect('/dashboard');
+  if (req.isAuthenticated && req.isAuthenticated()) return res.redirect('/dashboard');
   res.render('register', { activePage: 'register', redirect: req.query.redirect || '' });
 });
 
@@ -1127,6 +1117,7 @@ app.post('/auth/register', async (req, res) => {
     // Generate Card QR Code
     const qrDataUrl = await QRCode.toDataURL(`USER:${userId}|CARD:${cardNum}`);
 
+    let userToLogin = null;
     if (isMongoConnected) {
       const newUser = new User({
         userId,
@@ -1141,6 +1132,7 @@ app.post('/auth/register', async (req, res) => {
         activities: [{ action: 'Account registered', timestamp: new Date(), ip, userAgent }]
       });
       await newUser.save();
+      userToLogin = newUser;
 
       const newCard = new Card({
         cardNumber: cardNum,
@@ -1164,6 +1156,7 @@ app.post('/auth/register', async (req, res) => {
       };
       
       mockDB.users.push(newUser);
+      userToLogin = newUser;
       
       mockDB.cards.push({
         cardNumber: cardNum,
@@ -1178,21 +1171,23 @@ app.post('/auth/register', async (req, res) => {
     logger.info(`✓ Registered User: ${name} (ID: ${userId})`);
 
     // Auto Login after registration
-    req.session.user = {
-      userId,
-      name,
-      email: cleanedEmail,
-      mobile: cleanedMobile,
-      address,
-      role: 'user',
-      createdAt: new Date()
-    };
+    req.logIn(userToLogin, (loginErr) => {
+      if (loginErr) {
+        logger.error('[AUTH FAILED] req.logIn Error during Registration:', loginErr);
+        return res.status(500).render('500', { error: loginErr });
+      }
+      
+      req.session.save((saveErr) => {
+        if (saveErr) return res.status(500).render('500', { error: saveErr });
+        
+        if (redirect === 'checkout') {
+          res.redirect('/checkout');
+        } else {
+          res.redirect('/dashboard');
+        }
+      });
+    });
 
-    if (redirect === 'checkout') {
-      res.redirect('/checkout');
-    } else {
-      res.redirect('/dashboard');
-    }
 
   } catch (error) {
     logger.error('Registration Error:', error);
@@ -1890,12 +1885,12 @@ app.get('/order-success/:orderId', isAuthenticated, async (req, res) => {
 app.get('/api/cart', isAuthenticated, async (req, res) => {
   try {
     if (!isMongoConnected) {
-      const userIdx = mockDB.users.findIndex(u => u.userId === req.session.user.userId);
+      const userIdx = mockDB.users.findIndex(u => u.userId === req.user.userId);
       const cart = userIdx !== -1 ? (mockDB.users[userIdx].cart || []) : [];
       return res.json({ success: true, cart });
     }
     
-    const user = await User.findOne({ userId: req.session.user.userId });
+    const user = req.user;
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     
     res.json({ success: true, cart: user.cart || [] });
@@ -1910,7 +1905,7 @@ app.post('/api/cart/sync', isAuthenticated, async (req, res) => {
     const localCart = req.body.cart || [];
     
     if (!isMongoConnected) {
-      const userIdx = mockDB.users.findIndex(u => u.userId === req.session.user.userId);
+      const userIdx = mockDB.users.findIndex(u => u.userId === req.user.userId);
       if (userIdx === -1) return res.status(404).json({ success: false, message: 'User not found' });
       
       let dbCart = mockDB.users[userIdx].cart || [];
@@ -1922,11 +1917,10 @@ app.post('/api/cart/sync', isAuthenticated, async (req, res) => {
         }
       });
       mockDB.users[userIdx].cart = dbCart;
-      req.session.user.cart = dbCart;
       return res.json({ success: true, cart: dbCart });
     }
 
-    const user = await User.findOne({ userId: req.session.user.userId });
+    const user = req.user;
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     let dbCart = user.cart || [];
@@ -1939,7 +1933,7 @@ app.post('/api/cart/sync', isAuthenticated, async (req, res) => {
 
     user.cart = dbCart;
     await user.save();
-    req.session.user.cart = dbCart; // update session
+    
     
     res.json({ success: true, cart: dbCart });
   } catch (err) {
@@ -1952,20 +1946,18 @@ app.post('/api/cart/overwrite', isAuthenticated, async (req, res) => {
     const localCart = req.body.cart || [];
     
     if (!isMongoConnected) {
-      const userIdx = mockDB.users.findIndex(u => u.userId === req.session.user.userId);
+      const userIdx = mockDB.users.findIndex(u => u.userId === req.user.userId);
       if (userIdx !== -1) {
         mockDB.users[userIdx].cart = localCart;
-        req.session.user.cart = localCart;
       }
       return res.json({ success: true, cart: localCart });
     }
 
-    const user = await User.findOne({ userId: req.session.user.userId });
+    const user = req.user;
     if (!user) return res.status(404).json({ success: false });
 
     user.cart = localCart;
     await user.save();
-    req.session.user.cart = localCart;
     res.json({ success: true, cart: localCart });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -1977,23 +1969,21 @@ app.post('/api/cart/update', isAuthenticated, async (req, res) => {
     const { productId, quantity } = req.body;
     
     if (!isMongoConnected) {
-      const userIdx = mockDB.users.findIndex(u => u.userId === req.session.user.userId);
+      const userIdx = mockDB.users.findIndex(u => u.userId === req.user.userId);
       if (userIdx !== -1 && mockDB.users[userIdx].cart) {
         const item = mockDB.users[userIdx].cart.find(i => i.productId === productId || i.name === productId); // name fallback
         if (item) item.quantity = quantity;
-        req.session.user.cart = mockDB.users[userIdx].cart;
       }
       return res.json({ success: true });
     }
 
-    const user = await User.findOne({ userId: req.session.user.userId });
+    const user = req.user;
     if (!user) return res.status(404).json({ success: false });
 
     const item = user.cart.find(i => i.productId === productId || i.name === productId);
     if (item) {
       item.quantity = quantity;
       await user.save();
-      req.session.user.cart = user.cart;
     }
     res.json({ success: true });
   } catch (err) {
@@ -2006,20 +1996,18 @@ app.post('/api/cart/remove', isAuthenticated, async (req, res) => {
     const { productId } = req.body;
     
     if (!isMongoConnected) {
-      const userIdx = mockDB.users.findIndex(u => u.userId === req.session.user.userId);
+      const userIdx = mockDB.users.findIndex(u => u.userId === req.user.userId);
       if (userIdx !== -1 && mockDB.users[userIdx].cart) {
         mockDB.users[userIdx].cart = mockDB.users[userIdx].cart.filter(i => i.productId !== productId && i.name !== productId);
-        req.session.user.cart = mockDB.users[userIdx].cart;
       }
       return res.json({ success: true });
     }
 
-    const user = await User.findOne({ userId: req.session.user.userId });
+    const user = req.user;
     if (!user) return res.status(404).json({ success: false });
 
     user.cart = user.cart.filter(i => i.productId !== productId && i.name !== productId);
     await user.save();
-    req.session.user.cart = user.cart;
     
     res.json({ success: true });
   } catch (err) {
@@ -2589,7 +2577,7 @@ app.post('/api/admin/order/:id/status', isAdmin, validateCsrf, async (req, res) 
 
 
 app.get('/admin', isAdmin, async (req, res) => {
-  const adminUser = req.session.user;
+  const adminUser = req.user || req.session.user;
 
   try {
     let usersList = [];

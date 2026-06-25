@@ -250,7 +250,7 @@
     showToast(`✅ ${item.name} Added to Cart`);
   }
 
-  function buyNowDirect(itemObj) {
+  async function buyNowDirect(itemObj) {
     if(typeof itemObj.name === 'string') itemObj.name = unescape(itemObj.name);
     const existing = cart.find(item => item.name === itemObj.name);
     if (!existing) {
@@ -259,7 +259,7 @@
     } else {
       existing.quantity += 1;
     }
-    saveCart();
+    await saveCart();
     window.location.href = '/checkout';
   }
 

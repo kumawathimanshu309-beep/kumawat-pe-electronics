@@ -3,8 +3,8 @@ const http = require('http');
 async function testLogin() {
   console.log("--- 1. POST /auth/login ---");
   const postData = JSON.stringify({
-    username: 'admin@pe.com',
-    password: 'admin123'
+    username: 'kumawathimanshu309@gmail.com',
+    password: 'HIMANSHU@2005'
   });
 
   const reqOptions = {
