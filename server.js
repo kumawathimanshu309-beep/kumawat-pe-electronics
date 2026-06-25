@@ -164,7 +164,7 @@ function registerCouponRoutes() {
       }
 
       // Check per-user limit
-      const userId = req.session.user.userId;
+      const userId = req.user.userId;
       const userUsage = coupon.usedBy.find(u => u.userId === userId);
       if (userUsage && userUsage.count >= coupon.perUserLimit) {
         return res.json({ success: false, message: 'You have reached the usage limit for this coupon' });
@@ -443,6 +443,7 @@ app.disable('x-powered-by');
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
+      scriptSrcAttr: null,
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://maps.googleapis.com", "https://maps.gstatic.com", "https://googleapis.com", "https://gstatic.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com", "https://googleapis.com", "https://gstatic.com"],
@@ -1412,7 +1413,7 @@ app.post('/forgot-password/reset', async (req, res) => {
 
 // ── CUSTOMER DASHBOARD & CARDS ROUTING ────────────────────────────
 app.get('/dashboard', isAuthenticated, async (req, res) => {
-  const sessionUser = req.session.user;
+  const sessionUser = req.user;
   
   try {
     let userOrders = [];
@@ -1475,7 +1476,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
 
 // Download Card Metadata (Custom pdf print page)
 app.get('/dashboard/download-card', isAuthenticated, async (req, res) => {
-  const sessionUser = req.session.user;
+  const sessionUser = req.user;
 
   try {
     let card = null;
@@ -1593,7 +1594,7 @@ app.get('/checkout', isAuthenticated, (req, res) => {
 
 app.post('/checkout', isAuthenticated, validateCsrf, async (req, res) => {
   const { cartData, totalAmount, deliveryFee, discountAmount, deliveryAddressJSON, preferredDate, timeSlot, notes, paymentMethod, razorpay_payment_id, razorpay_order_id, razorpay_signature, paymentId, couponCode } = req.body;
-  const sessionUser = req.session.user;
+  const sessionUser = req.user;
   const paymentVerification = require('./middleware/paymentVerification');
   const paymentService = require('./services/paymentService');
 
@@ -2021,8 +2022,8 @@ app.post('/api/reviews', isAuthenticated, async (req, res) => {
   if (!isMongoConnected) return res.status(400).json({ success: false, message: 'Database offline' });
   try {
     const { productId, rating, title, text } = req.body;
-    const userId = req.session.user.userId;
-    const userName = req.session.user.name;
+    const userId = req.user.userId;
+    const userName = req.user.name;
 
     const product = await Product.findById(productId);
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
@@ -2062,7 +2063,7 @@ app.post('/api/wishlist/toggle', isAuthenticated, async (req, res) => {
     const { productId } = req.body;
     if (!isMongoConnected) return res.json({ success: true, action: 'added', count: 1 });
 
-    const user = await User.findOne({ userId: req.session.user.userId });
+    const user = await User.findOne({ userId: req.user.userId });
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     if (!user.wishlist) user.wishlist = [];
@@ -2088,7 +2089,7 @@ app.get('/api/wishlist', isAuthenticated, async (req, res) => {
   try {
     if (!isMongoConnected) return res.json({ success: true, wishlist: [], count: 0 });
 
-    const user = await User.findOne({ userId: req.session.user.userId });
+    const user = await User.findOne({ userId: req.user.userId });
     if (!user || !user.wishlist) return res.json({ success: true, wishlist: [], count: 0 });
 
     const productIds = user.wishlist.map(item => item.productId);
@@ -2116,7 +2117,7 @@ app.get('/api/wishlist', isAuthenticated, async (req, res) => {
 app.get('/api/wishlist/count', isAuthenticated, async (req, res) => {
   try {
     if (!isMongoConnected) return res.json({ success: true, count: 0 });
-    const user = await User.findOne({ userId: req.session.user.userId }).select('wishlist').lean();
+    const user = await User.findOne({ userId: req.user.userId }).select('wishlist').lean();
     res.json({ success: true, count: user && user.wishlist ? user.wishlist.length : 0 });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -2128,16 +2129,16 @@ app.get('/api/wishlist/count', isAuthenticated, async (req, res) => {
 app.post('/api/user/address', isAuthenticated, async (req, res) => {
   try {
     if (!isMongoConnected) {
-      const userIdx = mockDB.users.findIndex(u => u.userId === req.session.user.userId);
+      const userIdx = mockDB.users.findIndex(u => u.userId === req.user.userId);
       if (userIdx === -1) return res.status(404).json({ success: false, message: 'User not found' });
       if (!mockDB.users[userIdx].addresses) mockDB.users[userIdx].addresses = [];
       if (mockDB.users[userIdx].addresses.length === 0) req.body.isDefault = true;
       mockDB.users[userIdx].addresses.push(req.body);
-      req.session.user = mockDB.users[userIdx];
+      req.user = mockDB.users[userIdx];
       return res.json({ success: true, addresses: mockDB.users[userIdx].addresses });
     }
     
-    const user = await User.findOne({ userId: req.session.user.userId });
+    const user = await User.findOne({ userId: req.user.userId });
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     
     if (user.addresses.length === 0) req.body.isDefault = true;
@@ -2147,7 +2148,7 @@ app.post('/api/user/address', isAuthenticated, async (req, res) => {
     
     user.addresses.push(req.body);
     await user.save();
-    req.session.user = user; // Update session
+    req.user = user; // Update session
     res.json({ success: true, addresses: user.addresses });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -2158,15 +2159,15 @@ app.put('/api/user/address/:index', isAuthenticated, async (req, res) => {
   try {
     const idx = parseInt(req.params.index);
     if (!isMongoConnected) {
-      const userIdx = mockDB.users.findIndex(u => u.userId === req.session.user.userId);
+      const userIdx = mockDB.users.findIndex(u => u.userId === req.user.userId);
       if (userIdx !== -1 && mockDB.users[userIdx].addresses[idx]) {
         mockDB.users[userIdx].addresses[idx] = { ...mockDB.users[userIdx].addresses[idx], ...req.body };
-        req.session.user = mockDB.users[userIdx];
+        req.user = mockDB.users[userIdx];
       }
       return res.json({ success: true });
     }
 
-    const user = await User.findOne({ userId: req.session.user.userId });
+    const user = await User.findOne({ userId: req.user.userId });
     if (!user || !user.addresses[idx]) return res.status(404).json({ success: false });
 
     if (req.body.isDefault) user.addresses.forEach(a => a.isDefault = false);
@@ -2178,7 +2179,7 @@ app.put('/api/user/address/:index', isAuthenticated, async (req, res) => {
     });
 
     await user.save();
-    req.session.user = user;
+    req.user = user;
     res.json({ success: true, addresses: user.addresses });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -2189,20 +2190,20 @@ app.delete('/api/user/address/:index', isAuthenticated, async (req, res) => {
   try {
     const idx = parseInt(req.params.index);
     if (!isMongoConnected) {
-      const userIdx = mockDB.users.findIndex(u => u.userId === req.session.user.userId);
+      const userIdx = mockDB.users.findIndex(u => u.userId === req.user.userId);
       if (userIdx !== -1) {
         mockDB.users[userIdx].addresses.splice(idx, 1);
-        req.session.user = mockDB.users[userIdx];
+        req.user = mockDB.users[userIdx];
       }
       return res.json({ success: true });
     }
 
-    const user = await User.findOne({ userId: req.session.user.userId });
+    const user = await User.findOne({ userId: req.user.userId });
     if (!user || !user.addresses[idx]) return res.status(404).json({ success: false });
 
     user.addresses.splice(idx, 1);
     await user.save();
-    req.session.user = user;
+    req.user = user;
     res.json({ success: true, addresses: user.addresses });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -2285,7 +2286,7 @@ app.post('/api/calculate-delivery', async (req, res) => {
 // Cancel Order API
 app.post('/api/order/:id/cancel', isAuthenticated, async (req, res) => {
   const orderId = req.params.id;
-  const userId = req.session.user.userId;
+  const userId = req.user.userId;
 
   try {
     let order = null;
@@ -2358,7 +2359,7 @@ app.post('/api/order/:id/cancel', isAuthenticated, async (req, res) => {
 
 // Customer My Orders
 app.get('/my-orders', isAuthenticated, async (req, res) => {
-  const userId = req.session.user.userId;
+  const userId = req.user.userId;
   try {
     let orders = [];
     if (isMongoConnected) {
@@ -2378,7 +2379,7 @@ app.get('/my-orders', isAuthenticated, async (req, res) => {
 
 app.get('/order/:id', isAuthenticated, async (req, res) => {
   const orderId = req.params.id;
-  const userId = req.session.user.userId;
+  const userId = req.user.userId;
   try {
     let order, delivery, payment;
     if (isMongoConnected) {
@@ -2405,7 +2406,7 @@ app.get('/order/:id', isAuthenticated, async (req, res) => {
 // Invoice Route
 app.get('/invoice/:id', isAuthenticated, async (req, res) => {
   const orderId = req.params.id;
-  const user = req.session.user;
+  const user = req.user;
   try {
     let order;
     if (isMongoConnected) {

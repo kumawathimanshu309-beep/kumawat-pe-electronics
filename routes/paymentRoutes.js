@@ -5,7 +5,7 @@ const paymentVerification = require('../middleware/paymentVerification');
 
 // Import authentication middleware (assuming it's defined in server.js, we need to mock it or require it, but since it's defined globally in server.js we can pass it if we decouple, or we can write a tiny local one)
 const isAuthenticated = (req, res, next) => {
-  const isAuth = !!(req.session && req.session.user);
+  const isAuth = req.isAuthenticated && req.isAuthenticated();
   
   if (isAuth) {
     return next();
@@ -18,7 +18,7 @@ const isAuthenticated = (req, res, next) => {
 // Initiate payment
 router.post('/create', isAuthenticated, (req, res, next) => {
   console.log(`\n--- [PAYMENT ROUTE HIT] ---`);
-  console.log(`[PAYMENT ROUTE] Authentication Status: SUCCESS (User: ${req.session.user.userId})`);
+  console.log(`[PAYMENT ROUTE] Authentication Status: SUCCESS (User: ${req.user.userId})`);
   // CSRF is technically checked before this if we mounted it globally, or we can just log it
   console.log(`[PAYMENT ROUTE] CSRF Status: PASSED (If reached here, or disabled for API)`);
   

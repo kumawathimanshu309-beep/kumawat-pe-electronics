@@ -6,7 +6,7 @@ const crypto = require('crypto');
 exports.createPaymentIntent = async (req, res) => {
   try {
     const { amount, paymentMethod, cartData, existingPaymentId } = req.body;
-    const sessionUser = req.session.user;
+    const sessionUser = req.user;
     
     let items = [];
     try {
@@ -98,7 +98,7 @@ exports.createPaymentIntent = async (req, res) => {
 exports.cancelPayment = async (req, res) => {
   try {
     const { paymentId } = req.body;
-    const sessionUser = req.session.user;
+    const sessionUser = req.user;
 
     const record = await PaymentRecord.findOne({ paymentId, userId: sessionUser.userId, status: 'Pending' });
     if (!record) return res.status(404).json({ success: false, message: 'Payment not found or already processed' });
