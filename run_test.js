@@ -1,10 +1,27 @@
+const { spawn } = require('child_process');
 const http = require('http');
 
-async function testLogin() {
+console.log("Starting server...");
+const server = spawn('node', ['server.js'], { env: { ...process.env, MONGO_URI: 'mongodb://invalid:27017' } });
+
+server.stdout.on('data', (data) => {
+  const str = data.toString();
+  console.log(`[SERVER] ${str.trim()}`);
+  if (str.includes('Server running at')) {
+    console.log("Server is ready! Running test...");
+    runTest();
+  }
+});
+
+server.stderr.on('data', (data) => {
+  console.error(`[SERVER ERROR] ${data.toString().trim()}`);
+});
+
+function runTest() {
   console.log("--- 1. POST /auth/login ---");
   const postData = JSON.stringify({
-    username: 'admin@pe.com',
-    password: 'admin123'
+    username: 'admin@example.com',
+    password: 'password123'
   });
 
   const reqOptions = {
@@ -25,6 +42,7 @@ async function testLogin() {
     const setCookie = res.headers['set-cookie'];
     if (!setCookie) {
       console.log("❌ ERROR: No Set-Cookie header received! The session was dropped.");
+      server.kill();
       return;
     }
     
@@ -35,7 +53,6 @@ async function testLogin() {
 
     if (location && setCookie) {
       console.log(`\n--- 2. GET ${location} ---`);
-      // Parse the cookie to send back
       const cookieHeader = setCookie[0].split(';')[0];
       
       const getOptions = {
@@ -52,28 +69,26 @@ async function testLogin() {
         console.log(`STATUS: ${getRes.statusCode}`);
         console.log(`HEADERS: ${JSON.stringify(getRes.headers, null, 2)}`);
         
-        let body = '';
-        getRes.on('data', chunk => body += chunk);
-        getRes.on('end', () => {
-          if (getRes.statusCode === 302 && getRes.headers['location'] === '/login') {
-            console.log("❌ ERROR: Redirected back to /login! Session was not recognized by isAuthenticated.");
-          } else if (getRes.statusCode === 200) {
-            console.log("✅ SUCCESS: Accessed protected route successfully.");
-          } else {
-            console.log(`UNKNOWN RESULT: Status ${getRes.statusCode}`);
-          }
-        });
+        if (getRes.statusCode === 302 && getRes.headers['location'] === '/login') {
+          console.log("❌ ERROR: Redirected back to /login! Session was not recognized by isAuthenticated.");
+        } else if (getRes.statusCode === 200) {
+          console.log("✅ SUCCESS: Accessed protected route successfully.");
+        } else {
+          console.log(`UNKNOWN RESULT: Status ${getRes.statusCode}`);
+        }
+        server.kill();
       });
       getReq.end();
+    } else {
+      server.kill();
     }
   });
 
   req.on('error', (e) => {
     console.error(`problem with request: ${e.message}`);
+    server.kill();
   });
 
   req.write(postData);
   req.end();
 }
-
-testLogin();

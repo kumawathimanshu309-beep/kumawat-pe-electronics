@@ -1,0 +1,429 @@
+﻿diff --git a/server.js b/server.js
+index 19b190b..74390f9 100644
+--- a/server.js
++++ b/server.js
+@@ -128,9 +128,6 @@ function registerCouponRoutes() {
+   // --- Coupon API ---
+   app.post(['/api/coupon/validate', '/api/coupons/validate'], isAuthenticated, async (req, res) => {
+     try {
+-      console.log("===== Coupon Route =====");
+-      console.log("Route:", req.method, req.originalUrl);
+-      console.log("Body:", req.body);
+ 
+       const { code } = req.body;
+       let { cartTotal } = req.body;
+@@ -138,10 +135,7 @@ function registerCouponRoutes() {
+       
+       cartTotal = Number(cartTotal);
+       if (isNaN(cartTotal) || cartTotal < 0) return res.json({ success: false, message: 'Invalid cart total' });
+-
+-      console.log("Before Coupon.findOne()");
+       const coupon = await Coupon.findOne({ code: code.toUpperCase() });
+-      console.log("Success");
+       
+       if (!coupon) return res.json({ success: false, message: 'Invalid coupon code' });
+ 
+@@ -207,12 +201,8 @@ function registerCouponRoutes() {
+       });
+ 
+     } catch (error) {
+-      console.error("Coupon API Error");
+-      console.error(error);
+-      console.error(error.stack);
+ 
+       if (typeof Coupon === 'undefined') {
+-        console.error("Coupon model is undefined at server.js, line 1903");
+       }
+ 
+       if (error.name === 'ValidationError') {
+@@ -229,22 +219,12 @@ function registerCouponRoutes() {
+   // Admin Coupon CRUD
+   app.get(['/api/admin/coupons', '/api/admin/coupon'], isAdmin, async (req, res) => {
+     try {
+-      console.log("===== Coupon Route =====");
+-      console.log("Route:", req.method, req.originalUrl);
+-      console.log("Body:", req.body);
+-      
+-      console.log("Before Coupon.find()");
+       const coupons = await Coupon.find().sort({ createdAt: -1 }).lean();
+-      console.log("Success");
+       
+       res.json({ success: true, coupons });
+     } catch (error) {
+-      console.error("Coupon API Error");
+-      console.error(error);
+-      console.error(error.stack);
+       
+       if (typeof Coupon === 'undefined') {
+-        console.error("Coupon model is undefined at server.js, line 2355");
+       }
+       
+       if (error.name === 'ValidationError') return res.status(400).json({ success: false, message: 'Validation failed: ' + error.message, error: error.message });
+@@ -256,15 +236,9 @@ function registerCouponRoutes() {
+ 
+   app.post(['/api/admin/coupon', '/api/admin/coupons'], isAdmin, async (req, res) => {
+     try {
+-      console.log("===== Coupon Route =====");
+-      console.log("Route:", req.method, req.originalUrl);
+-      console.log("Body:", req.body);
+ 
+       if (!req.body.code) return res.status(400).json({ success: false, message: 'Coupon code is required' });
+-
+-      console.log("Before Coupon.findOne()");
+       const existing = await Coupon.findOne({ code: req.body.code.toUpperCase() });
+-      console.log("Success");
+ 
+       if (existing) return res.status(409).json({ success: false, message: 'Coupon code already exists' });
+ 
+@@ -272,19 +246,12 @@ function registerCouponRoutes() {
+         ...req.body,
+         code: req.body.code.toUpperCase()
+       });
+-      
+-      console.log("Before Coupon.save()");
+       await newCoupon.save();
+-      console.log("Success");
+ 
+       res.json({ success: true, message: 'Coupon created successfully' });
+     } catch (error) {
+-      console.error("Coupon API Error");
+-      console.error(error);
+-      console.error(error.stack);
+       
+       if (typeof Coupon === 'undefined') {
+-        console.error("Coupon model is undefined at server.js, line 2385");
+       }
+ 
+       if (error.name === 'ValidationError') {
+@@ -300,33 +267,21 @@ function registerCouponRoutes() {
+ 
+   app.put(['/api/admin/coupon/:id', '/api/admin/coupons/:id'], isAdmin, async (req, res) => {
+     try {
+-      console.log("===== Coupon Route =====");
+-      console.log("Route:", req.method, req.originalUrl);
+-      console.log("Body:", req.body);
+ 
+       const { code } = req.body;
+       
+       if (code) {
+-        console.log("Before Coupon.findOne()");
+         const existing = await Coupon.findOne({ code: code.toUpperCase(), _id: { $ne: req.params.id } });
+-        console.log("Success");
+         
+         if (existing) return res.status(409).json({ success: false, message: 'Coupon code already exists' });
+         req.body.code = code.toUpperCase();
+       }
+-
+-      console.log("Before Coupon.update()");
+       await Coupon.findByIdAndUpdate(req.params.id, req.body, { runValidators: true });
+-      console.log("Success");
+ 
+       res.json({ success: true, message: 'Coupon updated successfully' });
+     } catch (error) {
+-      console.error("Coupon API Error");
+-      console.error(error);
+-      console.error(error.stack);
+ 
+       if (typeof Coupon === 'undefined') {
+-        console.error("Coupon model is undefined at server.js, line 2420");
+       }
+ 
+       if (error.name === 'ValidationError') {
+@@ -342,22 +297,12 @@ function registerCouponRoutes() {
+ 
+   app.delete(['/api/admin/coupon/:id', '/api/admin/coupons/:id'], isAdmin, async (req, res) => {
+     try {
+-      console.log("===== Coupon Route =====");
+-      console.log("Route:", req.method, req.originalUrl);
+-      console.log("Body:", req.body);
+-
+-      console.log("Before Coupon.delete()");
+       await Coupon.findByIdAndDelete(req.params.id);
+-      console.log("Success");
+ 
+       res.json({ success: true, message: 'Coupon deleted successfully' });
+     } catch (error) {
+-      console.error("Coupon API Error");
+-      console.error(error);
+-      console.error(error.stack);
+ 
+       if (typeof Coupon === 'undefined') {
+-        console.error("Coupon model is undefined at server.js, line 2450");
+       }
+ 
+       if (error.name === 'ValidationError') {
+@@ -485,22 +430,34 @@ async function seedInMemoryDatabase() {
+ }
+ 
+ // ΓöÇΓöÇ EXPRESS MIDDLEWARES ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
++// Cloudinary Image Optimization Helper
++app.locals.optimizeImage = (url) => {
++  if (!url || typeof url !== 'string') return url;
++  if (url.includes('res.cloudinary.com') && !url.includes('f_auto') && !url.includes('q_auto')) {
++    return url.replace('/image/upload/', '/image/upload/f_auto,q_auto/');
++  }
++  return url;
++};
++
++app.disable('x-powered-by');
+ app.use(helmet({
+   contentSecurityPolicy: {
+     directives: {
+       defaultSrc: ["'self'"],
+-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://checkout.razorpay.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
+-      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+-      imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://checkout.razorpay.com"],
+-      connectSrc: ["'self'", "https://lumberjack-cx.razorpay.com"]
++      scriptSrc: ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://maps.googleapis.com", "https://maps.gstatic.com", "https://googleapis.com", "https://gstatic.com"],
++      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com", "https://googleapis.com", "https://gstatic.com"],
++      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com", "data:", "https://cdn.jsdelivr.net"],
++      imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com", "https://images.unsplash.com", "https://checkout.razorpay.com", "https://maps.gstatic.com", "https://maps.googleapis.com", "https://googleapis.com", "https://gstatic.com"],
++      frameSrc: ["'self'", "https://www.google.com", "https://google.com", "https://maps.google.com", "https://www.google.com/maps", "https://checkout.razorpay.com"],
++      connectSrc: ["'self'", "https://lumberjack-cx.razorpay.com", "https://maps.googleapis.com", "https://googleapis.com", "https://gstatic.com", "https://cdn.jsdelivr.net"]
+     }
+   },
+   hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+   frameguard: { action: 'deny' },
+   xssFilter: true,
+   noSniff: true,
+-  hidePoweredBy: true
++  hidePoweredBy: true,
++  referrerPolicy: { policy: 'same-origin' }
+ }));
+ 
+ app.use(mongoSanitize());
+@@ -587,11 +544,12 @@ app.use(
+     secret: process.env.SESSION_SECRET || 'supersecretsessionkey',
+     resave: false,
+     saveUninitialized: false,
++    proxy: true, // Required for secure cookies behind Railway reverse proxy
+     cookie: {
+       maxAge: 24 * 60 * 60 * 1000, // 24 hours
+       secure: process.env.NODE_ENV === 'production',
+       httpOnly: true,
+-      sameSite: 'strict' // Native CSRF protection
++      sameSite: 'lax' // Native CSRF protection + allows OAuth redirects
+     }
+   })
+ );
+@@ -688,9 +646,7 @@ passport.use(new GoogleStrategy({
+       }
+       
+       logger.info(`[Google OAuth] Searching for existing user by email: ${email}`);
+-      console.log("Before User.findOne()");
+       let user = isMongoConnected ? await User.findOne({ email }) : mockDB.users.find(u => u.email === email);
+-      console.log("After User.findOne()");
+       
+       if (!user) {
+         logger.info(`[Google OAuth] User not found, creating new account`);
+@@ -716,13 +672,9 @@ passport.use(new GoogleStrategy({
+           try {
+             user = new User(newUserObj);
+             logger.info(`[Google OAuth] Saving new user to MongoDB...`);
+-            console.log("Before User.save() (new user)");
+             await user.save();
+-            console.log("After User.save() (new user)");
+             logger.info(`[Google OAuth] New user saved successfully.`);
+           } catch (saveErr) {
+-            console.error("GoogleStrategy Exception (save new):", saveErr);
+-            console.error(saveErr.stack);
+             logger.error(`[Google OAuth] Error saving new user:`, saveErr);
+             if (saveErr.name === 'ValidationError') return cb(new Error("Schema_Validation_Error"), null);
+             if (saveErr.code === 11000) return cb(new Error("Duplicate_Key_Error"), null);
+@@ -752,13 +704,9 @@ passport.use(new GoogleStrategy({
+         if (isMongoConnected && needsSave) {
+           try {
+             logger.info(`[Google OAuth] Updating existing user in MongoDB...`);
+-            console.log("Before User.save() (existing user)");
+             await user.save();
+-            console.log("After User.save() (existing user)");
+             logger.info(`[Google OAuth] Existing user updated successfully.`);
+           } catch (updateErr) {
+-            console.error("GoogleStrategy Exception (update existing):", updateErr);
+-            console.error(updateErr.stack);
+             logger.error(`[Google OAuth] Error updating existing user:`, updateErr);
+             if (updateErr.name === 'ValidationError') return cb(new Error("Schema_Validation_Error"), null);
+             if (updateErr.code === 11000) return cb(new Error("Duplicate_Key_Error"), null);
+@@ -770,8 +718,6 @@ passport.use(new GoogleStrategy({
+       logger.info(`[Google OAuth] Strategy completed successfully, proceeding to serialize.`);
+       return cb(null, user);
+     } catch (err) {
+-      console.error("GoogleStrategy Unhandled Exception:");
+-      console.error(err.stack || err);
+       logger.error(`[Google OAuth] Unhandled exception in Strategy:`, err);
+       return cb(err, null);
+     }
+@@ -893,12 +839,18 @@ function isAdmin(req, res, next) {
+ // ΓöÇΓöÇ PUBLIC PAGES ROUTES ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ app.get('/', async (req, res) => {
+   try {
+-    let productsList = [];
++    let featuredProducts = [];
+     if (mockDB.storeEnabled) {
+-      productsList = isMongoConnected ? await Product.find({ status: { $ne: 'Deleted' } }).lean() : mockDB.products.filter(p => p.status !== 'Deleted');
++      if (isMongoConnected) {
++        featuredProducts = await Product.find({ $or: [{ status: 'Active' }, { status: { $exists: false } }, { status: null }, { status: '' }] })
++                                        .sort({ _id: -1 })
++                                        .limit(12)
++                                        .lean();
++      } else {
++        const productsList = mockDB.products.filter(p => p.status !== 'Deleted');
++        featuredProducts = productsList.filter(p => p.status === 'Active' || !p.status).reverse().slice(0, 12);
++      }
+     }
+-    // Only pass Active products to the homepage featured section
+-    const featuredProducts = productsList.filter(p => p.status === 'Active' || !p.status).reverse().slice(0, 12);
+     
+     res.render('index', { activePage: 'home', products: featuredProducts });
+   } catch (error) {
+@@ -908,11 +860,15 @@ app.get('/', async (req, res) => {
+ 
+ app.get('/services', async (req, res) => {
+   try {
+-    let productsList = [];
++    let activeProducts = [];
+     if (mockDB.storeEnabled) {
+-      productsList = isMongoConnected ? await Product.find({ status: { $ne: 'Deleted' } }).lean() : mockDB.products.filter(p => p.status !== 'Deleted');
++      if (isMongoConnected) {
++        activeProducts = await Product.find({ $or: [{ status: 'Active' }, { status: { $exists: false } }, { status: null }, { status: '' }] }).lean();
++      } else {
++        const productsList = mockDB.products.filter(p => p.status !== 'Deleted');
++        activeProducts = productsList.filter(p => p.status === 'Active' || !p.status);
++      }
+     }
+-    const activeProducts = productsList.filter(p => p.status === 'Active' || !p.status);
+     
+     res.render('services', { activePage: 'services', products: activeProducts });
+   } catch (error) {
+@@ -951,13 +907,11 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
+ 
+ app.get('/auth/google/callback', async function(req, res, next) {
+   try {
+-    console.log("Entered Google callback");
+     logger.info('[Google OAuth] Entering /auth/google/callback route');
+     passport.authenticate('google', function(err, user, info) {
+       try {
+         logger.info(`[Google OAuth] passport.authenticate callback invoked. err: ${err ? 'yes' : 'no'}, user: ${user ? 'yes' : 'no'}`);
+         if (err) {
+-          console.error("passport.authenticate error:", err);
+           logger.error('[Google OAuth] Strategy Error:', err);
+           return res.redirect('/auth/google/failure?reason=' + encodeURIComponent(err.message || 'Strategy_Error'));
+         }
+@@ -967,11 +921,8 @@ app.get('/auth/google/callback', async function(req, res, next) {
+         }
+         
+         logger.info(`[Google OAuth] Proceeding to req.logIn for user: ${user.email}`);
+-        console.log("Before req.logIn()");
+         req.logIn(user, function(loginErr) {
+-          console.log("After req.logIn()");
+           if (loginErr) {
+-            console.error("req.logIn Error:", loginErr);
+             logger.error('[Google OAuth] req.logIn Session Error:', loginErr);
+             return res.redirect('/auth/google/failure?reason=' + encodeURIComponent(loginErr.message || 'Session_Error'));
+           }
+@@ -1002,11 +953,8 @@ app.get('/auth/google/callback', async function(req, res, next) {
+           }
+           
+           logger.info(`[Google OAuth] Saving session...`);
+-          console.log("Before req.session.save()");
+           req.session.save((saveErr) => {
+-            console.log("After req.session.save()");
+             if (saveErr) {
+-              console.error("req.session.save Error:", saveErr);
+               logger.error('[Google OAuth] Session Save Error after login:', saveErr);
+               return res.redirect('/auth/google/failure?reason=' + encodeURIComponent('Session_Save_Error'));
+             }
+@@ -1015,15 +963,11 @@ app.get('/auth/google/callback', async function(req, res, next) {
+           });
+         });
+       } catch (innerErr) {
+-        console.error("Uncaught exception inside inner callback:", innerErr);
+-        if (innerErr && innerErr.stack) console.error(innerErr.stack);
+         logger.error(`[Google OAuth] Uncaught exception inside inner callback!`, innerErr);
+         next(innerErr);
+       }
+     })(req, res, next);
+   } catch (outerErr) {
+-    console.error("Uncaught exception in outer route wrapper:", outerErr);
+-    if (outerErr && outerErr.stack) console.error(outerErr.stack);
+     logger.error(`[Google OAuth] Uncaught exception in outer route wrapper!`, outerErr);
+     next(outerErr);
+   }
+@@ -2662,26 +2606,48 @@ app.get('/admin', isAdmin, async (req, res) => {
+     let pendingDeliveries = 0;
+ 
+     if (isMongoConnected) {
+-      usersList = await User.find({}).lean();
+-      ordersList = await Order.find({}).lean();
+-      otpLogsList = await OtpLog.find({}).lean();
+-      loginLogsList = await LoginLog.find({});
+-      productsList = await Product.find({});
+-      paymentsList = await PaymentRecord.find({}).sort({ transactionTime: -1 });
+-      
+-      const st = await Product.findOne({ productId: '__STORE_SETTINGS__' });
+-      if (st) { mockDB.storeEnabled = st.deliveryAvailable; }
+-      
+-      totalUsers = await User.countDocuments({ role: 'user' });
+-      totalOrders = await Order.countDocuments({});
+-      
+-      const revenueAggr = await PaymentRecord.aggregate([
+-        { $match: { status: { $in: ['Paid', 'COD Completed'] } } },
+-        { $group: { _id: null, total: { $sum: '$amount' } } }
++      const [
++        usersListRes,
++        ordersListRes,
++        otpLogsListRes,
++        loginLogsListRes,
++        productsListRes,
++        paymentsListRes,
++        stRes,
++        totalUsersRes,
++        totalOrdersRes,
++        revenueAggrRes,
++        pendingDeliveriesRes
++      ] = await Promise.all([
++        User.find({}).lean(),
++        Order.find({}).lean(),
++        OtpLog.find({}).lean(),
++        LoginLog.find({}).lean(),
++        Product.find({}).lean(),
++        PaymentRecord.find({}).sort({ transactionTime: -1 }).lean(),
++        Product.findOne({ productId: '__STORE_SETTINGS__' }).lean(),
++        User.countDocuments({ role: 'user' }),
++        Order.countDocuments({}),
++        PaymentRecord.aggregate([
++          { $match: { status: { $in: ['Paid', 'COD Completed'] } } },
++          { $group: { _id: null, total: { $sum: '$amount' } } }
++        ]),
++        Delivery.countDocuments({ deliveryStatus: { $ne: 'Delivered' } })
+       ]);
+-      totalRevenue = revenueAggr.length > 0 ? revenueAggr[0].total : 0;
++
++      usersList = usersListRes;
++      ordersList = ordersListRes;
++      otpLogsList = otpLogsListRes;
++      loginLogsList = loginLogsListRes;
++      productsList = productsListRes;
++      paymentsList = paymentsListRes;
++      
++      if (stRes) { mockDB.storeEnabled = stRes.deliveryAvailable; }
+       
+-      pendingDeliveries = await Delivery.countDocuments({ deliveryStatus: { $ne: 'Delivered' } });
++      totalUsers = totalUsersRes;
++      totalOrders = totalOrdersRes;
++      totalRevenue = revenueAggrRes.length > 0 ? revenueAggrRes[0].total : 0;
++      pendingDeliveries = pendingDeliveriesRes;
+     } else {
+       usersList = mockDB.users;
+       ordersList = mockDB.orders;
+@@ -3270,9 +3236,6 @@ app.get('/admin/products/delete/:productId', isAdmin, async (req, res) => {
+ // ΓöÇΓöÇ ERROR HANDLING MIDDLEWARES ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ // Dedicated Google OAuth Error Handler
+ app.use('/auth/google', (err, req, res, next) => {
+-  console.error("================ OAUTH MIDDLEWARE CRASH DUMP ================");
+-  console.error(err);
+-  console.error(err.stack || err);
+   logger.error('[OAuth Middleware] Crash Dump:');
+   logger.error(err.stack || err);
+   // Render the error page explicitly to avoid exposing sensitive internal stack traces to the client
