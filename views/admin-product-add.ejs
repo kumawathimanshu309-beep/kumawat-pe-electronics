@@ -61,7 +61,7 @@
           <div class="row mb-3">
             <div class="col-md-6 field">
               <label>Category [Optional]</label>
-              <select name="category" class="form-control">
+              <select id="categorySelect" name="category" class="form-control" onchange="handleCategoryChange()">
                 <option value="Plumbing">Plumbing</option>
                 <option value="Electrical">Electrical</option>
                 <option value="AC & Appliances">AC & Appliances</option>
@@ -70,6 +70,7 @@
                 <option value="Spare Parts">Spare Parts</option>
                 <option value="Custom">Custom</option>
               </select>
+              <input type="text" id="customCategoryInput" class="form-control mt-2 d-none" placeholder="Enter Custom Category" />
             </div>
             <div class="col-md-6 field">
               <label>Stock Quantity [Optional]</label>
@@ -154,5 +155,23 @@
     </div>
   </div>
 </div>
+<script>
+function handleCategoryChange() {
+  const select = document.getElementById('categorySelect');
+  const customInput = document.getElementById('customCategoryInput');
+  if (select.value === 'Custom') {
+    customInput.classList.remove('d-none');
+    customInput.setAttribute('required', 'required');
+    customInput.setAttribute('name', 'category');
+    select.removeAttribute('name');
+  } else {
+    customInput.classList.add('d-none');
+    customInput.removeAttribute('required');
+    customInput.removeAttribute('name');
+    customInput.value = '';
+    select.setAttribute('name', 'category');
+  }
+}
+</script>
 </body>
 </html>

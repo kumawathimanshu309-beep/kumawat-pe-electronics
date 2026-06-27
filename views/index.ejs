@@ -1,4 +1,5 @@
 <%- include('partials/header', { title: 'Kumawat Plumbing & Electricals | Govindgarh', activePage: 'home' }) %>
+<link rel="stylesheet" href="/css/premium-ui.css" />
 
 <main id="main-content">
 
@@ -9,11 +10,11 @@
     <h1>When plumbing or wiring breaks, <em>Himanshu</em> is there.</h1>
     <p class="hero-proof">Over 850 homes trusted, prompt and professional services.</p>
     <div class="hero-ctas">
-      <a href="/services" class="btn btn-accent">
-        <i class="bi bi-cart"></i> Book Service / Order Parts
+      <a href="/services" class="btn btn-accent" aria-label="Book Service or Order Parts">
+        <i class="bi bi-cart" aria-hidden="true"></i> Book Service / Order Parts
       </a>
-      <a href="tel:+919462759965" class="btn btn-outline">
-        <i class="bi bi-telephone"></i> Call +91 94627 59965
+      <a href="tel:+919462759965" class="btn btn-outline" aria-label="Call +91 94627 59965">
+        <i class="bi bi-telephone" aria-hidden="true"></i> Call +91 94627 59965
       </a>
     </div>
     
@@ -23,7 +24,7 @@
     </div>
   </div>
 
-  <div class="hero-image" style="position:relative;">
+  <div class="hero-image premium-hero-img" style="position:relative;">
     <img fetchpriority="high" loading="eager" decoding="sync" src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&auto=format&fit=crop" alt="Plumber working on fixtures" />
     <div class="stat-badge" aria-hidden="true">
       <strong>12+</strong>
@@ -65,7 +66,7 @@
         <h2>Reliable installation and home delivery.</h2>
         <p>Complete home services and parts delivered right to your doorstep.</p>
       </div>
-      <a href="/services" class="btn btn-outline">View All &amp; Order <i class="bi bi-arrow-right"></i></a>
+      <a href="/services" class="btn btn-outline" aria-label="View all services and order parts">View All &amp; Order <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
     </div>
 
     <div class="services-grid">
@@ -109,6 +110,27 @@
 </section>
 
 <!-- ── FEATURED PRODUCTS ───────────────────────────────── -->
+<style>
+  .featured-products-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 991px) {
+    .featured-products-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  @media (max-width: 767px) {
+    .featured-products-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+  }
+  .featured-products-grid .service-card {
+    padding: 16px !important;
+  }
+</style>
 <section class="featured-products-section" id="featured-products" style="padding: 80px 0; background-color: var(--white);">
   <div class="container">
     <div class="d-flex justify-content-between align-items-end flex-wrap gap-3" style="margin-bottom: 40px;">
@@ -120,41 +142,47 @@
     </div>
 
     <% if (typeof products !== 'undefined' && products.length > 0) { %>
-      <div class="services-grid">
+      <div class="featured-products-grid">
         <% products.forEach(p => { %>
-          <div class="service-card" style="padding: 24px;">
+          <div class="premium-card">
             
-            <% if (p.deliveryAvailable !== false) { %>
-              <span class="badge-delivery" style="top: 12px; right: 12px;"><i class="bi bi-truck"></i> Home Delivery</span>
-            <% } %>
+            <div class="premium-badges">
+              <% if (p.discountPrice) { %>
+                <span class="premium-badge badge-sale">Sale</span>
+              <% } %>
+              <% if (p.deliveryAvailable !== false) { %>
+                <span class="premium-badge badge-new"><i class="bi bi-truck"></i> Delivery</span>
+              <% } %>
+            </div>
             
             <!-- Product Image -->
-            <div style="width: 100%; height: 200px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #fff; border-radius: 6px; margin-bottom: 16px; border: 1px solid rgba(0,0,0,0.05);">
+            <div class="premium-card-img">
               <% if (p.images && p.images.length > 0) { %>
-                <img loading="lazy" decoding="async" src="<%= optimizeImage(p.images[0]) %>" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="<%= p.name %>" />
+                <img loading="lazy" decoding="async" src="<%= optimizeImage(p.images[0]) %>" alt="<%= p.name %>" />
               <% } else { %>
                 <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
               <% } %>
             </div>
             
             <!-- Product Info -->
-            <h3 style="font-size: 1.15rem; margin-bottom: 8px;"><%= p.name %></h3>
+            <h3 class="premium-card-title"><%= p.name %></h3>
             
-            <p style="font-size: 0.85rem; margin-bottom: 15px; flex-grow: 1;">
-              <%= p.description ? (p.description.length > 60 ? p.description.substring(0, 60) + '...' : p.description) : '' %>
+            <p class="premium-card-desc">
+              <%= p.description ? (p.description.length > 50 ? p.description.substring(0, 50) + '...' : p.description) : 'Premium quality product.' %>
             </p>
             
-            <div class="service-price" style="margin-bottom: 16px;">
+            <div class="premium-price-row">
               <% if (p.discountPrice) { %>
-                <span style="text-decoration:line-through; color:#999; font-size:0.9rem; margin-right: 8px;">₹<%= p.price %></span>
-                ₹<%= p.discountPrice %>
+                <span class="premium-price-current">₹<%= p.discountPrice %></span>
+                <span class="premium-price-old">₹<%= p.price %></span>
+                <% let discount = Math.round(((p.price - p.discountPrice) / p.price) * 100); %>
+                <span class="premium-discount-percent"><%= discount %>% OFF</span>
               <% } else { %>
-                ₹<%= p.price %>
+                <span class="premium-price-current">₹<%= p.price %></span>
               <% } %>
             </div>
 
-            <div class="d-flex gap-2" style="margin-top: auto;">
-              <a href="/product/<%= p.productId %>" class="btn btn-outline btn-xs" style="flex:1; padding: 8px 10px; font-size: 0.8rem; text-align: center;">View Details</a>
+            <div class="d-flex flex-column gap-2" style="margin-top: auto;">
               <% if (p.stock > 0 && p.status !== 'Out Of Stock') { %>
                 <button onclick="buyNowDirect({
                   name: '<%= escape(p.name) %>',
@@ -164,20 +192,29 @@
                   sku: '<%= p.sku || 'N/A' %>',
                   category: '<%= p.category || 'General' %>',
                   type: 'product'
-                })" class="btn btn-accent btn-xs" style="flex:1; padding: 8px 10px; font-size: 0.8rem; text-align: center;"><i class="bi bi-cart-check"></i> Buy Now</button>
+                })" class="btn btn-accent btn-full"><i class="bi bi-cart-check"></i> Buy Now</button>
               <% } else { %>
-                <button class="btn btn-secondary btn-xs disabled" style="flex:1; padding: 8px 10px; font-size: 0.8rem;" disabled>Sold Out</button>
+                <button class="btn btn-secondary btn-full disabled" disabled>Sold Out</button>
               <% } %>
+              <a href="/product/<%= p.productId %>" class="btn btn-outline btn-full">View Details</a>
             </div>
-
           </div>
         <% }) %>
       </div>
+      
+      <div class="text-center" style="margin-top: 40px;">
+        <a href="/store" class="btn btn-accent" style="padding: 12px 32px; font-size: 1.1rem; border-radius: 50px; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: all 0.3s ease;">
+          View More Products <i class="bi bi-arrow-right ms-2"></i>
+        </a>
+      </div>
     <% } else { %>
-      <div class="text-center py-5" style="background: #f8f9fa; border-radius: 12px; border: 1px dashed var(--rule);">
-        <i class="bi bi-shop text-muted" style="font-size: 3rem; margin-bottom: 15px; display: block;"></i>
-        <h4 style="font-family: var(--font-display); font-weight: 600;">Products Coming Soon</h4>
-        <p style="color: var(--ink-light); margin: 0;">We are currently updating our online catalog. Check back shortly!</p>
+      <div class="premium-empty">
+        <i class="bi bi-shop"></i>
+        <h3>Products Coming Soon</h3>
+        <p>We are currently updating our online catalog with premium tools and electronics. Check back shortly!</p>
+        <a href="/store" class="btn btn-accent px-4">
+          Browse Full Store <i class="bi bi-arrow-right ms-2"></i>
+        </a>
       </div>
     <% } %>
   </div>
@@ -261,8 +298,8 @@
           </div>
         </div>
 
-        <a href="https://wa.me/919462759965?text=Hi%20Himanshu%2C%20I%20want%20to%20book%20a%20service%20or%20order%20parts." target="_blank" class="btn btn-whatsapp">
-          <i class="bi bi-whatsapp"></i> Chat on WhatsApp
+        <a href="https://wa.me/919462759965?text=Hi%20Himanshu%2C%20I%20want%20to%20book%20a%20service%20or%20order%20parts." target="_blank" class="btn btn-whatsapp" aria-label="Chat on WhatsApp">
+          <i class="bi bi-whatsapp" aria-hidden="true"></i> Chat on WhatsApp
         </a>
       </div>
     </div>

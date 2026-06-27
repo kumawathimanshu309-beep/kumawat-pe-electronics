@@ -1,5 +1,5 @@
 <%- include('partials/header') %>
-
+<link rel="stylesheet" href="/css/premium-ui.css" />
 <section class="hero-section" style="padding-top: 100px; padding-bottom: 50px; background: var(--bg-dark); color: var(--white); position: relative; overflow: hidden;">
   <div class="container text-center position-relative" style="z-index: 2;">
     <h1 style="font-family: var(--font-display); font-size: 3rem; margin-bottom: 10px; font-weight:700;">Premium Electronics Store</h1>
@@ -8,68 +8,176 @@
   <div class="blueprint-dark-bg" style="position:absolute; top:0; left:0; right:0; bottom:0; z-index: 1;"></div>
 </section>
 
+<style>
+  .top-search-bar {
+    position: sticky;
+    top: 70px;
+    z-index: 99;
+    background: var(--bg);
+    padding: 15px 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+  .store-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 15px;
+  }
+  .accordion-button:not(.collapsed) {
+    background-color: var(--accent-light);
+    color: var(--accent);
+    box-shadow: none;
+  }
+  .accordion-button:focus {
+    box-shadow: none;
+    border-color: rgba(0,0,0,.125);
+  }
+  .custom-cat-btn {
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-weight: 600;
+  }
+  .custom-cat-btn.active {
+    background-color: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  
+  .grid-5-mode {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1.5rem;
+  }
+  @media (max-width: 1200px) {
+    .grid-5-mode { grid-template-columns: repeat(4, 1fr); }
+  }
+  @media (max-width: 991px) {
+    .grid-5-mode { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 767px) {
+    .grid-5-mode { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .list-mode-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .premium-card-list {
+    flex-direction: row;
+  }
+  .premium-card-list .premium-card-img {
+    width: 280px;
+    height: 100%;
+    margin-bottom: 0;
+    margin-right: 20px;
+  }
+  .premium-card-list .premium-card-body {
+    justify-content: center;
+  }
+  @media (max-width: 991px) {
+    .premium-card-list {
+      flex-direction: column;
+    }
+    .premium-card-list .premium-card-img {
+      width: 100%;
+      height: 240px;
+      margin-right: 0;
+      margin-bottom: 16px;
+    }
+  }
+</style>
+
 <section class="py-5" style="background: var(--bg);">
-  <div class="store-layout">
+  <div class="store-container">
     
-    <!-- LEFT SIDEBAR FILTERS -->
-    <aside class="store-sidebar">
-      <div class="modern-card p-4">
-        
-        <div class="filter-group">
-          <h5>Search</h5>
-          <div class="input-group">
-            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-            <input type="text" id="store-search" class="form-control border-start-0 ps-0" placeholder="Keywords, SKU..." style="font-size: 0.9rem;" />
-          </div>
+    <!-- STICKY SEARCH & CATEGORY TOP BAR -->
+    <div class="top-search-bar">
+      <!-- Search -->
+      <div class="modern-card p-3 mb-3 d-flex align-items-center gap-3">
+        <div class="input-group flex-grow-1">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" id="store-search" class="form-control border-start-0 ps-0" placeholder="Search by Product Name, SKU, Category, Description..." aria-label="Search Products" style="font-size: 1rem; padding: 12px;" />
         </div>
-
-        <div class="filter-group">
-          <h5>Category</h5>
-          <label class="custom-checkbox"><input type="checkbox" value="AC & Appliances" class="cat-filter"> AC & Appliances</label>
-          <label class="custom-checkbox"><input type="checkbox" value="Electrical" class="cat-filter"> Electrical Fittings</label>
-          <label class="custom-checkbox"><input type="checkbox" value="Plumbing" class="cat-filter"> Plumbing</label>
-          <label class="custom-checkbox"><input type="checkbox" value="Motors & Pumps" class="cat-filter"> Motors & Pumps</label>
-          <label class="custom-checkbox"><input type="checkbox" value="Tools" class="cat-filter"> Tools & Equipment</label>
-          <label class="custom-checkbox"><input type="checkbox" value="Spare Parts" class="cat-filter"> Spare Parts</label>
-        </div>
-
-        <div class="filter-group">
-          <h5>Brand</h5>
-          <label class="custom-checkbox"><input type="checkbox" value="Havells" class="brand-filter"> Havells</label>
-          <label class="custom-checkbox"><input type="checkbox" value="Anchor" class="brand-filter"> Anchor</label>
-          <label class="custom-checkbox"><input type="checkbox" value="Polycab" class="brand-filter"> Polycab</label>
-          <label class="custom-checkbox"><input type="checkbox" value="Crompton" class="brand-filter"> Crompton</label>
-          <label class="custom-checkbox"><input type="checkbox" value="Legrand" class="brand-filter"> Legrand</label>
-        </div>
-
-        <div class="filter-group">
-          <h5>Price Range</h5>
-          <div class="d-flex gap-2 align-items-center">
-            <input type="number" id="minPrice" class="form-control form-control-sm" placeholder="Min ₹" />
-            <span class="text-muted">-</span>
-            <input type="number" id="maxPrice" class="form-control form-control-sm" placeholder="Max ₹" />
-          </div>
-        </div>
-
-        <div class="filter-group">
-          <h5>Availability</h5>
-          <label class="custom-checkbox"><input type="checkbox" value="In Stock" id="inStockFilter"> In Stock Only</label>
-        </div>
-
-        <button class="btn btn-outline w-100 mt-2" style="border-radius: 8px;" onclick="resetFilters()">Reset All Filters</button>
+        <button class="btn btn-outline" style="white-space: nowrap; padding: 12px 24px;" onclick="resetFilters()"><i class="bi bi-x-circle me-1"></i> Clear Filters</button>
       </div>
-    </aside>
-
+      
+      <!-- Category Accordion -->
+      <div class="accordion" id="categoryAccordion">
+        <div class="accordion-item modern-card" style="border:none; border-radius:12px; overflow:hidden;">
+          <h2 class="accordion-header" id="headingFilters">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters" style="font-weight: 600; padding: 15px 20px;">
+              <i class="bi bi-funnel me-2"></i> Categories & Filters
+            </button>
+          </h2>
+          <div id="collapseFilters" class="accordion-collapse collapse" aria-labelledby="headingFilters" data-bs-parent="#categoryAccordion">
+            <div class="accordion-body" style="background: #fff;">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <h6 class="text-muted text-uppercase" style="font-size: 0.8rem; font-weight: 700; letter-spacing: 1px;">Categories</h6>
+                  <div class="d-flex flex-wrap gap-2 mt-2">
+                    <label class="btn btn-sm btn-outline-secondary custom-cat-btn active">
+                      <input type="radio" name="catFilter" value="" class="cat-filter d-none" checked> All Categories
+                    </label>
+                    <label class="btn btn-sm btn-outline-secondary custom-cat-btn">
+                      <input type="radio" name="catFilter" value="AC & Appliances" class="cat-filter d-none"> AC & Appliances
+                    </label>
+                    <label class="btn btn-sm btn-outline-secondary custom-cat-btn">
+                      <input type="radio" name="catFilter" value="Electrical" class="cat-filter d-none"> Electrical
+                    </label>
+                    <label class="btn btn-sm btn-outline-secondary custom-cat-btn">
+                      <input type="radio" name="catFilter" value="Plumbing" class="cat-filter d-none"> Plumbing
+                    </label>
+                    <label class="btn btn-sm btn-outline-secondary custom-cat-btn">
+                      <input type="radio" name="catFilter" value="Motors & Pumps" class="cat-filter d-none"> Motors & Pumps
+                    </label>
+                    <label class="btn btn-sm btn-outline-secondary custom-cat-btn">
+                      <input type="radio" name="catFilter" value="Tools" class="cat-filter d-none"> Tools
+                    </label>
+                    <label class="btn btn-sm btn-outline-secondary custom-cat-btn">
+                      <input type="radio" name="catFilter" value="Spare Parts" class="cat-filter d-none"> Spare Parts
+                    </label>
+                  </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                   <h6 class="text-muted text-uppercase" style="font-size: 0.8rem; font-weight: 700; letter-spacing: 1px;">Brand</h6>
+                   <div class="d-flex flex-column gap-1 mt-2">
+                     <label class="custom-checkbox"><input type="checkbox" value="Havells" class="brand-filter"> Havells</label>
+                     <label class="custom-checkbox"><input type="checkbox" value="Anchor" class="brand-filter"> Anchor</label>
+                     <label class="custom-checkbox"><input type="checkbox" value="Polycab" class="brand-filter"> Polycab</label>
+                     <label class="custom-checkbox"><input type="checkbox" value="Crompton" class="brand-filter"> Crompton</label>
+                     <label class="custom-checkbox"><input type="checkbox" value="Legrand" class="brand-filter"> Legrand</label>
+                   </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                   <h6 class="text-muted text-uppercase" style="font-size: 0.8rem; font-weight: 700; letter-spacing: 1px;">Price & Stock</h6>
+                   <div class="d-flex gap-2 align-items-center mt-2 mb-3">
+                     <input type="number" id="minPrice" class="form-control form-control-sm" placeholder="Min ₹" aria-label="Minimum Price" />
+                     <span class="text-muted" aria-hidden="true">-</span>
+                     <input type="number" id="maxPrice" class="form-control form-control-sm" placeholder="Max ₹" aria-label="Maximum Price" />
+                   </div>
+                   <label class="custom-checkbox"><input type="checkbox" value="In Stock" id="inStockFilter"> In Stock Only</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <!-- RIGHT MAIN CONTENT -->
-    <main class="store-main">
+    <main class="store-main w-100">
       <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 p-3 modern-card bg-white" style="border-radius: 12px;">
         <div id="results-count" style="font-size: 0.95rem; font-weight:700; color: var(--ink);">Loading...</div>
         <div class="d-flex gap-3 align-items-center">
-          <div class="btn-group" role="group">
-            <button type="button" class="btn btn-outline btn-sm active" id="view-grid" onclick="setViewMode('grid')"><i class="bi bi-grid-fill"></i></button>
-            <button type="button" class="btn btn-outline btn-sm" id="view-list" onclick="setViewMode('list')"><i class="bi bi-list-task"></i></button>
+          <div class="btn-group" role="group" aria-label="View Mode">
+            <button type="button" class="btn btn-outline btn-sm active" id="view-grid" onclick="setViewMode('grid')" aria-label="Grid View"><i class="bi bi-grid-fill" aria-hidden="true"></i></button>
+            <button type="button" class="btn btn-outline btn-sm" id="view-list" onclick="setViewMode('list')" aria-label="List View"><i class="bi bi-list-task" aria-hidden="true"></i></button>
           </div>
-          <select id="sort-select" class="form-select form-select-sm" style="width: auto; cursor:pointer; border-radius: 8px; font-weight: 600; color: var(--ink-light);">
+          <select id="sort-select" class="form-select form-select-sm" aria-label="Sort Products" style="width: auto; cursor:pointer; border-radius: 8px; font-weight: 600; color: var(--ink-light);">
             <option value="newest">Newest First</option>
             <option value="price_asc">Price: Low to High</option>
             <option value="price_desc">Price: High to Low</option>
@@ -78,7 +186,7 @@
         </div>
       </div>
 
-      <div class="row g-4 justify-content-center" id="store-products-grid">
+      <div class="grid-5-mode" id="store-products-grid">
         <!-- Dynamic Products -->
       </div>
 
@@ -86,11 +194,11 @@
         <button class="btn btn-outline px-5 py-2 fw-bold" id="load-more-btn" style="border-radius:20px;">Load More Products</button>
       </div>
       
-      <div id="no-results" class="text-center py-5 d-none modern-card" style="min-height: 40vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-        <i class="bi bi-search text-muted" style="font-size: 4rem; margin-bottom: 15px;"></i>
-        <h4 style="font-family: var(--font-display); font-weight: 700;">No products found</h4>
-        <p class="text-muted">Try adjusting your search or filter criteria.</p>
-        <button class="btn btn-accent mt-3" onclick="resetFilters()">Clear All Filters</button>
+      <div id="no-results" class="premium-empty d-none">
+        <i class="bi bi-search"></i>
+        <h3>No products found</h3>
+        <p>Try adjusting your search or filter criteria to find what you're looking for.</p>
+        <button class="btn btn-accent px-4" onclick="resetFilters()">Clear All Filters</button>
       </div>
     </main>
 
@@ -157,38 +265,32 @@
 
   function generateSkeleton() {
     let html = '';
-    const count = currentView === 'grid' ? 8 : 4;
+    const count = currentView === 'grid' ? 10 : 4;
     for(let i=0; i<count; i++) {
       if (currentView === 'grid') {
         html += `
-          <div class="col-12 col-md-6 col-lg-4 col-xl-3">
-            <div class="product-card-premium">
-              <div class="product-card-img"><div class="skeleton w-100 h-100"></div></div>
-              <div class="product-card-body">
-                <div class="skeleton mb-2" style="width:40%; height:12px;"></div>
-                <div class="skeleton mb-3" style="width:90%; height:18px;"></div>
-                <div class="skeleton mb-4" style="width:60%; height:12px;"></div>
-                <div class="d-flex justify-content-between mt-auto">
-                  <div class="skeleton" style="width:40%; height:24px;"></div>
-                  <div class="skeleton" style="width:30%; height:24px;"></div>
-                </div>
-              </div>
+          <div class="skeleton-card">
+            <div class="premium-skeleton w-100 h-50 mb-3"></div>
+            <div class="premium-skeleton w-75 mb-2" style="height:20px;"></div>
+            <div class="premium-skeleton w-100 mb-3" style="height:14px;"></div>
+            <div class="premium-skeleton w-50 mb-4" style="height:24px;"></div>
+            <div class="mt-auto d-flex gap-2">
+              <div class="premium-skeleton flex-grow-1" style="height:44px; border-radius:50px;"></div>
+              <div class="premium-skeleton flex-grow-1" style="height:44px; border-radius:50px;"></div>
             </div>
           </div>
         `;
       } else {
         html += `
-          <div class="col-12">
-            <div class="product-card-premium product-card-list">
-              <div class="product-card-img"><div class="skeleton w-100 h-100"></div></div>
-              <div class="product-card-body w-100">
-                <div class="skeleton mb-2" style="width:20%; height:14px;"></div>
-                <div class="skeleton mb-3" style="width:60%; height:22px;"></div>
-                <div class="skeleton mb-4" style="width:80%; height:14px;"></div>
-                <div class="d-flex gap-3 mt-auto">
-                  <div class="skeleton" style="width:120px; height:35px;"></div>
-                  <div class="skeleton" style="width:120px; height:35px;"></div>
-                </div>
+          <div class="skeleton-card" style="flex-direction: row;">
+            <div class="premium-skeleton w-25 h-100 me-4"></div>
+            <div class="d-flex flex-column flex-grow-1 py-3">
+              <div class="premium-skeleton w-50 mb-2" style="height:24px;"></div>
+              <div class="premium-skeleton w-75 mb-4" style="height:16px;"></div>
+              <div class="premium-skeleton w-25 mb-4" style="height:28px;"></div>
+              <div class="mt-auto d-flex gap-3">
+                <div class="premium-skeleton" style="width:140px; height:44px; border-radius:50px;"></div>
+                <div class="premium-skeleton" style="width:140px; height:44px; border-radius:50px;"></div>
               </div>
             </div>
           </div>
@@ -205,13 +307,23 @@
     isLoading = true;
 
     const grid = document.getElementById('store-products-grid');
+    if (currentView === 'grid') {
+      grid.classList.add('grid-5-mode');
+      grid.classList.remove('list-mode-container');
+    } else {
+      grid.classList.remove('grid-5-mode');
+      grid.classList.add('list-mode-container');
+    }
+    
     if (!append && !fromCache) {
       grid.innerHTML = generateSkeleton();
     }
 
+    const search = document.getElementById('store-search').value;
+    
     if (!fromCache) {
-      const search = document.getElementById('store-search').value;
-      const categories = Array.from(document.querySelectorAll('.cat-filter:checked')).map(cb => cb.value);
+      const checkedCategory = document.querySelector('.cat-filter:checked');
+      const categories = checkedCategory && checkedCategory.value ? [checkedCategory.value] : [];
       const brands = Array.from(document.querySelectorAll('.brand-filter:checked')).map(cb => cb.value);
       const minPrice = document.getElementById('minPrice').value;
       const maxPrice = document.getElementById('maxPrice').value;
@@ -223,7 +335,7 @@
       const params = new URLSearchParams({
         page: currentPage,
         limit,
-        search,
+        q: search, // Changed to q to correctly trigger backend name/category/brand search
         categories: categories.join(','),
         brands: brands.join(','),
         minPrice,
@@ -267,7 +379,25 @@
       }
     }
 
-    const html = cachedProducts.map(p => {
+    // Client-side filtering on loaded products (for SKU, Description, etc.)
+    let filteredProducts = cachedProducts;
+    if (search.trim()) {
+      const lowerQ = search.toLowerCase();
+      filteredProducts = cachedProducts.filter(p => {
+        const matchesName = (p.name || '').toLowerCase().includes(lowerQ);
+        const matchesCategory = (p.category || '').toLowerCase().includes(lowerQ);
+        const matchesBrand = (p.brand || '').toLowerCase().includes(lowerQ);
+        const matchesSKU = (p.sku || '').toLowerCase().includes(lowerQ);
+        const matchesDesc = (p.description || '').toLowerCase().includes(lowerQ);
+        return matchesName || matchesCategory || matchesBrand || matchesSKU || matchesDesc;
+      });
+      // Fallback: if search filtered out everything locally, show appropriate count
+      if (!fromCache && search.trim() && filteredProducts.length < cachedProducts.length) {
+         document.getElementById('results-count').innerText = `Showing ${filteredProducts.length} local matches`;
+      }
+    }
+
+    const html = filteredProducts.map(p => {
       const isWishlisted = userWishlist.includes(p.productId);
       const isCompared = compareList.includes(p.productId);
       const heartClass = isWishlisted ? 'bi-heart-fill text-accent' : 'bi-heart';
@@ -280,74 +410,70 @@
       const discountPrice = p.discountPrice || p.price;
 
       let badgeHtml = '';
-      if (p.stock <= 0 || p.status === 'Out Of Stock') badgeHtml += `<span class="badge badge-sale shadow-sm">Out of Stock</span>`;
-      else if (p.stock <= 5) badgeHtml += `<span class="badge badge-bestseller shadow-sm">Only ${p.stock} left</span>`;
+      if (p.stock <= 0 || p.status === 'Out Of Stock') badgeHtml += `<span class="premium-badge badge-oos">Out of Stock</span>`;
+      else if (p.stock <= 5) badgeHtml += `<span class="premium-badge badge-stock">Only ${p.stock} left</span>`;
       
       if (p.discountPrice && p.price > p.discountPrice) {
-        const pct = Math.round(((p.price - p.discountPrice)/p.price)*100);
-        badgeHtml += `<span class="badge badge-stock shadow-sm">${pct}% OFF</span>`;
+        badgeHtml += `<span class="premium-badge badge-sale">Sale</span>`;
       }
       
       if(p.badges && p.badges.length) {
          p.badges.forEach(b => {
-           badgeHtml += `<span class="badge bg-dark shadow-sm">${b}</span>`;
+           badgeHtml += `<span class="premium-badge badge-new">${b}</span>`;
          });
       }
 
       let priceHtml = '';
       if (p.discountPrice && p.discountPrice < p.price) {
+        const pct = Math.round(((p.price - p.discountPrice)/p.price)*100);
         priceHtml = `
-          <div class="price-current">₹${p.discountPrice}</div>
-          <div class="price-old">₹${p.price}</div>
+          <span class="premium-price-current">₹${p.discountPrice}</span>
+          <span class="premium-price-old">₹${p.price}</span>
+          <span class="premium-discount-percent">${pct}% OFF</span>
         `;
       } else {
-        priceHtml = `<div class="price-current">₹${p.price}</div>`;
+        priceHtml = `<span class="premium-price-current">₹${p.price}</span>`;
       }
 
       const ratingNum = p.ratings && p.ratings.average ? p.ratings.average : 4.5;
       const ratingCount = p.ratings && p.ratings.count ? p.ratings.count : 0;
       let stars = '';
       for(let i=1; i<=5; i++){
-         stars += `<i class="bi ${i <= ratingNum ? 'bi-star-fill' : 'bi-star'}"></i>`;
+         stars += `<i class="bi ${i <= ratingNum ? 'bi-star-fill' : 'bi-star'}" style="color: #F39C12;"></i>`;
       }
 
       let buttonsHtml = '';
       if (p.stock > 0 && p.status !== 'Out Of Stock') {
         buttonsHtml = `
-          <button class="btn btn-outline" onclick="event.stopPropagation(); addToCart('${escapedName}', ${discountPrice}, ${p.price}, '${imgSrc}', '${sku}', '${cat}')">Add to Cart</button>
-          <button class="btn btn-accent" onclick="event.stopPropagation(); buyNowDirect({name: '${escapedName}', price: ${discountPrice}, originalPrice: ${p.price}, image: '${imgSrc}', sku: '${sku}', category: '${cat}', type: 'product'})">Buy Now</button>
+          <button class="btn btn-accent flex-grow-1" onclick="event.stopPropagation(); buyNowDirect({name: '${escapedName}', price: ${discountPrice}, originalPrice: ${p.price}, image: '${imgSrc}', sku: '${sku}', category: '${cat}', type: 'product'})"><i class="bi bi-cart-check"></i> Buy Now</button>
+          <button class="btn btn-outline flex-grow-1" onclick="event.stopPropagation(); addToCart('${escapedName}', ${discountPrice}, ${p.price}, '${imgSrc}', '${sku}', '${cat}')">Add to Cart</button>
         `;
       } else {
-        buttonsHtml = `<button class="btn btn-outline disabled w-100" disabled>Sold Out</button>`;
+        buttonsHtml = `<button class="btn btn-secondary disabled w-100" disabled>Sold Out</button>`;
       }
 
-      const gridClass = currentView === 'grid' ? 'col-12 col-md-6 col-lg-4 col-xl-3' : 'col-12';
-      const cardClass = currentView === 'grid' ? 'product-card-premium' : 'product-card-premium product-card-list';
+      const cardClass = currentView === 'grid' ? 'premium-card' : 'premium-card premium-card-list';
 
       return `
-        <div class="${gridClass}">
-          <div class="${cardClass}" onclick="window.location.href='/product/${p.productId}'" style="cursor: pointer;">
-            
-            <div class="product-card-img">
-               <div class="product-card-badges">${badgeHtml}</div>
-               <div class="product-card-actions">
-                 <div class="btn-icon" title="Wishlist" onclick="event.stopPropagation(); toggleStoreWishlist('${p.productId}', this)"><i class="bi ${heartClass}"></i></div>
-                 <div class="btn-icon" title="Compare" onclick="toggleCompare('${p.productId}', event)"><i class="bi ${compareClass}"></i></div>
-                 <div class="btn-icon" title="Quick View" onclick="event.stopPropagation(); window.location.href='/product/${p.productId}'"><i class="bi bi-eye"></i></div>
-               </div>
-               ${imgSrc ? `<img src="${imgSrc}" loading="lazy" decoding="async" alt="${escapedName}" />` : `<i class="bi bi-image text-muted" style="font-size: 3rem;"></i>`}
-            </div>
-            
-            <div class="product-card-body">
-              <div class="product-brand">${p.brand || 'Premium'}</div>
-              <h3 class="product-title">${p.name}</h3>
-              <div class="product-rating">${stars} <span class="text-muted ms-1">(${ratingCount})</span></div>
-              
-              <div class="product-price-row">${priceHtml}</div>
-              <div class="product-buttons">${buttonsHtml}</div>
-            </div>
-
+        <div class="${cardClass}" onclick="window.location.href='/product/${p.productId}'" style="cursor: pointer;">
+          
+          <div class="premium-card-img">
+             <div class="premium-badges">${badgeHtml}</div>
+             <div class="premium-wishlist-btn" title="Wishlist" onclick="event.stopPropagation(); toggleStoreWishlist('${p.productId}', this)"><i class="bi ${heartClass}"></i></div>
+             ${imgSrc ? `<img src="${imgSrc}" loading="lazy" decoding="async" alt="${escapedName}" />` : `<i class="bi bi-image text-muted" style="font-size: 3rem;"></i>`}
           </div>
+          
+          <div class="d-flex flex-column flex-grow-1">
+            <h3 class="premium-card-title">${p.name}</h3>
+            <p class="premium-card-desc">
+              ${p.description ? (p.description.length > 50 ? p.description.substring(0, 50) + '...' : p.description) : 'Premium quality product.'}
+            </p>
+            <div style="font-size: 0.8rem; margin-bottom: 12px; display: flex; align-items: center; gap: 4px;">${stars} <span class="text-muted ms-1">(${ratingCount})</span></div>
+            
+            <div class="premium-price-row mt-auto">${priceHtml}</div>
+            <div class="d-flex gap-2 w-100">${buttonsHtml}</div>
+          </div>
+
         </div>
       `;
     }).join('');
@@ -399,15 +525,36 @@
     document.getElementById('minPrice').value = '';
     document.getElementById('maxPrice').value = '';
     document.getElementById('inStockFilter').checked = false;
-    document.querySelectorAll('.cat-filter').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.cat-filter').forEach(cb => {
+       if(cb.value === '') cb.checked = true;
+       else cb.checked = false;
+    });
+    document.querySelectorAll('.custom-cat-btn').forEach(btn => {
+       if(btn.querySelector('input').value === '') btn.classList.add('active');
+       else btn.classList.remove('active');
+    });
     document.querySelectorAll('.brand-filter').forEach(cb => cb.checked = false);
     document.getElementById('sort-select').value = 'newest';
     loadProducts();
   }
 
   // Event Listeners
-  document.getElementById('store-search').addEventListener('input', debounce(() => loadProducts(), 300));
-  document.querySelectorAll('.cat-filter, .brand-filter, #inStockFilter').forEach(cb => {
+  document.getElementById('store-search').addEventListener('input', debounce(() => {
+    // We pass fromCache=true first to do immediate local filtering
+    loadProducts(false, true);
+    // Then fetch from server
+    loadProducts(false, false);
+  }, 300));
+  
+  document.querySelectorAll('.cat-filter').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      document.querySelectorAll('.custom-cat-btn').forEach(btn => btn.classList.remove('active'));
+      e.target.closest('.custom-cat-btn').classList.add('active');
+      loadProducts();
+    });
+  });
+
+  document.querySelectorAll('.brand-filter, #inStockFilter').forEach(cb => {
     cb.addEventListener('change', () => loadProducts());
   });
   document.getElementById('sort-select').addEventListener('change', () => loadProducts());

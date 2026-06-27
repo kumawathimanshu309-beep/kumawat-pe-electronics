@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no" />
+  <meta name="robots" content="index, follow" />
+  <meta name="author" content="Kumawat Plumbing & Electricals" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="description" content="<%= (typeof seo !== 'undefined' && seo.description) ? seo.description : 'Kumawat Plumbing & Electricals — Premium electronics, home appliances, and electrical tools. Managed by Himanshu Kumawat.' %>" />
   <meta name="keywords" content="<%= (typeof seo !== 'undefined' && seo.keywords) ? seo.keywords : 'electronics, appliances, electricals, plumbing, tools, govindgarh' %>" />
   <% if (typeof seo !== 'undefined' && seo.canonicalUrl) { %>
@@ -28,6 +32,8 @@
 </script>
   
   <!-- Open Graph / Facebook -->
+  <meta property="og:site_name" content="Kumawat Plumbing & Electricals" />
+  <meta property="og:locale" content="en_IN" />
   <meta property="og:type" content="<%= (typeof seo !== 'undefined' && seo.ogType) ? seo.ogType : 'website' %>" />
   <meta property="og:url" content="<%= (typeof seo !== 'undefined' && seo.canonicalUrl) ? seo.canonicalUrl : 'https://kumawatelectricals.com' %>" />
   <meta property="og:title" content="<%= (typeof seo !== 'undefined' && seo.title) ? seo.title : (typeof title !== 'undefined' ? title : 'Kumawat Plumbing & Electricals') %>" />
