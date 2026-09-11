@@ -55,6 +55,8 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 app.set('io', io);
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 
 // -----------------------------------------------------------------------------------------
 // COMPRESSION, LOGGING & SECURITY MIDDLEWARE
@@ -375,7 +377,8 @@ async function startServer() {
     try {
       mongoose.set('strictQuery', false);
       console.log("2 Connecting Mongo");
-      await mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/kumawat_pe', {
+      const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/kumawat_pe';
+      await mongoose.connect(mongoUri, {
         serverSelectionTimeoutMS: 30000
       });
       isMongoConnected = true;
@@ -388,9 +391,6 @@ async function startServer() {
       logger.info('Falling back to pure array Mock Mode.');
       await seedInMemoryDatabase();
     }
-
-    console.log("4 Register Coupon Routes");
-    registerCouponRoutes();
 
     if (!isVercelRuntime) {
       console.log("5 Starting Express");
@@ -406,8 +406,9 @@ async function startServer() {
 
 async function ensureMongoConnected() {
   if (isMongoConnected && mongoose.connection.readyState >= 1) return;
-  const mongoUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/kumawat_pe';
+  const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/kumawat_pe';
   try {
+
     mongoose.set('strictQuery', false);
     await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 15000 });
     isMongoConnected = true;
@@ -4156,6 +4157,7 @@ app.get('/admin/products/delete/:productId', isAdmin, async (req, res) => {
 app.use('/auth/google', (err, req, res, next) => {
   logger.error('[OAuth Middleware] Crash Dump:');
   logger.error(err.stack || err);
+  if (res.headersSent) return next(err);
   // Render the error page explicitly to avoid exposing sensitive internal stack traces to the client
   res.status(500).render('500', { error: new Error("An internal authentication error occurred. Please try again.") });
 });
@@ -4163,20 +4165,23 @@ app.use('/auth/google', (err, req, res, next) => {
 function registerErrorHandlers() {
   // 404 Route
   app.use((req, res, next) => {
+    if (res.headersSent) return next();
     res.status(404).render('404');
   });
 
   // 500 Route
   app.use((err, req, res, next) => {
     logger.error('[Global Handler] Error:', err);
+    if (res.headersSent) return next(err);
     res.status(500).render('500', { error: err });
   });
 }
 
-// Register error handlers at the end of all route definitions
+// Register coupon routes & error handlers at the end of all route definitions
+registerCouponRoutes();
 registerErrorHandlers();
 
-if (!isVercelRuntime) {
+if (require.main === module || (!isVercelRuntime && process.env.NODE_ENV !== 'test')) {
   startServer();
 } else {
   ensureMongoConnected().catch(err => logger.error('Vercel Mongo init error:', err));
