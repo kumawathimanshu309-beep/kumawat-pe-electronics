@@ -1,10 +1,27 @@
 const crypto = require('crypto');
 
+const cleanSecret = (val) => {
+  if (!val || typeof val !== 'string') return '';
+  let s = val.trim();
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    s = s.slice(1, -1).trim();
+  }
+  if (s.startsWith('RAZORPAY_KEY_SECRET=')) {
+    s = s.replace(/^RAZORPAY_KEY_SECRET=/, '').trim();
+  } else if (s.startsWith('RAZORPAY_WEBHOOK_SECRET=')) {
+    s = s.replace(/^RAZORPAY_WEBHOOK_SECRET=/, '').trim();
+  }
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    s = s.slice(1, -1).trim();
+  }
+  return s;
+};
+
 /**
  * Middleware to verify Razorpay Webhook signatures
  */
 exports.verifyWebhookSignature = (req, res, next) => {
-  const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  const secret = cleanSecret(process.env.RAZORPAY_WEBHOOK_SECRET);
   
   if (!secret || secret === 'rzp_test_webhook_secret') {
     // If webhook secret isn't configured, we reject real requests or pass mock test requests
@@ -40,10 +57,10 @@ exports.verifyWebhookSignature = (req, res, next) => {
  * Utility function to verify payment signature for manual checkout
  */
 exports.verifyPaymentSignature = (orderId, paymentId, signature) => {
-  const secret = process.env.RAZORPAY_KEY_SECRET;
+  const secret = cleanSecret(process.env.RAZORPAY_KEY_SECRET);
   if (!secret || secret === 'rzp_test_secret_placeholder') {
     // MOCK MODE FALLBACK
-    if (signature === 'mock_signature' && paymentId.startsWith('pay_mock_')) {
+    if (signature === 'mock_signature' && paymentId && paymentId.startsWith('pay_mock_')) {
       return true;
     }
     return false;

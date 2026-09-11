@@ -22,9 +22,10 @@ router.post('/create', isAuthenticated, (req, res, next) => {
   // CSRF is technically checked before this if we mounted it globally, or we can just log it
   console.log(`[PAYMENT ROUTE] CSRF Status: PASSED (If reached here, or disabled for API)`);
   
-  const hasRazorpayKeys = !!process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_ID !== 'rzp_test_placeholder';
-  console.log(`[PAYMENT ROUTE] Razorpay Keys Present: ${hasRazorpayKeys ? 'YES' : 'NO'}`);
-  console.log(`[PAYMENT ROUTE] Developer Mode Enabled: ${!hasRazorpayKeys ? 'YES' : 'NO'}`);
+  const paymentService = require('../services/paymentService');
+  const { isValid } = paymentService.getRazorpayKeys();
+  console.log(`[PAYMENT ROUTE] Razorpay Keys Present: ${isValid ? 'YES' : 'NO'}`);
+  console.log(`[PAYMENT ROUTE] Developer Mode Enabled: ${!isValid ? 'YES' : 'NO'}`);
   
   next();
 }, paymentController.createPaymentIntent);

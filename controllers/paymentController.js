@@ -70,8 +70,8 @@ exports.createPaymentIntent = async (req, res) => {
     }
 
     // 2.5. Developer Mode Check (Early Exit)
-    const hasRazorpayKeys = !!process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_ID !== 'rzp_test_placeholder';
-    if (!hasRazorpayKeys) {
+    const { keyId, isValid } = paymentService.getRazorpayKeys();
+    if (!isValid) {
       return res.status(200).json({
         success: false,
         developerMode: true,
@@ -125,7 +125,7 @@ exports.createPaymentIntent = async (req, res) => {
       order_id: rzpOrder.id,
       amount: rzpOrder.amount,
       currency: rzpOrder.currency,
-      key: process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder',
+      key: keyId || 'rzp_test_placeholder',
       isTestMode: rzpOrder.isMock
     });
 

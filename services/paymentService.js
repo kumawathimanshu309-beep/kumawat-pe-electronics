@@ -3,15 +3,37 @@ const Product = require('../models/Product');
 const PaymentRecord = require('../models/PaymentRecord');
 const PaymentLog = require('../models/PaymentLog');
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || 'rzp_test_secret_placeholder',
-});
+function getRazorpayKeys() {
+  const clean = (val) => {
+    if (!val || typeof val !== 'string') return '';
+    let s = val.trim();
+    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+      s = s.slice(1, -1).trim();
+    }
+    if (s.startsWith('RAZORPAY_KEY_ID=')) {
+      s = s.replace(/^RAZORPAY_KEY_ID=/, '').trim();
+    } else if (s.startsWith('RAZORPAY_KEY_SECRET=')) {
+      s = s.replace(/^RAZORPAY_KEY_SECRET=/, '').trim();
+    }
+    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+      s = s.slice(1, -1).trim();
+    }
+    return s;
+  };
+
+  const keyId = clean(process.env.RAZORPAY_KEY_ID);
+  const keySecret = clean(process.env.RAZORPAY_KEY_SECRET);
+  const isValid = !!keyId && !!keySecret && keyId !== 'rzp_test_placeholder' && keySecret !== 'rzp_test_secret_placeholder';
+
+  return { keyId, keySecret, isValid };
+}
+
+exports.getRazorpayKeys = getRazorpayKeys;
 
 exports.createRazorpayOrder = async (amount, receipt) => {
-  const isTestKeys = !process.env.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID === 'rzp_test_placeholder';
+  const { keyId, keySecret, isValid } = getRazorpayKeys();
   
-  if (isTestKeys) {
+  if (!isValid) {
     // We return a mock order instead of crashing, allowing Frontend "Developer Mode" warning.
     return {
       isMock: true,
@@ -22,6 +44,11 @@ exports.createRazorpayOrder = async (amount, receipt) => {
       status: 'created'
     };
   }
+
+  const razorpay = new Razorpay({
+    key_id: keyId,
+    key_secret: keySecret,
+  });
 
   const options = {
     amount: Math.round(amount * 100),
