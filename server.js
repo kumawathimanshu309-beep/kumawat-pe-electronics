@@ -465,16 +465,11 @@ async function seedMongoDatabase() {
     const prodCount = await Product.countDocuments();
     if (prodCount === 0) {
       try {
-        const seed100 = require('./scripts/seed_100_products');
-        const initialProducts = seed100.productsData || [];
-        if (initialProducts.length > 0) {
-          for (const pData of initialProducts) {
-            await Product.updateOne({ productId: pData.productId }, { $set: pData }, { upsert: true });
-          }
-          logger.info(`✓ Seeded ${initialProducts.length} rich catalog products into MongoDB successfully.`);
-        }
+        const fullMigrate = require('./scripts/migrate_local_db_to_atlas');
+        await fullMigrate(process.env.MONGO_URI || process.env.MONGODB_URI);
+        logger.info('✓ Automated full database migration to MongoDB Atlas completed successfully.');
       } catch (seedErr) {
-        logger.error('Failed to seed catalog products:', seedErr.message);
+        logger.error('Failed to auto-migrate database to Atlas:', seedErr.message);
       }
     }
 
