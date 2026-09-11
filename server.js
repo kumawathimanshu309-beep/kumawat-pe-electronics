@@ -377,7 +377,11 @@ async function startServer() {
     try {
       mongoose.set('strictQuery', false);
       console.log("2 Connecting Mongo");
-      const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/kumawat_pe';
+      const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || (!isVercelRuntime ? 'mongodb://127.0.0.1:27017/kumawat_pe' : null);
+      if (isVercelRuntime && !mongoUri) {
+        logger.error('[VERCEL MONGO ERROR] MONGO_URI/MONGODB_URI is not configured for production in Vercel Environment Variables.');
+        throw new Error("MONGO_URI/MONGODB_URI is not configured for production");
+      }
       await mongoose.connect(mongoUri, {
         serverSelectionTimeoutMS: 30000
       });
@@ -388,6 +392,9 @@ async function startServer() {
     } catch (err) {
       console.error('2.1 Mongo Connection Error:', err);
       logger.error('Primary MongoDB Connection Failed:', err.message);
+      if (isVercelRuntime) {
+        throw err;
+      }
       logger.info('Falling back to pure array Mock Mode.');
       await seedInMemoryDatabase();
     }
@@ -406,15 +413,19 @@ async function startServer() {
 
 async function ensureMongoConnected() {
   if (isMongoConnected && mongoose.connection.readyState >= 1) return;
-  const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/kumawat_pe';
+  const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || (!isVercelRuntime ? 'mongodb://127.0.0.1:27017/kumawat_pe' : null);
+  if (isVercelRuntime && !mongoUri) {
+    logger.error('[VERCEL MONGO ERROR] MONGO_URI/MONGODB_URI is not configured for production in Vercel Environment Variables.');
+    throw new Error("MONGO_URI/MONGODB_URI is not configured for production");
+  }
   try {
-
     mongoose.set('strictQuery', false);
     await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 15000 });
     isMongoConnected = true;
     logger.info('MongoDB Connected successfully.');
   } catch (err) {
     logger.error('MongoDB Connection Error:', err.message);
+    throw err;
   }
 }
 
@@ -734,9 +745,10 @@ if (!isVercelRuntime) {
 
 // Sessions
 app.set('trust proxy', 1); // Trust first proxy (Railway/Vercel load balancer)
-const mongoSessionStore = (process.env.MONGO_URI || isMongoConnected)
+const effectiveMongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || (!isVercelRuntime ? 'mongodb://127.0.0.1:27017/kumawat_pe' : null);
+const mongoSessionStore = effectiveMongoUri
   ? MongoStore.create({
-      mongoUrl: process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/kumawat_pe',
+      mongoUrl: effectiveMongoUri,
       ttl: 24 * 60 * 60,
       autoRemove: 'native'
     })
