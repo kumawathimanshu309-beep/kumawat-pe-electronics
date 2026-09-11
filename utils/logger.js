@@ -1,13 +1,59 @@
 const winston = require('winston');
-const DailyRotateFile = require('winston-daily-rotate-file');
 const path = require('path');
 const fs = require('fs');
 
-const logDir = path.join(__dirname, '../logs');
+const isVercel = !!process.env.VERCEL || process.env.NOW_BUILD === '1';
 
-// Ensure log directory exists
-if (!fs.existsSync(logDir)) {
-  fs.mkdirSync(logDir);
+const transports = [];
+
+if (isVercel) {
+  // On Vercel serverless runtime, send logs directly to stdout/stderr via Console
+  transports.push(
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        winston.format.colorize(),
+        winston.format.printf(info => `${info.timestamp} ${info.level}: ${info.message}${info.stack ? '\n' + info.stack : ''}`)
+      )
+    })
+  );
+} else {
+  // Local development file logging
+  const logDir = path.join(__dirname, '../logs');
+  try {
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true });
+    }
+    const DailyRotateFile = require('winston-daily-rotate-file');
+    transports.push(
+      new DailyRotateFile({
+        filename: path.join(logDir, 'error-%DATE%.log'),
+        datePattern: 'YYYY-MM-DD',
+        level: 'error',
+        maxFiles: '14d',
+        maxSize: '20m'
+      }),
+      new DailyRotateFile({
+        filename: path.join(logDir, 'combined-%DATE%.log'),
+        datePattern: 'YYYY-MM-DD',
+        maxFiles: '14d',
+        maxSize: '20m'
+      })
+    );
+  } catch (err) {
+    transports.push(new winston.transports.Console());
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    transports.push(
+      new winston.transports.Console({
+        format: winston.format.combine(
+          winston.format.colorize(),
+          winston.format.printf(info => `${info.timestamp} ${info.level}: ${info.message}${info.stack ? '\n' + info.stack : ''}`)
+        )
+      })
+    );
+  }
 }
 
 const logger = winston.createLogger({
@@ -17,31 +63,7 @@ const logger = winston.createLogger({
     winston.format.errors({ stack: true }),
     winston.format.json()
   ),
-  transports: [
-    new DailyRotateFile({
-      filename: path.join(logDir, 'error-%DATE%.log'),
-      datePattern: 'YYYY-MM-DD',
-      level: 'error',
-      maxFiles: '14d',
-      maxSize: '20m'
-    }),
-    new DailyRotateFile({
-      filename: path.join(logDir, 'combined-%DATE%.log'),
-      datePattern: 'YYYY-MM-DD',
-      maxFiles: '14d',
-      maxSize: '20m'
-    })
-  ]
+  transports
 });
-
-// If we're not in production then log to the `console` with the format:
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.printf(info => `${info.timestamp} ${info.level}: ${info.message} ${info.stack ? '\n' + info.stack : ''}`)
-    )
-  }));
-}
 
 module.exports = logger;

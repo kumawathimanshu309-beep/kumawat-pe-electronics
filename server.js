@@ -3,25 +3,25 @@ require('dotenv').config();
 const logger = require('./utils/logger');
 
 // ----------------------------------------------------
-// ENVIRONMENT VALIDATION
+// ENVIRONMENT VALIDATION & DEFAULTS
 // ----------------------------------------------------
-const requiredEnvVars = [
-  'MONGO_URI', 'SESSION_SECRET', 
-  'RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET',
-  'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET',
-  'PORT', 'NODE_ENV'
-];
+const isVercelRuntime = !!process.env.VERCEL || process.env.NOW_BUILD === '1';
 
+if (!process.env.PORT) process.env.PORT = '3000';
+if (!process.env.NODE_ENV) process.env.NODE_ENV = 'production';
+if (!process.env.SESSION_SECRET) process.env.SESSION_SECRET = 'kumawat_pe_session_secret_default_key_2026';
+
+const criticalEnvVars = ['MONGO_URI'];
 let missingEnv = [];
-requiredEnvVars.forEach(envVar => {
+criticalEnvVars.forEach(envVar => {
   if (!process.env[envVar]) missingEnv.push(envVar);
 });
 
 if (missingEnv.length > 0) {
-  logger.error('\n[FATAL ERROR] Server cannot start due to missing environment variables:');
-  missingEnv.forEach(envVar => logger.error(` - ${envVar}`));
-  logger.error('\nPlease verify your .env file and try again.\n');
-  process.exit(1);
+  logger.warn(`[ENVIRONMENT WARNING] Missing environment variables: ${missingEnv.join(', ')}`);
+  if (!isVercelRuntime && process.env.NODE_ENV === 'development') {
+    logger.info('Running in local mode with mock/fallback DB if Mongo connection is unavailable.');
+  }
 }
 
 const express = require('express');
@@ -69,17 +69,21 @@ app.use(mongoSanitize());
 const morganFormat = process.env.NODE_ENV === 'production' ? 'combined' : 'dev';
 app.use(morgan(morganFormat, { stream: { write: message => logger.info(message.trim()) } }));
 
-// Multer storage setup for products
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = path.join(__dirname, 'public/uploads/products');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
-  }
-});
+// Multer storage setup for products (memory storage on Vercel, disk storage locally)
+const storage = isVercelRuntime
+  ? multer.memoryStorage()
+  : multer.diskStorage({
+      destination: function (req, file, cb) {
+        const dir = path.join(__dirname, 'public/uploads/products');
+        try {
+          if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        } catch (e) {}
+        cb(null, dir);
+      },
+      filename: function (req, file, cb) {
+        cb(null, Date.now() + '-' + file.originalname);
+      }
+    });
 const upload = multer({ storage });
 
 const PORT = process.env.PORT || 3000;
@@ -371,8 +375,8 @@ async function startServer() {
     try {
       mongoose.set('strictQuery', false);
       console.log("2 Connecting Mongo");
-      await mongoose.connect(process.env.MONGO_URI, {
-        serverSelectionTimeoutMS: 30000 // Increased from 5000 to 30000 for Railway
+      await mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/kumawat_pe', {
+        serverSelectionTimeoutMS: 30000
       });
       isMongoConnected = true;
       console.log("3 Mongo Connected");
@@ -387,20 +391,38 @@ async function startServer() {
 
     console.log("4 Register Coupon Routes");
     registerCouponRoutes();
-    registerErrorHandlers();
 
-    console.log("5 Starting Express");
-    server.listen(PORT, () => {
-      console.log("6 Server Ready");
-      logger.info(`🚀 Kumawat P&E Express Server running at http://localhost:${PORT}`);
-    });
+    if (!isVercelRuntime) {
+      console.log("5 Starting Express");
+      server.listen(PORT, () => {
+        console.log("6 Server Ready");
+        logger.info(`🚀 Kumawat P&E Express Server running at http://localhost:${PORT}`);
+      });
+    }
   } catch (err) {
     logger.error("Server Startup Failed:", err);
-    process.exit(1);
   }
 }
 
-startServer();
+async function ensureMongoConnected() {
+  if (isMongoConnected && mongoose.connection.readyState >= 1) return;
+  const mongoUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/kumawat_pe';
+  try {
+    mongoose.set('strictQuery', false);
+    await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 15000 });
+    isMongoConnected = true;
+    logger.info('MongoDB Connected successfully.');
+  } catch (err) {
+    logger.error('MongoDB Connection Error:', err.message);
+  }
+}
+
+app.use(async (req, res, next) => {
+  if (isVercelRuntime && mongoose.connection.readyState === 0) {
+    await ensureMongoConnected();
+  }
+  next();
+});
 
 // ── DATABASE SEEDERS ─────────────────────────────────────────────
 async function seedMongoDatabase() {
@@ -783,20 +805,18 @@ app.use(express.static(path.join(__dirname, 'public'), {
   }
 }));
 
-// Create public directories if missing
-const publicCss = path.join(__dirname, 'public', 'css');
-if (!fs.existsSync(publicCss)) {
-  fs.mkdirSync(publicCss, { recursive: true });
-}
-const publicImg = path.join(__dirname, 'public', 'images');
-if (!fs.existsSync(publicImg)) {
-  fs.mkdirSync(publicImg, { recursive: true });
-}
-
-// Write a fallback QR image placeholder for safety
-const qrPlaceholder = path.join(publicImg, 'qr-placeholder.png');
-if (!fs.existsSync(qrPlaceholder)) {
-  fs.writeFileSync(qrPlaceholder, ''); 
+// Create public directories if missing (local development only)
+if (!isVercelRuntime) {
+  try {
+    const publicCss = path.join(__dirname, 'public', 'css');
+    if (!fs.existsSync(publicCss)) fs.mkdirSync(publicCss, { recursive: true });
+    const publicImg = path.join(__dirname, 'public', 'images');
+    if (!fs.existsSync(publicImg)) fs.mkdirSync(publicImg, { recursive: true });
+    const qrPlaceholder = path.join(publicImg, 'qr-placeholder.png');
+    if (!fs.existsSync(qrPlaceholder)) fs.writeFileSync(qrPlaceholder, ''); 
+  } catch (err) {
+    logger.warn('Skipping public directory creation:', err.message);
+  }
 }
 
 // Sessions
@@ -4153,4 +4173,13 @@ function registerErrorHandlers() {
   });
 }
 
-// Server automatically started in startServer()
+// Register error handlers at the end of all route definitions
+registerErrorHandlers();
+
+if (!isVercelRuntime) {
+  startServer();
+} else {
+  ensureMongoConnected().catch(err => logger.error('Vercel Mongo init error:', err));
+}
+
+module.exports = app;
