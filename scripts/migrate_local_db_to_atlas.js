@@ -4,10 +4,14 @@ const fs = require('fs');
 const crypto = require('crypto');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
+function redactUri(uri) {
+  if (!uri) return 'NONE';
+  return uri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@');
+}
+
 function hashDocument(doc) {
   const cleanDoc = JSON.parse(JSON.stringify(doc));
   delete cleanDoc.__v;
-  // Sort keys recursively
   const sortKeys = (obj) => {
     if (typeof obj !== 'object' || obj === null) return obj;
     if (Array.isArray(obj)) return obj.map(sortKeys);
@@ -20,122 +24,115 @@ function hashDocument(doc) {
   return crypto.createHash('sha256').update(sortedStr).digest('hex');
 }
 
-async function runMasterMigration() {
+async function runLocalToAtlasMigration() {
   console.log('========================================================================================');
-  console.log('MASTER MONGODB LOCAL -> ATLAS FULL DATABASE MIGRATION & DEEP DATA CONTENT AUDIT');
+  console.log('STANDALONE LOCAL MONGODB -> MONGODB ATLAS FULL DATABASE MIGRATION CLI');
   console.log('========================================================================================\n');
 
   const localUri = 'mongodb://127.0.0.1:27017/kumawat_pe';
-  const atlasUri = process.argv[2] || process.env.ATLAS_URI || process.env.MONGODB_URI || (process.env.MONGO_URI && !process.env.MONGO_URI.includes('127.0.0.1') && !process.env.MONGO_URI.includes('localhost') ? process.env.MONGO_URI : null);
 
-  // STEP 1 — Inspect LOCAL Database
-  console.log('STEP 1 — INSPECTING LOCAL DATABASE...');
-  console.log(`Local MongoDB URI: ${localUri}`);
+  // Resolve Atlas URI from CLI arg, ATLAS_URI, or MONGODB_URI (must NOT be localhost)
+
+  let rawAtlasUri = process.argv[2] || process.env.ATLAS_URI || process.env.MONGODB_URI;
+  if (rawAtlasUri && (rawAtlasUri.includes('127.0.0.1') || rawAtlasUri.includes('localhost'))) {
+    rawAtlasUri = null;
+  }
+
+  // ---------------------------------------------------------------------------------------
+  // STEP 1 — VERIFY LOCAL DATABASE CONNECTION & DOCUMENT COUNTS
+  // ---------------------------------------------------------------------------------------
+  console.log('STEP 1 — VERIFYING LOCAL DATABASE CONNECTION...');
+  console.log(`Local Source URI: ${localUri}`);
 
   let sourceConn;
   try {
-    sourceConn = await mongoose.createConnection(localUri).asPromise();
+    sourceConn = await mongoose.createConnection(localUri, { serverSelectionTimeoutMS: 5000 }).asPromise();
   } catch (err) {
-    console.error('FATAL: Unable to connect to Local MongoDB at', localUri, err.message);
+    console.error('\n❌ MIGRATION NOT RUN — LOCAL MONGODB IS NOT ACCESSIBLE');
+    console.error(`Error connecting to local MongoDB at ${localUri}:`, err.message);
     process.exit(1);
   }
 
   const sourceDb = sourceConn.db;
-  console.log(`Local Database Name: "${sourceDb.databaseName}"`);
+  console.log(`LOCAL DATABASE\nDatabase: ${sourceDb.databaseName}\n`);
 
   const localRawCols = await sourceDb.listCollections().toArray();
   const localCollectionNames = localRawCols.map(c => c.name).sort();
 
-  console.log(`Found ${localCollectionNames.length} collections in Local Database:`);
-
-  let localTotalDocs = 0;
   const localStats = {};
+  let localTotalDocs = 0;
 
+  console.log('Collection                     Documents');
+  console.log('------------------------------------------------');
   for (const colName of localCollectionNames) {
     const docs = await sourceDb.collection(colName).find({}).toArray();
     const count = docs.length;
     localTotalDocs += count;
-    const sampleDoc = docs.length > 0 ? docs[0] : null;
-    localStats[colName] = {
-      count,
-      sampleId: sampleDoc ? String(sampleDoc._id) : 'NONE (Empty Collection)',
-      docs
-    };
-    console.log(` - ${colName.padEnd(30)} | Documents: ${String(count).padStart(5)} | Sample _id: ${localStats[colName].sampleId}`);
+    localStats[colName] = { count, docs };
+    console.log(`${colName.padEnd(30)} ${String(count).padStart(9)}`);
   }
+  console.log('------------------------------------------------');
+  console.log(`${'TOTAL'.padEnd(30)} ${String(localTotalDocs).padStart(9)}`);
 
-  console.log(`\nLocal Database Total Document Count: ${localTotalDocs}`);
-
-  // STEP 2 & STEP 11 — Inspect ATLAS Database
+  // ---------------------------------------------------------------------------------------
+  // STEP 2 — VERIFY ATLAS DATABASE CONNECTION
+  // ---------------------------------------------------------------------------------------
   console.log('\n----------------------------------------------------------------------------------------');
-  console.log('STEP 2 & STEP 11 — INSPECTING ATLAS DATABASE CONNECTION...');
+  console.log('STEP 2 — VERIFYING ATLAS DATABASE CONNECTION...');
 
-  if (!atlasUri || atlasUri.includes('127.0.0.1') || atlasUri.includes('localhost')) {
-    console.error('\n❌ [IMPORTANT FAILURE CONDITION TRIGGERED]');
-    console.error('Atlas connection is not configured/working.');
-    console.error('Reason: No remote ATLAS_URI, MONGODB_URI, or CLI argument provided.');
-    console.error('Local database MONGO_URI is mongodb://127.0.0.1:27017/kumawat_pe.');
-    console.error('Please pass the Atlas URI via CLI (node scripts/migrate_local_db_to_atlas.js "<ATLAS_URI>") or set process.env.ATLAS_URI / process.env.MONGODB_URI.');
-
+  if (!rawAtlasUri) {
+    console.error('\n❌ MIGRATION NOT RUN — ATLAS CONNECTION FAILED');
+    console.error('Reason: No remote ATLAS_URI or MONGODB_URI environment variable provided in local .env or command line argument.');
+    console.error('Note: .env MONGO_URI points to localhost. To run migration to Atlas, please set ATLAS_URI in .env or pass as argument:');
+    console.error('  node scripts/migrate_local_db_to_atlas.js "mongodb+srv://<USER>:<URL_ENCODED_PASS>@cluster...mongodb.net/kumawat_pe?..."');
     await sourceConn.close();
-
     process.exit(1);
   }
 
-  console.log(`Target Atlas URI: ${atlasUri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')}`);
+  console.log(`ATLAS DATABASE\nDestination: ${redactUri(rawAtlasUri)}\n`);
 
   let targetConn;
   try {
-    targetConn = await mongoose.createConnection(atlasUri).asPromise();
+    targetConn = await mongoose.createConnection(rawAtlasUri, { serverSelectionTimeoutMS: 15000 }).asPromise();
   } catch (err) {
-    console.error('\n❌ [IMPORTANT FAILURE CONDITION TRIGGERED]');
-    console.error('Atlas connection is not configured/working.');
+    console.error('\n❌ MIGRATION NOT RUN — ATLAS CONNECTION FAILED');
     console.error('Error connecting to Atlas:', err.message);
     await sourceConn.close();
     process.exit(1);
   }
 
   const targetDb = targetConn.db;
-  console.log(`Atlas Database Name: "${targetDb.databaseName}"`);
-
-  const atlasRawCols = await targetDb.listCollections().toArray();
-  const atlasCollectionNames = atlasRawCols.map(c => c.name).sort();
+  console.log(`Database: ${targetDb.databaseName}\n`);
 
   const atlasBeforeStats = {};
+  let atlasBeforeTotalDocs = 0;
+
+  console.log('Collection                     Documents');
+  console.log('------------------------------------------------');
   for (const colName of localCollectionNames) {
     let docs = [];
     try {
       docs = await targetDb.collection(colName).find({}).toArray();
     } catch (e) {}
-    atlasBeforeStats[colName] = {
-      count: docs.length,
-      sampleId: docs.length > 0 ? String(docs[0]._id) : 'NONE (Empty Collection)',
-      docs
-    };
+    const count = docs.length;
+    atlasBeforeTotalDocs += count;
+    atlasBeforeStats[colName] = { count, docs };
+    console.log(`${colName.padEnd(30)} ${String(count).padStart(9)}`);
   }
+  console.log('------------------------------------------------');
+  console.log(`${'TOTAL'.padEnd(30)} ${String(atlasBeforeTotalDocs).padStart(9)}`);
 
-  console.log('\nLOCAL COUNT vs ATLAS BEFORE COUNT:');
-  console.log('COLLECTION NAME                     | LOCAL COUNT | ATLAS BEFORE COUNT | SAMPLE ATLAS _id');
-  console.log('----------------------------------------------------------------------------------------');
-  for (const colName of localCollectionNames) {
-    console.log(
-      `${colName.padEnd(35)} | ` +
-      `${String(localStats[colName].count).padStart(11)} | ` +
-      `${String(atlasBeforeStats[colName].count).padStart(18)} | ` +
-      `${atlasBeforeStats[colName].sampleId}`
-    );
-  }
-
-  // STEP 3 & 4 — FULL MIGRATION & PRESERVE DOCUMENTS EXACTLY
+  // ---------------------------------------------------------------------------------------
+  // STEP 3 & 4 — FULL MIGRATION & BULK UPSERT BY ORIGINAL _id
+  // ---------------------------------------------------------------------------------------
   console.log('\n----------------------------------------------------------------------------------------');
-  console.log('STEP 3 & 4 — MIGRATING EVERY COLLECTION (SAFE BULK UPSERT BY _id)...');
+  console.log('STEP 3 & 4 — EXECUTING FULL MIGRATION (PRESERVING ORIGINAL _id & ALL FIELDS)...');
 
-  const migrationSummary = {};
+  const migrationResults = {};
 
   for (const colName of localCollectionNames) {
-    const sourceCol = sourceDb.collection(colName);
-    const targetCol = targetDb.collection(colName);
     const localDocs = localStats[colName].docs;
+    const targetCol = targetDb.collection(colName);
 
     let inserted = 0;
     let updated = 0;
@@ -153,22 +150,24 @@ async function runMasterMigration() {
           updated++;
         }
       } catch (err) {
-        console.error(`[ERROR] Migrating doc in ${colName} (_id: ${doc._id}):`, err.message);
+        console.error(`[ERROR] Collection ${colName} (_id: ${doc._id}):`, err.message);
         errors++;
       }
     }
 
-    migrationSummary[colName] = { inserted, updated, errors };
+    migrationResults[colName] = { inserted, updated, errors };
   }
 
-  // STEP 5 — VERIFY DATA CONTENT & DEEP HASH COMPARISON
+  // ---------------------------------------------------------------------------------------
+  // STEP 5 — VERIFY ACTUAL DOCUMENTS & CONTENT MISMATCHES
+  // ---------------------------------------------------------------------------------------
   console.log('\n----------------------------------------------------------------------------------------');
-  console.log('STEP 5 — VERIFYING DATA CONTENT & DOCUMENT HASH MATCHES...');
+  console.log('STEP 5 — VERIFYING DOCUMENT ID MATCHES & HASH CONTENT...');
 
-  const verificationResults = [];
+  const verificationTable = [];
   let totalMissing = 0;
   let totalExtra = 0;
-  let totalMismatched = 0;
+  let totalMismatches = 0;
 
   for (const colName of localCollectionNames) {
     const localDocs = localStats[colName].docs;
@@ -177,56 +176,62 @@ async function runMasterMigration() {
     const localMap = new Map(localDocs.map(d => [String(d._id), hashDocument(d)]));
     const atlasMap = new Map(atlasDocs.map(d => [String(d._id), hashDocument(d)]));
 
-    let missingInAtlas = 0;
-    let extraInAtlas = 0;
-    let mismatchedContent = 0;
+    let missing = 0;
+    let extra = 0;
+    let mismatched = 0;
 
     for (const [id, localHash] of localMap.entries()) {
       if (!atlasMap.has(id)) {
-        missingInAtlas++;
+        missing++;
       } else if (atlasMap.get(id) !== localHash) {
-        mismatchedContent++;
+        mismatched++;
       }
     }
 
     for (const id of atlasMap.keys()) {
       if (!localMap.has(id)) {
-        extraInAtlas++;
+        extra++;
       }
     }
 
-    totalMissing += missingInAtlas;
-    totalExtra += extraInAtlas;
-    totalMismatched += mismatchedContent;
+    totalMissing += missing;
+    totalExtra += extra;
+    totalMismatches += mismatched;
 
-    verificationResults.push({
+    verificationTable.push({
       colName,
       localCount: localDocs.length,
       atlasCount: atlasDocs.length,
-      missingInAtlas,
-      extraInAtlas,
-      mismatchedContent
+      migratedCount: migrationResults[colName].inserted + migrationResults[colName].updated,
+      missing,
+      extra,
+      mismatched
     });
   }
 
-  console.log('\nFINAL MIGRATION & VERIFICATION TABLE:');
-  console.log('COLLECTION                     | LOCAL | ATLAS AFTER | MISSING | EXTRA | MISMATCHED');
-  console.log('-----------------------------------------------------------------------------------');
-  for (const r of verificationResults) {
+  console.log('\nFINAL MIGRATION & VERIFICATION REPORT TABLE:');
+  console.log('COLLECTION                     | LOCAL | ATLAS BEFORE | MIGRATED | ATLAS AFTER | MISSING | EXTRA | MISMATCHES');
+  console.log('-----------------------------------------------------------------------------------------------------------');
+  for (const r of verificationTable) {
+    const beforeCnt = atlasBeforeStats[r.colName].count;
     console.log(
       `${r.colName.padEnd(30)} | ` +
       `${String(r.localCount).padStart(5)} | ` +
+      `${String(beforeCnt).padStart(12)} | ` +
+      `${String(r.migratedCount).padStart(8)} | ` +
       `${String(r.atlasCount).padStart(11)} | ` +
-      `${String(r.missingInAtlas).padStart(7)} | ` +
-      `${String(r.extraInAtlas).padStart(5)} | ` +
-      `${String(r.mismatchedContent).padStart(10)}`
+      `${String(r.missing).padStart(7)} | ` +
+      `${String(r.extra).padStart(5)} | ` +
+      `${String(r.mismatched).padStart(10)}`
     );
   }
-  console.log('-----------------------------------------------------------------------------------');
+  console.log('-----------------------------------------------------------------------------------------------------------');
 
-  // STEP 6 — CHECK REFERENCES
+  // ---------------------------------------------------------------------------------------
+  // STEP 6 — CHECK REFERENCES INTEGRITY
+  // ---------------------------------------------------------------------------------------
   console.log('\n----------------------------------------------------------------------------------------');
-  console.log('STEP 6 — CHECKING RELATIONSHIP & REFERENCE INTEGRITY...');
+  console.log('STEP 6 — CHECKING RELATIONSHIP REFERENCES...');
 
   const targetProducts = await targetDb.collection('products').find({}).toArray();
   const targetUsers = await targetDb.collection('users').find({}).toArray();
@@ -239,41 +244,37 @@ async function runMasterMigration() {
   const orderIds = new Set(targetOrders.map(o => o.orderId));
 
   let brokenRefs = 0;
-
   for (const o of targetOrders) {
     if (o.userId && !userIds.has(o.userId)) {
-      console.warn(`[BROKEN REF] Order ${o.orderId} references missing userId: ${o.userId}`);
+      console.warn(`[BROKEN REF] Order ${o.orderId} -> missing userId: ${o.userId}`);
       brokenRefs++;
     }
   }
-
   for (const p of targetPayments) {
     if (p.orderId && !orderIds.has(p.orderId)) {
-      console.warn(`[BROKEN REF] Payment ${p.paymentId} references missing orderId: ${p.orderId}`);
+      console.warn(`[BROKEN REF] Payment ${p.paymentId} -> missing orderId: ${p.orderId}`);
       brokenRefs++;
     }
   }
-
   for (const r of targetReviews) {
     if (r.productId && !productIds.has(r.productId)) {
-      console.warn(`[BROKEN REF] Review ${r._id} references missing productId: ${r.productId}`);
+      console.warn(`[BROKEN REF] Review ${r._id} -> missing productId: ${r.productId}`);
       brokenRefs++;
     }
   }
+  console.log(`Total Broken References: ${brokenRefs}`);
 
-  console.log(`Total Broken References Discovered: ${brokenRefs}`);
-
-  // STEP 7 — PRODUCT IMAGES AUDIT
+  // ---------------------------------------------------------------------------------------
+  // STEP 7 — IMAGE DATA AUDIT
+  // ---------------------------------------------------------------------------------------
   console.log('\n----------------------------------------------------------------------------------------');
   console.log('STEP 7 — PRODUCT IMAGES AUDIT...');
 
-  let totalProductsCount = targetProducts.length;
   let productsWithImages = 0;
   let productsWithoutImages = 0;
   let localAssetImages = 0;
   let externalHttpsImages = 0;
-  let brokenImages = 0;
-
+  let brokenAssetImages = 0;
   const publicDir = path.join(process.cwd(), 'public');
 
   for (const p of targetProducts) {
@@ -286,39 +287,38 @@ async function runMasterMigration() {
           externalHttpsImages++;
         } else if (typeof img === 'string' && img.startsWith('/')) {
           localAssetImages++;
-          if (!fs.existsSync(path.join(publicDir, img))) {
-            brokenImages++;
-          }
+          if (!fs.existsSync(path.join(publicDir, img))) brokenAssetImages++;
         }
       }
     }
   }
 
-  console.log(`Total Products: ${totalProductsCount}`);
+  console.log(`Total Products: ${targetProducts.length}`);
   console.log(`Products With Images: ${productsWithImages}`);
   console.log(`Products Without Images: ${productsWithoutImages}`);
   console.log(`Local Public Asset Images: ${localAssetImages}`);
   console.log(`External HTTPS Images: ${externalHttpsImages}`);
-  console.log(`Broken Local Asset Images: ${brokenImages}`);
+  console.log(`Broken Local Asset Images: ${brokenAssetImages}`);
 
-  // Close connections
+  // Close database connections
   await sourceConn.close();
   await targetConn.close();
 
-  if (totalMissing > 0 || totalMismatched > 0 || brokenRefs > 0 || brokenImages > 0) {
-    console.error('\n❌ MIGRATION VERIFICATION FAILED!');
+  console.log('\n----------------------------------------------------------------------------------------');
+  if (totalMissing > 0 || totalMismatches > 0 || brokenRefs > 0 || brokenAssetImages > 0) {
+    console.error('MIGRATION FAILED');
     process.exit(1);
   }
 
-  console.log('\n✅ FULL DATABASE MIGRATION & CONTENT VERIFICATION PASSED 100%!');
+  console.log('MIGRATION VERIFIED SUCCESSFULLY');
   console.log('========================================================================================\n');
 }
 
 if (require.main === module) {
-  runMasterMigration().catch(err => {
-    console.error('Fatal Script Failure:', err);
+  runLocalToAtlasMigration().catch(err => {
+    console.error('MIGRATION FAILED:', err.message);
     process.exit(1);
   });
 }
 
-module.exports = runMasterMigration;
+module.exports = runLocalToAtlasMigration;
