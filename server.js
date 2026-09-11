@@ -24,6 +24,50 @@ if (missingEnv.length > 0) {
   }
 }
 
+function getValidatedMongoUri() {
+  let rawUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+
+  if (rawUri) {
+    rawUri = String(rawUri).trim();
+    if ((rawUri.startsWith('"') && rawUri.endsWith('"')) || (rawUri.startsWith("'") && rawUri.endsWith("'"))) {
+      rawUri = rawUri.slice(1, -1).trim();
+    }
+    if (rawUri.startsWith('MONGO_URI=')) {
+      rawUri = rawUri.replace(/^MONGO_URI=/, '').trim();
+    } else if (rawUri.startsWith('MONGODB_URI=')) {
+      rawUri = rawUri.replace(/^MONGODB_URI=/, '').trim();
+    }
+    if ((rawUri.startsWith('"') && rawUri.endsWith('"')) || (rawUri.startsWith("'") && rawUri.endsWith("'"))) {
+      rawUri = rawUri.slice(1, -1).trim();
+    }
+  }
+
+  if (rawUri) {
+    const isStandard = rawUri.startsWith('mongodb://');
+    const isSrv = rawUri.startsWith('mongodb+srv://');
+    if (!isStandard && !isSrv) {
+      const errMsg = '[MONGODB CONFIG ERROR] Invalid connection string scheme. Expected scheme starting with "mongodb://" or "mongodb+srv://".';
+      logger.error(errMsg);
+      if (isVercelRuntime) {
+        throw new Error(errMsg);
+      }
+      return null;
+    }
+    const sourceVar = process.env.MONGO_URI ? 'MONGO_URI' : 'MONGODB_URI';
+    const scheme = isSrv ? 'mongodb+srv' : 'mongodb';
+    logger.info(`[MONGODB CONFIG] Validated MongoDB URI from ${sourceVar} (scheme: ${scheme}, mode: ${isVercelRuntime ? 'Vercel Production' : 'Local'}).`);
+    return rawUri;
+  }
+
+  if (isVercelRuntime) {
+    const errMsg = 'MONGO_URI/MONGODB_URI is not configured for production in Vercel Environment Variables.';
+    logger.error(`[VERCEL MONGO ERROR] ${errMsg}`);
+    throw new Error(errMsg);
+  }
+
+  return 'mongodb://127.0.0.1:27017/kumawat_pe';
+}
+
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -377,11 +421,7 @@ async function startServer() {
     try {
       mongoose.set('strictQuery', false);
       console.log("2 Connecting Mongo");
-      const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || (!isVercelRuntime ? 'mongodb://127.0.0.1:27017/kumawat_pe' : null);
-      if (isVercelRuntime && !mongoUri) {
-        logger.error('[VERCEL MONGO ERROR] MONGO_URI/MONGODB_URI is not configured for production in Vercel Environment Variables.');
-        throw new Error("MONGO_URI/MONGODB_URI is not configured for production");
-      }
+      const mongoUri = getValidatedMongoUri();
       await mongoose.connect(mongoUri, {
         serverSelectionTimeoutMS: 30000
       });
@@ -413,11 +453,7 @@ async function startServer() {
 
 async function ensureMongoConnected() {
   if (isMongoConnected && mongoose.connection.readyState >= 1) return;
-  const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || (!isVercelRuntime ? 'mongodb://127.0.0.1:27017/kumawat_pe' : null);
-  if (isVercelRuntime && !mongoUri) {
-    logger.error('[VERCEL MONGO ERROR] MONGO_URI/MONGODB_URI is not configured for production in Vercel Environment Variables.');
-    throw new Error("MONGO_URI/MONGODB_URI is not configured for production");
-  }
+  const mongoUri = getValidatedMongoUri();
   try {
     mongoose.set('strictQuery', false);
     await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 15000 });
@@ -745,14 +781,22 @@ if (!isVercelRuntime) {
 
 // Sessions
 app.set('trust proxy', 1); // Trust first proxy (Railway/Vercel load balancer)
-const effectiveMongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || (!isVercelRuntime ? 'mongodb://127.0.0.1:27017/kumawat_pe' : null);
-const mongoSessionStore = effectiveMongoUri
-  ? MongoStore.create({
-      mongoUrl: effectiveMongoUri,
+let mongoSessionStore;
+try {
+  const sessionMongoUri = getValidatedMongoUri();
+  if (sessionMongoUri) {
+    mongoSessionStore = MongoStore.create({
+      mongoUrl: sessionMongoUri,
       ttl: 24 * 60 * 60,
       autoRemove: 'native'
-    })
-  : undefined;
+    });
+  }
+} catch (err) {
+  logger.error('[SESSION STORE ERROR] Failed to initialize MongoStore:', err.message);
+  if (isVercelRuntime) {
+    throw err;
+  }
+}
 
 app.use(
   session({
