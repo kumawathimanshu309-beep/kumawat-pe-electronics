@@ -113,7 +113,15 @@
 
     // Helper to get spec value safely
     const getSpec = (p, cat, key) => {
-      if(p.specifications && p.specifications[cat] && p.specifications[cat][key]) return p.specifications[cat][key];
+      if (!p || !p.specifications || !p.specifications[cat]) return '-';
+      const mapOrObj = p.specifications[cat];
+      if (typeof mapOrObj.get === 'function') {
+        const val = mapOrObj.get(key);
+        if (val) return val;
+      }
+      if (typeof mapOrObj === 'object' && mapOrObj[key]) {
+        return mapOrObj[key];
+      }
       return '-';
     };
 

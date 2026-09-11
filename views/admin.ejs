@@ -54,14 +54,26 @@
       <div class="nav-item" onclick="switchAdminTab('users')">
         <i class="bi bi-people me-2"></i> User Directory
       </div>
-      <div class="nav-section-label">Store Management</div>
+      <div class="nav-item" onclick="switchAdminTab('reviews')">
+        <i class="bi bi-star-half me-2"></i> Product Reviews
+      </div>
+      <div class="nav-section-label">Catalog &amp; Inventory</div>
       <div class="nav-item" onclick="switchAdminTab('store')">
         <i class="bi bi-shop me-2"></i> Products &amp; Inventory
+      </div>
+      <div class="nav-item" onclick="switchAdminTab('categories')">
+        <i class="bi bi-diagram-3 me-2"></i> Categories
+      </div>
+      <div class="nav-item" onclick="switchAdminTab('brands')">
+        <i class="bi bi-tags me-2"></i> Brands
       </div>
       <div class="nav-item" onclick="switchAdminTab('delivery')">
         <i class="bi bi-truck me-2"></i> Delivery &amp; Logistics
       </div>
-      <div class="nav-section-label">Security Audit</div>
+      <div class="nav-section-label">Security &amp; Audit</div>
+      <div class="nav-item" onclick="switchAdminTab('auditlogs')">
+        <i class="bi bi-activity me-2"></i> Admin Activity Log
+      </div>
       <div class="nav-item" onclick="switchAdminTab('otps')">
         <i class="bi bi-shield-lock me-2"></i> OTP Monitoring
       </div>
@@ -286,63 +298,165 @@
         </div>
       </div>
 
-      <!-- PAGE: PAYMENTS -->
+      <!-- PAGE: PAYMENTS & FINANCE ANALYTICS V2 -->
       <div id="page-payments" class="page d-none">
-        <div class="card p-4">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0">Payment Transactions</h5>
-            <button class="btn btn-outline" onclick="exportPayments()"><i class="bi bi-download"></i> Export CSV</button>
+        
+        <!-- RAZORPAY TEST MODE BANNER -->
+        <div class="alert alert-warning d-flex align-items-center justify-content-between mb-4 shadow-sm" style="border-radius: var(--radius-lg, 12px); border-left: 5px solid #ffc107; background: #fffdf5;">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-lightning-charge-fill fs-4 me-3 text-warning"></i>
+            <div>
+              <strong style="color: var(--ink);">⚡ RAZORPAY TEST MODE ACTIVE</strong>
+              <div style="font-size: 0.82rem;" class="text-muted">All payment processing is operating under Razorpay Test Sandbox credentials. No real money is moved.</div>
+            </div>
           </div>
-          
+          <span class="badge bg-warning text-dark px-3 py-2 fw-bold" style="letter-spacing: 0.05em;">TEST MODE</span>
+        </div>
+
+        <!-- FINANCE SUMMARY METRICS GRID -->
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-md-4 col-xl-3">
+            <div class="card p-3 h-100 shadow-sm" style="border: 1px solid var(--rule); border-radius: var(--radius-lg, 12px);">
+              <div class="text-muted fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">Today's Revenue</div>
+              <h3 class="fw-bold my-1 text-ink" id="fin-today-rev">₹0.00</h3>
+              <div class="text-success" style="font-size: 0.78rem;"><i class="bi bi-calendar-check me-1"></i> Today's Captured Sales</div>
+            </div>
+          </div>
+
+          <div class="col-6 col-md-4 col-xl-3">
+            <div class="card p-3 h-100 shadow-sm" style="border: 1px solid var(--rule); border-radius: var(--radius-lg, 12px);">
+              <div class="text-muted fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">7-Day Revenue</div>
+              <h3 class="fw-bold my-1 text-accent" id="fin-7day-rev">₹0.00</h3>
+              <div class="text-muted" style="font-size: 0.78rem;"><i class="bi bi-graph-up-arrow me-1"></i> Last 7 Days Total</div>
+            </div>
+          </div>
+
+          <div class="col-6 col-md-4 col-xl-3">
+            <div class="card p-3 h-100 shadow-sm" style="border: 1px solid var(--rule); border-radius: var(--radius-lg, 12px);">
+              <div class="text-muted fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">30-Day Revenue</div>
+              <h3 class="fw-bold my-1 text-primary" id="fin-30day-rev">₹0.00</h3>
+              <div class="text-muted" style="font-size: 0.78rem;"><i class="bi bi-calendar3 me-1"></i> Rolling 30 Days</div>
+            </div>
+          </div>
+
+          <div class="col-6 col-md-4 col-xl-3">
+            <div class="card p-3 h-100 shadow-sm" style="border: 1px solid var(--rule); border-radius: var(--radius-lg, 12px);">
+              <div class="text-muted fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">Avg Order Value (AOV)</div>
+              <h3 class="fw-bold my-1 text-dark" id="fin-aov">₹0.00</h3>
+              <div class="text-muted" style="font-size: 0.78rem;"><i class="bi bi-calculator me-1"></i> Net Sales / Orders</div>
+            </div>
+          </div>
+
+          <div class="col-6 col-md-4 col-xl-3">
+            <div class="card p-3 h-100 shadow-sm" style="border: 1px solid var(--rule); border-radius: var(--radius-lg, 12px);">
+              <div class="text-muted fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">Successful Payments</div>
+              <h3 class="fw-bold my-1 text-success" id="fin-success-count">0</h3>
+              <div class="text-muted" style="font-size: 0.78rem;"><i class="bi bi-check-circle-fill me-1"></i> Paid &amp; Completed</div>
+            </div>
+          </div>
+
+          <div class="col-6 col-md-4 col-xl-3">
+            <div class="card p-3 h-100 shadow-sm" style="border: 1px solid var(--rule); border-radius: var(--radius-lg, 12px);">
+              <div class="text-muted fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">Pending Payments</div>
+              <h3 class="fw-bold my-1 text-warning" id="fin-pending-amount">₹0.00</h3>
+              <div class="text-muted" style="font-size: 0.78rem;" id="fin-pending-count">0 Pending Txns</div>
+            </div>
+          </div>
+
+          <div class="col-6 col-md-4 col-xl-3">
+            <div class="card p-3 h-100 shadow-sm" style="border: 1px solid var(--rule); border-radius: var(--radius-lg, 12px);">
+              <div class="text-muted fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">Refunds Total</div>
+              <h3 class="fw-bold my-1 text-danger" id="fin-refund-amount">₹0.00</h3>
+              <div class="text-muted" style="font-size: 0.78rem;" id="fin-refund-count">0 Refunded Txns</div>
+            </div>
+          </div>
+
+          <div class="col-6 col-md-4 col-xl-3">
+            <div class="card p-3 h-100 shadow-sm" style="border: 1px solid var(--rule); border-radius: var(--radius-lg, 12px); background: #fdfbf7;">
+              <div class="d-flex align-items-center justify-content-between">
+                <span class="text-muted fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">Net Profit</span>
+                <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" title="Calculated strictly as Net Sales minus Product Costs. If cost data is missing, profit is labeled unavailable rather than guessed."></i>
+              </div>
+              <h3 class="fw-bold my-1 text-dark" id="fin-net-profit">—</h3>
+              <div class="text-muted text-truncate" style="font-size: 0.75rem;" id="fin-profit-status">Profit unavailable — cost data not configured</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- REVENUE CHART & CONTROLS -->
+        <div class="card p-4 mb-4 shadow-sm" style="border: 1px solid var(--rule); border-radius: var(--radius-lg, 12px);">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+            <h5 class="m-0 font-display fw-bold text-ink"><i class="bi bi-graph-up text-accent me-2"></i> Revenue &amp; Payment Trends</h5>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <select id="fin-filter-range" class="form-select form-select-sm" style="width: auto;" onchange="loadFinanceAnalytics()">
+                <option value="30days" selected>Last 30 Days</option>
+                <option value="today">Today</option>
+                <option value="7days">Last 7 Days</option>
+                <option value="month">This Month</option>
+                <option value="all">All Time</option>
+              </select>
+              <button class="btn btn-outline btn-sm" onclick="exportFinanceCSV()"><i class="bi bi-download me-1"></i> Export CSV</button>
+            </div>
+          </div>
+          <div style="height: 220px; position: relative;">
+            <canvas id="revenueTrendChart"></canvas>
+          </div>
+        </div>
+
+        <!-- TRANSACTIONS TABLE & FILTERS -->
+        <div class="card p-4 shadow-sm" style="border: 1px solid var(--rule); border-radius: var(--radius-lg, 12px);">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+            <h5 class="m-0 font-display fw-bold text-ink"><i class="bi bi-receipt text-accent me-2"></i> Transaction History</h5>
+            
+            <div class="d-flex gap-2 flex-wrap w-100 w-md-auto">
+              <input type="text" id="fin-search-input" class="form-control form-control-sm" placeholder="Search Order ID, Payment ID, Customer..." style="max-width: 250px;" onkeyup="debounceFinanceSearch()" />
+              
+              <select id="fin-filter-status" class="form-select form-select-sm" style="width: auto;" onchange="loadFinanceAnalytics()">
+                <option value="all" selected>All Statuses</option>
+                <option value="paid">Paid / Completed</option>
+                <option value="pending">Pending</option>
+                <option value="failed">Failed / Cancelled</option>
+                <option value="refunded">Refunded</option>
+              </select>
+
+              <select id="fin-filter-method" class="form-select form-select-sm" style="width: auto;" onchange="loadFinanceAnalytics()">
+                <option value="all" selected>All Methods</option>
+                <option value="razorpay">Razorpay</option>
+                <option value="upi">UPI / PhonePe / Paytm</option>
+                <option value="cod">COD / Cash</option>
+              </select>
+            </div>
+          </div>
+
           <div class="table-responsive">
             <table class="table align-middle">
-              <thead>
-                <tr>
-                  <th>Date</th>
+              <thead class="table-light">
+                <tr style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                  <th>Date &amp; Time</th>
                   <th>Order ID</th>
                   <th>Method</th>
-                  <th>Txn ID</th>
+                  <th>Payment / Txn ID</th>
                   <th>Amount</th>
                   <th>Status</th>
-                  <th>Action</th>
+                  <th class="text-end">Actions</th>
                 </tr>
               </thead>
-              <tbody>
-                <% if(payments && payments.length > 0) { %>
-                  <% payments.forEach(p => { %>
-                    <tr>
-                      <td style="font-size:0.85rem; color:#666;"><%= new Date(p.transactionTime).toLocaleString() %></td>
-                      <td><%= p.orderId || 'N/A' %></td>
-                      <td><span class="badge bg-light text-dark border"><%= p.method %></span></td>
-                      <td style="font-size:0.8rem;"><%= p.razorpayPaymentId || p.paymentId %></td>
-                      <td class="fw-bold">₹<%= p.amount %></td>
-                      <td>
-                        <% if(p.status === 'Paid') { %>
-                          <span class="badge bg-success bg-opacity-10 text-success border border-success">Paid</span>
-                        <% } else if(p.status === 'Pending') { %>
-                          <span class="badge bg-warning bg-opacity-10 text-warning border border-warning">Pending</span>
-                        <% } else if(p.status === 'Failed' || p.status === 'Cancelled') { %>
-                          <span class="badge bg-danger bg-opacity-10 text-danger border border-danger"><%= p.status %></span>
-                        <% } else if(p.status === 'Refunded') { %>
-                          <span class="badge bg-info bg-opacity-10 text-info border border-info">Refunded</span>
-                        <% } else { %>
-                          <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary"><%= p.status %></span>
-                        <% } %>
-                      </td>
-                      <td>
-                        <% if(p.status === 'Paid') { %>
-                          <button class="btn btn-outline-danger btn-xs" onclick="initiateRefund('<%= p.paymentId %>')">Refund</button>
-                        <% } %>
-                      </td>
-                    </tr>
-                  <% }) %>
-                <% } else { %>
-                  <tr><td colspan="7" class="text-center text-muted py-4">No transactions found</td></tr>
-                <% } %>
+              <tbody id="fin-transactions-tbody">
+                <tr><td colspan="7" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span> Loading transactions...</td></tr>
               </tbody>
             </table>
           </div>
+
+          <!-- Pagination -->
+          <div class="d-flex align-items-center justify-content-between pt-3 border-top" id="fin-pagination-wrap">
+            <span class="text-muted font-xs" id="fin-pagination-info">Showing 0 of 0 transactions</span>
+            <div class="btn-group btn-group-sm" id="fin-pagination-btns">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
         </div>
+
       </div>
 
       <!-- PAGE: USERS -->
@@ -423,6 +537,7 @@
                 <% } %>
               </form>
               <button class="btn btn-outline btn-xs me-2" onclick="openBulkImportModal()"><i class="bi bi-file-earmark-spreadsheet"></i> Bulk Import (CSV)</button>
+              <button class="btn btn-outline btn-xs me-2" onclick="exportProductsCSV()"><i class="bi bi-download"></i> Export CSV</button>
               <a href="/admin/products/new" class="btn btn-accent btn-xs"><i class="bi bi-plus-lg"></i> Add New Product</a>
             </div>
           </div>
@@ -437,7 +552,7 @@
                 </div>
                 <div class="modal-body text-center">
                   <p class="text-muted" style="font-size:0.9rem;">Upload a CSV file to create or update multiple products at once. For updating, ensure the <strong class="text-dark">productId</strong> matches exactly.</p>
-                  <a href="/admin/products/csv-template" class="btn btn-outline btn-sm mb-4"><i class="bi bi-download"></i> Download Strict CSV Template</a>
+                  <a href="/admin/products/csv-template" target="_blank" class="btn btn-outline btn-sm mb-4"><i class="bi bi-download"></i> Download Strict CSV Template</a>
                   
                   <div class="border p-4 bg-light rounded" style="border-style:dashed!important;">
                     <form id="bulkImportForm">
@@ -459,8 +574,8 @@
             <div class="row text-center">
               <% 
                 const activeCount = products.filter(p => p.status === 'Active' || !p.status).length;
-                const outOfStockCount = products.filter(p => p.status === 'Out Of Stock').length;
-                const hiddenCount = products.filter(p => p.status === 'Hidden').length;
+                const outOfStockCount = products.filter(p => p.stock <= 0 || p.status === 'Out Of Stock').length;
+                const hiddenCount = products.filter(p => p.status === 'Hidden' || p.status === 'Disabled').length;
               %>
               <div class="col-3">
                 <div style="font-size: 1.5rem; font-weight: 700;"><%= products.length %></div>
@@ -476,7 +591,7 @@
               </div>
               <div class="col-3 border-start">
                 <div style="font-size: 1.5rem; font-weight: 700; color: var(--ink-light);"><%= hiddenCount %></div>
-                <div style="font-size: 0.8rem; color: var(--ink-light);">Hidden/Disabled</div>
+                <div style="font-size: 0.8rem; color: var(--ink-light);">Disabled</div>
               </div>
             </div>
           </div>
@@ -492,7 +607,7 @@
                     <th>Product Name &amp; SKU</th>
                     <th>Category</th>
                     <th>Pricing</th>
-                    <th>Stock</th>
+                    <th>Stock (Adjust)</th>
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
@@ -532,13 +647,17 @@
                           <% } %>
                         </td>
                         <td>
-                          <div style="font-weight: 600; font-size: 1.1rem;"><%= p.stock %></div>
-                          <% if (p.stock <= 5) { %>
-                            <span class="badge bg-warning text-dark mt-1" style="font-size:0.7rem;">LOW STOCK</span>
+                          <div class="d-flex align-items-center gap-1">
+                            <button class="btn btn-outline btn-xs px-1 py-0" onclick="adjustStock('<%= p.productId %>', -1)">-</button>
+                            <span id="stock-val-<%= p.productId %>" class="fw-bold fs-6"><%= p.stock %></span>
+                            <button class="btn btn-outline btn-xs px-1 py-0" onclick="adjustStock('<%= p.productId %>', 1)">+</button>
+                          </div>
+                          <% if (p.stock <= (p.lowStockThreshold || 5)) { %>
+                            <span class="badge bg-warning text-dark mt-1" style="font-size:0.7rem;">⚠️ LOW STOCK</span>
                           <% } %>
                         </td>
                         <td>
-                          <% if (p.status === 'Hidden') { %>
+                          <% if (p.status === 'Hidden' || p.status === 'Disabled') { %>
                             <span class="badge bg-secondary">Disabled</span>
                           <% } else if (p.stock <= 0 || p.status === 'Out Of Stock') { %>
                             <span class="badge bg-danger">Out of Stock</span>
@@ -548,6 +667,7 @@
                         </td>
                         <td>
                           <div class="action-btns">
+                            <button onclick="duplicateProduct('<%= p.productId %>')" class="btn btn-outline btn-xs me-1" title="Duplicate"><i class="bi bi-copy"></i> Duplicate</button>
                             <a href="/admin/products/edit/<%= p.productId %>" class="btn btn-outline btn-xs"><i class="bi bi-pencil"></i> Edit</a>
                             <a href="/admin/products/delete/<%= p.productId %>" onclick="return confirm('Permanently delete this product?')" class="btn btn-danger btn-xs"><i class="bi bi-trash"></i></a>
                           </div>
@@ -755,6 +875,362 @@
         </div>
       </div>
 
+      <!-- PAGE: CATEGORIES -->
+      <div id="page-categories" class="page d-none">
+        <!-- Stats Cards Row -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-tags-fill"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">Total Categories</span>
+                <h3 class="stat-value m-0" id="cat-stat-total"><%= categories ? categories.length : 0 %></h3>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-check-circle-fill"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">Active Categories</span>
+                <h3 class="stat-value m-0" id="cat-stat-active"><%= categories ? categories.filter(c=>c.status==='Active').length : 0 %></h3>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-box-seam"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">Products Mapped</span>
+                <h3 class="stat-value m-0" id="cat-stat-products"><%= categories ? categories.reduce((s,c)=>s+(c.productCount||0),0) : 0 %></h3>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-block mb-4">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <h3 class="m-0 fs-5 fw-bold"><i class="bi bi-folder-fill me-2 text-warning"></i>Category Management</h3>
+            <div class="d-flex align-items-center gap-2">
+              <div class="input-group input-group-sm" style="max-width: 220px;">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" id="search-categories" class="form-control" placeholder="Search category..." oninput="filterCategories()">
+              </div>
+              <select id="filter-category-status" class="form-select form-select-sm" style="width: auto;" onchange="filterCategories()">
+                <option value="">All Status</option>
+                <option value="Active">Active</option>
+                <option value="Disabled">Disabled</option>
+              </select>
+              <button class="btn btn-accent btn-sm" onclick="showCategoryModal()"><i class="bi bi-plus-lg me-1"></i> Add Category</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table align-middle m-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Category Name</th>
+                  <th>Slug</th>
+                  <th>Parent Category</th>
+                  <th>Products</th>
+                  <th>Status</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="categories-tbody">
+                <% if (categories && categories.length > 0) { %>
+                  <% categories.forEach(cat => { %>
+                    <tr>
+                      <td class="fw-bold"><%= cat.name %></td>
+                      <td><code><%= cat.slug %></code></td>
+                      <td><%= cat.parentCategory || '-' %></td>
+                      <td><span class="badge bg-info text-dark"><%= cat.productCount || 0 %> products</span></td>
+                      <td>
+                        <span class="badge <%= cat.status === 'Active' ? 'bg-success' : 'bg-secondary' %>"><%= cat.status || 'Active' %></span>
+                      </td>
+                      <td class="text-end">
+                        <button class="btn btn-outline btn-xs me-1" onclick="editCategory('<%= cat.categoryId %>', '<%= escape(cat.name) %>', '<%= cat.slug %>', '<%= cat.status %>')"><i class="bi bi-pencil"></i> Edit</button>
+                        <button class="btn btn-danger btn-xs" onclick="deleteCategory('<%= cat.categoryId %>')"><i class="bi bi-trash"></i></button>
+                      </td>
+                    </tr>
+                  <% }) %>
+                <% } else { %>
+                  <tr><td colspan="6" class="text-center py-4 text-muted">No categories configured yet. Click "Add Category" to create one.</td></tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: BRANDS -->
+      <div id="page-brands" class="page d-none">
+        <!-- Stats Cards Row -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-award-fill"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">Total Brands</span>
+                <h3 class="stat-value m-0" id="brand-stat-total"><%= brands ? brands.length : 0 %></h3>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-patch-check-fill"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">Active Brands</span>
+                <h3 class="stat-value m-0" id="brand-stat-active"><%= brands ? brands.filter(b=>b.status==='Active').length : 0 %></h3>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-boxes"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">Products Mapped</span>
+                <h3 class="stat-value m-0" id="brand-stat-products"><%= brands ? brands.reduce((s,b)=>s+(b.productCount||0),0) : 0 %></h3>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-block mb-4">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <h3 class="m-0 fs-5 fw-bold"><i class="bi bi-shield-check me-2 text-primary"></i>Brand Management</h3>
+            <div class="d-flex align-items-center gap-2">
+              <div class="input-group input-group-sm" style="max-width: 220px;">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" id="search-brands" class="form-control" placeholder="Search brand..." oninput="filterBrands()">
+              </div>
+              <select id="filter-brand-status" class="form-select form-select-sm" style="width: auto;" onchange="filterBrands()">
+                <option value="">All Status</option>
+                <option value="Active">Active</option>
+                <option value="Disabled">Disabled</option>
+              </select>
+              <button class="btn btn-accent btn-sm" onclick="showBrandModal()"><i class="bi bi-plus-lg me-1"></i> Add Brand</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table align-middle m-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Brand Name</th>
+                  <th>Slug</th>
+                  <th>Products</th>
+                  <th>Status</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="brands-tbody">
+                <% if (brands && brands.length > 0) { %>
+                  <% brands.forEach(b => { %>
+                    <tr>
+                      <td class="fw-bold"><%= b.name %></td>
+                      <td><code><%= b.slug %></code></td>
+                      <td><span class="badge bg-info text-dark"><%= b.productCount || 0 %> products</span></td>
+                      <td>
+                        <span class="badge <%= b.status === 'Active' ? 'bg-success' : 'bg-secondary' %>"><%= b.status || 'Active' %></span>
+                      </td>
+                      <td class="text-end">
+                        <button class="btn btn-outline btn-xs me-1" onclick="editBrand('<%= b.brandId %>', '<%= escape(b.name) %>', '<%= b.slug %>', '<%= b.status %>')"><i class="bi bi-pencil"></i> Edit</button>
+                        <button class="btn btn-danger btn-xs" onclick="deleteBrand('<%= b.brandId %>')"><i class="bi bi-trash"></i></button>
+                      </td>
+                    </tr>
+                  <% }) %>
+                <% } else { %>
+                  <tr><td colspan="5" class="text-center py-4 text-muted">No brands configured yet. Click "Add Brand" to create one.</td></tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: PRODUCT REVIEWS MODERATION -->
+      <div id="page-reviews" class="page d-none">
+        <!-- Stats Cards Row -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-chat-square-text-fill"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">Total Reviews</span>
+                <h3 class="stat-value m-0" id="review-stat-total"><%= reviews ? reviews.length : 0 %></h3>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon bg-warning-subtle text-warning"><i class="bi bi-hourglass-split"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">Pending</span>
+                <h3 class="stat-value m-0" id="review-stat-pending"><%= reviews ? reviews.filter(r=>r.status==='Pending').length : 0 %></h3>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-check2-circle"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">Approved</span>
+                <h3 class="stat-value m-0" id="review-stat-approved"><%= reviews ? reviews.filter(r=>r.status==='Approved').length : 0 %></h3>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-star-fill text-warning"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">Average Rating</span>
+                <h3 class="stat-value m-0" id="review-stat-avg"><%= reviews && reviews.length>0 ? (reviews.reduce((s,r)=>s+(r.rating||0),0)/reviews.length).toFixed(1) + ' ★' : '0.0 ★' %></h3>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-block mb-4">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <h3 class="m-0 fs-5 fw-bold"><i class="bi bi-star-half me-2 text-warning"></i>Product Reviews Moderation</h3>
+            <div class="d-flex align-items-center gap-2">
+              <div class="input-group input-group-sm" style="max-width: 220px;">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" id="search-reviews" class="form-control" placeholder="Search product/user..." oninput="filterReviews()">
+              </div>
+              <select id="filter-review-status" class="form-select form-select-sm" style="width: auto;" onchange="filterReviews()">
+                <option value="">All Status</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
+              </select>
+              <button class="btn btn-outline btn-sm" onclick="loadReviews()"><i class="bi bi-arrow-clockwise me-1"></i> Refresh</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table align-middle m-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Product</th>
+                  <th>Customer</th>
+                  <th>Rating</th>
+                  <th>Review Text</th>
+                  <th>Status</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="reviews-tbody">
+                <% if (reviews && reviews.length > 0) { %>
+                  <% reviews.forEach(r => { %>
+                    <tr>
+                      <td class="fw-bold"><%= r.productId %></td>
+                      <td><%= r.userName %><br><span class="badge bg-light text-dark" style="font-size:0.7rem;"><%= r.verifiedBuyer ? '✓ Verified Purchase' : 'Guest' %></span></td>
+                      <td>
+                        <span class="text-warning fw-bold"><%= r.rating %> ★</span>
+                      </td>
+                      <td style="max-width: 300px;">
+                        <strong><%= r.title %></strong>
+                        <p class="m-0 text-muted small"><%= r.text %></p>
+                      </td>
+                      <td>
+                        <span class="badge <%= r.status === 'Approved' ? 'bg-success' : (r.status === 'Rejected' ? 'bg-danger' : 'bg-warning text-dark') %>"><%= r.status || 'Pending' %></span>
+                      </td>
+                      <td class="text-end">
+                        <% if (r.status !== 'Approved') { %>
+                          <button class="btn btn-success btn-xs me-1" onclick="updateReviewStatus('<%= r._id %>', 'Approved')">Approve</button>
+                        <% } %>
+                        <% if (r.status !== 'Rejected') { %>
+                          <button class="btn btn-warning btn-xs me-1" onclick="updateReviewStatus('<%= r._id %>', 'Rejected')">Reject</button>
+                        <% } %>
+                        <button class="btn btn-danger btn-xs" onclick="deleteReview('<%= r._id %>')"><i class="bi bi-trash"></i></button>
+                      </td>
+                    </tr>
+                  <% }) %>
+                <% } else { %>
+                  <tr><td colspan="6" class="text-center py-4 text-muted">No product reviews submitted yet.</td></tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: ADMIN ACTIVITY AUDIT LOG -->
+      <div id="page-auditlogs" class="page d-none">
+        <!-- Stats Cards Row -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-journal-text"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">Total Audit Logs</span>
+                <h3 class="stat-value m-0" id="audit-stat-total"><%= auditLogs ? auditLogs.length : 0 %></h3>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-clock-history"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">Recent Activities</span>
+                <h3 class="stat-value m-0" id="audit-stat-today"><%= auditLogs ? auditLogs.length : 0 %></h3>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-person-badge-fill"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">Active Admin Users</span>
+                <h3 class="stat-value m-0" id="audit-stat-admins">1</h3>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-block mb-4">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <h3 class="m-0 fs-5 fw-bold"><i class="bi bi-shield-lock-fill me-2 text-danger"></i>Admin Activity Audit Log</h3>
+            <div class="d-flex align-items-center gap-2">
+              <div class="input-group input-group-sm" style="max-width: 220px;">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" id="search-auditlogs" class="form-control" placeholder="Search activity..." oninput="filterAuditLogs()">
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="loadAuditLogs()"><i class="bi bi-arrow-clockwise me-1"></i> Refresh Logs</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table align-middle m-0" style="font-size: 0.85rem;">
+              <thead class="table-light">
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Admin</th>
+                  <th>Action</th>
+                  <th>Resource</th>
+                  <th>Details</th>
+                  <th>IP Address</th>
+                </tr>
+              </thead>
+              <tbody id="auditlogs-tbody">
+                <% if (auditLogs && auditLogs.length > 0) { %>
+                  <% auditLogs.forEach(l => { %>
+                    <tr>
+                      <td class="text-muted"><%= new Date(l.createdAt || l.timestamp).toLocaleString('en-IN') %></td>
+                      <td class="fw-bold"><%= l.adminName %></td>
+                      <td><span class="badge bg-secondary"><%= l.action %></span></td>
+                      <td><code><%= l.resource %>:<%= l.resourceId || '-' %></code></td>
+                      <td><%= l.details %></td>
+                      <td class="text-muted font-monospace"><%= l.ipAddress %></td>
+                    </tr>
+                  <% }) %>
+                <% } else { %>
+                  <tr><td colspan="6" class="text-center py-4 text-muted">No admin activity logs recorded yet.</td></tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div><!-- /main-area -->
 </div>
@@ -762,11 +1238,13 @@
 <!-- MODAL: USER ACTIVITY DETAILS -->
 <div class="modal-overlay" id="activity-modal">
   <div class="modal" style="max-width: 600px;">
-    <h3 id="modal-activity-title">User Audit Activity Logs</h3>
-    <div style="max-height: 300px; overflow-y: auto; font-size: 0.82rem; background: var(--bg); padding: 14px; border-radius: var(--radius); font-family: monospace;" id="modal-activity-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h3 id="modal-activity-title" class="m-0 fs-5 fw-bold">User Audit Activity Logs</h3>
+      <button type="button" class="btn-close" onclick="closeActivityModal()"></button>
     </div>
-    <div class="modal-footer">
-      <button type="button" class="btn btn-outline" onclick="closeActivityModal()">Close</button>
+    <div id="modal-activity-body" style="max-height: 400px; overflow-y: auto;" class="p-2 border rounded bg-light mb-3"></div>
+    <div class="text-end">
+      <button type="button" class="btn btn-outline btn-sm" onclick="closeActivityModal()">Close</button>
     </div>
   </div>
 </div>
@@ -834,8 +1312,13 @@
     'dashboard': 'Overview',
     'orders': 'Bookings & Orders',
     'coupons': 'Discount Coupons',
+    'payments': 'Finance & Payment Analytics V2',
     'users': 'User Directory',
     'store': 'Products & Inventory',
+    'categories': 'Category Management',
+    'brands': 'Brand Management',
+    'reviews': 'Product Reviews Moderation',
+    'auditlogs': 'Admin Activity Audit Log',
     'otps': 'OTP Monitoring',
     'logins': 'Login Logs',
     'delivery': 'Delivery & Logistics'
@@ -857,6 +1340,11 @@
     // Title update
     document.getElementById('page-title').textContent = pageTitles[tab] || 'Admin';
     if (tab === 'delivery') loadDeliverySettings();
+    if (tab === 'payments') loadFinanceAnalytics();
+    if (tab === 'categories') loadCategories();
+    if (tab === 'brands') loadBrands();
+    if (tab === 'reviews') loadReviews();
+    if (tab === 'auditlogs') loadAuditLogs();
   }
 
   let distanceRules = [];
@@ -1415,7 +1903,194 @@
   window.switchAdminTab = function(tabId) {
     originalSwitchAdminTab(tabId);
     if (tabId === 'coupons') loadCoupons();
+    if (tabId === 'payments') loadFinanceAnalytics();
   };
+
+  // ── FINANCE & PAYMENT ANALYTICS V2 CLIENT CONTROLLER ───────────
+  let financeChartInstance = null;
+  let financeDebounceTimer = null;
+  let currentFinancePage = 1;
+
+  function debounceFinanceSearch() {
+    clearTimeout(financeDebounceTimer);
+    financeDebounceTimer = setTimeout(() => {
+      currentFinancePage = 1;
+      loadFinanceAnalytics();
+    }, 350);
+  }
+
+  async function loadFinanceAnalytics(targetPage = 1) {
+    currentFinancePage = targetPage;
+    const range = document.getElementById('fin-filter-range') ? document.getElementById('fin-filter-range').value : '30days';
+    const status = document.getElementById('fin-filter-status') ? document.getElementById('fin-filter-status').value : 'all';
+    const method = document.getElementById('fin-filter-method') ? document.getElementById('fin-filter-method').value : 'all';
+    const search = document.getElementById('fin-search-input') ? document.getElementById('fin-search-input').value.trim() : '';
+
+    try {
+      // 1. Fetch Summary & Chart Data
+      const summaryRes = await fetch(`/api/admin/finance/summary?range=${range}&status=${status}&method=${method}`);
+      const summaryData = await summaryRes.json();
+
+      if (summaryData.success && summaryData.summary) {
+        const s = summaryData.summary;
+        const fmt = (num) => '₹' + (Number(num) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        if (document.getElementById('fin-today-rev')) document.getElementById('fin-today-rev').textContent = fmt(s.todayRevenue);
+        if (document.getElementById('fin-7day-rev')) document.getElementById('fin-7day-rev').textContent = fmt(s.sevenDayRevenue);
+        if (document.getElementById('fin-30day-rev')) document.getElementById('fin-30day-rev').textContent = fmt(s.thirtyDayRevenue);
+        if (document.getElementById('fin-aov')) document.getElementById('fin-aov').textContent = fmt(s.averageOrderValue);
+        if (document.getElementById('fin-success-count')) document.getElementById('fin-success-count').textContent = s.successfulCount;
+        
+        if (document.getElementById('fin-pending-amount')) document.getElementById('fin-pending-amount').textContent = fmt(s.pendingAmount);
+        if (document.getElementById('fin-pending-count')) document.getElementById('fin-pending-count').textContent = `${s.pendingCount} Pending Txns`;
+        
+        if (document.getElementById('fin-refund-amount')) document.getElementById('fin-refund-amount').textContent = fmt(s.totalRefunds);
+        if (document.getElementById('fin-refund-count')) document.getElementById('fin-refund-count').textContent = `${s.refundCount} Refunded Txns`;
+
+        const netProfitEl = document.getElementById('fin-net-profit');
+        const profitStatusEl = document.getElementById('fin-profit-status');
+
+        if (netProfitEl) {
+          if (s.hasProductCostData && typeof s.netProfit === 'number') {
+            netProfitEl.textContent = fmt(s.netProfit);
+            netProfitEl.className = s.netProfit >= 0 ? 'fw-bold my-1 text-success' : 'fw-bold my-1 text-danger';
+            if (profitStatusEl) {
+              profitStatusEl.textContent = `${s.profitMargin !== null ? s.profitMargin.toFixed(1) + '% margin' : ''} (${s.profitStatusText})`;
+            }
+          } else {
+            netProfitEl.textContent = '—';
+            netProfitEl.className = 'fw-bold my-1 text-dark';
+            if (profitStatusEl) {
+              profitStatusEl.textContent = 'Profit unavailable — cost data not configured';
+            }
+          }
+        }
+
+        // Render Chart
+        if (summaryData.trend) {
+          renderFinanceChart(summaryData.trend);
+        }
+      }
+
+      // 2. Fetch Paginated Transactions List
+      const paymentsRes = await fetch(`/api/admin/finance/payments?page=${currentFinancePage}&limit=15&range=${range}&status=${status}&method=${method}&search=${encodeURIComponent(search)}`);
+      const paymentsData = await paymentsRes.json();
+
+      const tbody = document.getElementById('fin-transactions-tbody');
+      if (tbody && paymentsData.success) {
+        tbody.innerHTML = '';
+        const list = paymentsData.payments || [];
+        if (list.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4"><i class="bi bi-inbox fs-3 d-block mb-1"></i> No transactions found matching criteria</td></tr>`;
+        } else {
+          list.forEach(p => {
+            const dateStr = new Date(p.transactionTime).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            let badgeClass = 'bg-secondary';
+            if (p.status === 'Paid' || p.status === 'COD Completed') badgeClass = 'bg-success';
+            else if (p.status === 'Pending' || p.status === 'COD Pending') badgeClass = 'bg-warning text-dark';
+            else if (p.status === 'Failed' || p.status === 'Cancelled') badgeClass = 'bg-danger';
+            else if (p.status === 'Refunded') badgeClass = 'bg-info text-dark';
+
+            tbody.innerHTML += `
+              <tr>
+                <td style="font-size: 0.82rem; color: #555;">${dateStr}</td>
+                <td><code class="fw-bold">${p.orderId || 'N/A'}</code></td>
+                <td><span class="badge bg-light text-dark border">${p.method}</span></td>
+                <td style="font-size: 0.82rem; color: #666;" class="text-truncate" style="max-width: 140px;">${p.razorpayPaymentId || p.paymentId}</td>
+                <td><strong style="color: var(--accent);">₹${(Number(p.amount) || 0).toLocaleString('en-IN')}</strong></td>
+                <td><span class="badge ${badgeClass} px-2.5 py-1" style="font-size: 0.75rem;">${p.status}</span></td>
+                <td class="text-end">
+                  <button class="btn btn-outline btn-xs" onclick="openPaymentDetailModal('${p.paymentId}')">
+                    <i class="bi bi-eye me-1"></i> Details
+                  </button>
+                  ${(p.status === 'Paid' || p.status === 'COD Completed') ? `<button class="btn btn-outline-danger btn-xs ms-1" onclick="initiateRefund('${p.paymentId}')">Refund</button>` : ''}
+                </td>
+              </tr>
+            `;
+          });
+        }
+
+        // Render Pagination Controls
+        const pag = paymentsData.pagination;
+        const info = document.getElementById('fin-pagination-info');
+        const btns = document.getElementById('fin-pagination-btns');
+        if (info) info.textContent = `Showing page ${pag.page} of ${pag.totalPages} (${pag.totalCount} total transactions)`;
+        if (btns) {
+          let btnHtml = '';
+          btnHtml += `<button class="btn btn-outline btn-sm" ${pag.page <= 1 ? 'disabled' : ''} onclick="loadFinanceAnalytics(${pag.page - 1})"><i class="bi bi-chevron-left"></i> Prev</button>`;
+          btnHtml += `<button class="btn btn-outline btn-sm disabled">${pag.page} / ${pag.totalPages}</button>`;
+          btnHtml += `<button class="btn btn-outline btn-sm" ${pag.page >= pag.totalPages ? 'disabled' : ''} onclick="loadFinanceAnalytics(${pag.page + 1})">Next <i class="bi bi-chevron-right"></i></button>`;
+          btns.innerHTML = btnHtml;
+        }
+      }
+
+    } catch (err) {
+      console.error('Error loading finance analytics:', err);
+      showToast('❌ Error loading finance data');
+    }
+  }
+
+  function renderFinanceChart(trend) {
+    const ctx = document.getElementById('revenueTrendChart');
+    if (!ctx) return;
+
+    if (financeChartInstance) {
+      financeChartInstance.destroy();
+    }
+
+    financeChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: trend.labels,
+        datasets: [{
+          label: 'Captured Revenue (₹)',
+          data: trend.dataPoints,
+          borderColor: '#C9602A',
+          backgroundColor: 'rgba(201, 96, 42, 0.1)',
+          fill: true,
+          tension: 0.35,
+          pointRadius: 4,
+          pointBackgroundColor: '#C9602A'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ' Revenue: ₹' + ctx.parsed.y.toLocaleString('en-IN')
+            }
+          }
+        },
+        scales: {
+          x: { grid: { display: false } },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: (val) => '₹' + val.toLocaleString('en-IN')
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function exportFinanceCSV() {
+    const range = document.getElementById('fin-filter-range') ? document.getElementById('fin-filter-range').value : 'all';
+    const status = document.getElementById('fin-filter-status') ? document.getElementById('fin-filter-status').value : 'all';
+    const method = document.getElementById('fin-filter-method') ? document.getElementById('fin-filter-method').value : 'all';
+    window.open(`/api/admin/finance/export?range=${range}&status=${status}&method=${method}`, '_blank');
+  }
+
+  function openPaymentDetailModal(paymentId) {
+    if (typeof viewPaymentDetails === 'function') {
+      viewPaymentDetails(paymentId);
+    } else {
+      showToast('Transaction ID: ' + paymentId);
+    }
+  }
 </script>
 
 <!-- Coupon Modal -->
@@ -1485,5 +2160,745 @@
     </div>
   </div>
 </div>
+
+<script>
+  // ── CATEGORIES & BRANDS & REVIEWS & CSV CLIENT CONTROLLERS ──
+  let allCategories = [];
+  let allBrands = [];
+  let allReviews = [];
+  let allAuditLogs = [];
+
+  // Categories
+  async function loadCategories() {
+    try {
+      const res = await fetch('/api/admin/categories');
+      const data = await res.json();
+      if (data.success) {
+        allCategories = data.categories || [];
+        updateCategoryStats();
+        filterCategories();
+      }
+    } catch (e) { console.error('Error loading categories:', e); }
+  }
+
+  function updateCategoryStats() {
+    const total = allCategories.length;
+    const active = allCategories.filter(c => c.status === 'Active').length;
+    const totalProducts = allCategories.reduce((acc, c) => acc + (c.productCount || 0), 0);
+
+    if (document.getElementById('cat-stat-total')) document.getElementById('cat-stat-total').textContent = total;
+    if (document.getElementById('cat-stat-active')) document.getElementById('cat-stat-active').textContent = active;
+    if (document.getElementById('cat-stat-products')) document.getElementById('cat-stat-products').textContent = totalProducts;
+  }
+
+  function filterCategories() {
+    const query = (document.getElementById('search-categories')?.value || '').trim().toLowerCase();
+    const status = document.getElementById('filter-category-status')?.value || '';
+
+    const filtered = allCategories.filter(cat => {
+      const matchQuery = !query || cat.name.toLowerCase().includes(query) || cat.slug.toLowerCase().includes(query);
+      const matchStatus = !status || cat.status === status;
+      return matchQuery && matchStatus;
+    });
+
+    renderCategoriesTable(filtered);
+  }
+
+  function renderCategoriesTable(list) {
+    const tbody = document.getElementById('categories-tbody');
+    if (!tbody) return;
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No categories match your filters.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list.map(cat => `
+      <tr>
+        <td class="fw-bold">${cat.name}</td>
+        <td><code>${cat.slug}</code></td>
+        <td>${cat.parentCategory || '-'}</td>
+        <td><span class="badge bg-info text-dark">${cat.productCount || 0} products</span></td>
+        <td><span class="badge ${cat.status === 'Active' ? 'bg-success' : 'bg-secondary'}">${cat.status || 'Active'}</span></td>
+        <td class="text-end">
+          <button class="btn btn-outline btn-xs me-1" onclick="editCategory('${cat.categoryId}', '${escape(cat.name)}', '${cat.slug}', '${cat.status}')"><i class="bi bi-pencil"></i> Edit</button>
+          <button class="btn btn-danger btn-xs" onclick="deleteCategory('${cat.categoryId}')"><i class="bi bi-trash"></i></button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function showCategoryModal(id = '', name = '', slug = '', status = 'Active') {
+    const modalHtml = `
+      <div class="modal fade" id="catModal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">${id ? 'Edit Category' : 'Add Category'}</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <input type="hidden" id="catId" value="${id}">
+              <div class="mb-3">
+                <label class="form-label">Category Name</label>
+                <input type="text" class="form-control" id="catName" value="${name}" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Slug</label>
+                <input type="text" class="form-control" id="catSlug" value="${slug}" placeholder="Auto-generated if blank">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Status</label>
+                <select class="form-select" id="catStatus">
+                  <option value="Active" ${status === 'Active' ? 'selected' : ''}>Active</option>
+                  <option value="Disabled" ${status === 'Disabled' ? 'selected' : ''}>Disabled</option>
+                </select>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-accent" onclick="saveCategory()">Save Category</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    const old = document.getElementById('catModal');
+    if (old) old.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const m = new bootstrap.Modal(document.getElementById('catModal'));
+    m.show();
+  }
+
+  function editCategory(id, escapedName, slug, status) {
+    showCategoryModal(id, unescape(escapedName), slug, status);
+  }
+
+  async function saveCategory() {
+    const categoryId = document.getElementById('catId').value;
+    const name = document.getElementById('catName').value.trim();
+    const slug = document.getElementById('catSlug').value.trim();
+    const status = document.getElementById('catStatus').value;
+
+    if (!name) return showToast('❌ Category Name is required.');
+
+    try {
+      const res = await fetch('/api/admin/category', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryId, name, slug, status })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('✓ Category saved successfully.');
+        const mEl = document.getElementById('catModal');
+        if (mEl) bootstrap.Modal.getInstance(mEl).hide();
+        loadCategories();
+      } else {
+        showToast('❌ ' + data.message);
+      }
+    } catch (e) { showToast('❌ Failed to save category.'); }
+  }
+
+  async function deleteCategory(id) {
+    if (!confirm('Are you sure you want to delete this category?')) return;
+    try {
+      const res = await fetch(`/api/admin/category/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        showToast('✓ Category deleted.');
+        loadCategories();
+      } else { showToast('❌ ' + data.message); }
+    } catch (e) { showToast('❌ Failed to delete category.'); }
+  }
+
+  // Brands
+  async function loadBrands() {
+    try {
+      const res = await fetch('/api/admin/brands');
+      const data = await res.json();
+      if (data.success) {
+        allBrands = data.brands || [];
+        updateBrandStats();
+        filterBrands();
+      }
+    } catch (e) { console.error('Error loading brands:', e); }
+  }
+
+  function updateBrandStats() {
+    const total = allBrands.length;
+    const active = allBrands.filter(b => b.status === 'Active').length;
+    const totalProducts = allBrands.reduce((acc, b) => acc + (b.productCount || 0), 0);
+
+    if (document.getElementById('brand-stat-total')) document.getElementById('brand-stat-total').textContent = total;
+    if (document.getElementById('brand-stat-active')) document.getElementById('brand-stat-active').textContent = active;
+    if (document.getElementById('brand-stat-products')) document.getElementById('brand-stat-products').textContent = totalProducts;
+  }
+
+  function filterBrands() {
+    const query = (document.getElementById('search-brands')?.value || '').trim().toLowerCase();
+    const status = document.getElementById('filter-brand-status')?.value || '';
+
+    const filtered = allBrands.filter(b => {
+      const matchQuery = !query || b.name.toLowerCase().includes(query) || b.slug.toLowerCase().includes(query);
+      const matchStatus = !status || b.status === status;
+      return matchQuery && matchStatus;
+    });
+
+    renderBrandsTable(filtered);
+  }
+
+  function renderBrandsTable(list) {
+    const tbody = document.getElementById('brands-tbody');
+    if (!tbody) return;
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No brands match your filters.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list.map(b => `
+      <tr>
+        <td class="fw-bold">${b.name}</td>
+        <td><code>${b.slug}</code></td>
+        <td><span class="badge bg-info text-dark">${b.productCount || 0} products</span></td>
+        <td><span class="badge ${b.status === 'Active' ? 'bg-success' : 'bg-secondary'}">${b.status || 'Active'}</span></td>
+        <td class="text-end">
+          <button class="btn btn-outline btn-xs me-1" onclick="editBrand('${b.brandId}', '${escape(b.name)}', '${b.slug}', '${b.status}')"><i class="bi bi-pencil"></i> Edit</button>
+          <button class="btn btn-danger btn-xs" onclick="deleteBrand('${b.brandId}')"><i class="bi bi-trash"></i></button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function showBrandModal(id = '', name = '', slug = '', status = 'Active') {
+    const modalHtml = `
+      <div class="modal fade" id="brandModal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">${id ? 'Edit Brand' : 'Add Brand'}</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <input type="hidden" id="brandIdInput" value="${id}">
+              <div class="mb-3">
+                <label class="form-label">Brand Name</label>
+                <input type="text" class="form-control" id="brandNameInput" value="${name}" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Slug</label>
+                <input type="text" class="form-control" id="brandSlugInput" value="${slug}" placeholder="Auto-generated if blank">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Status</label>
+                <select class="form-select" id="brandStatusInput">
+                  <option value="Active" ${status === 'Active' ? 'selected' : ''}>Active</option>
+                  <option value="Disabled" ${status === 'Disabled' ? 'selected' : ''}>Disabled</option>
+                </select>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-accent" onclick="saveBrand()">Save Brand</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    const old = document.getElementById('brandModal');
+    if (old) old.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const m = new bootstrap.Modal(document.getElementById('brandModal'));
+    m.show();
+  }
+
+  function editBrand(id, escapedName, slug, status) {
+    showBrandModal(id, unescape(escapedName), slug, status);
+  }
+
+  async function saveBrand() {
+    const brandId = document.getElementById('brandIdInput').value;
+    const name = document.getElementById('brandNameInput').value.trim();
+    const slug = document.getElementById('brandSlugInput').value.trim();
+    const status = document.getElementById('brandStatusInput').value;
+
+    if (!name) return showToast('❌ Brand Name is required.');
+
+    try {
+      const res = await fetch('/api/admin/brand', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brandId, name, slug, status })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('✓ Brand saved successfully.');
+        const mEl = document.getElementById('brandModal');
+        if (mEl) bootstrap.Modal.getInstance(mEl).hide();
+        loadBrands();
+      } else { showToast('❌ ' + data.message); }
+    } catch (e) { showToast('❌ Failed to save brand.'); }
+  }
+
+  async function deleteBrand(id) {
+    if (!confirm('Are you sure you want to delete this brand?')) return;
+    try {
+      const res = await fetch(`/api/admin/brand/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        showToast('✓ Brand deleted.');
+        loadBrands();
+      } else { showToast('❌ ' + data.message); }
+    } catch (e) { showToast('❌ Failed to delete brand.'); }
+  }
+
+  // Reviews
+  async function loadReviews() {
+    try {
+      const res = await fetch('/api/admin/reviews');
+      const data = await res.json();
+      if (data.success) {
+        allReviews = data.reviews || [];
+        updateReviewStats();
+        filterReviews();
+      }
+    } catch (e) { console.error('Error loading reviews:', e); }
+  }
+
+  function updateReviewStats() {
+    const total = allReviews.length;
+    const pending = allReviews.filter(r => r.status === 'Pending').length;
+    const approved = allReviews.filter(r => r.status === 'Approved').length;
+    const avg = total > 0 ? (allReviews.reduce((sum, r) => sum + Number(r.rating || 0), 0) / total).toFixed(1) : '0.0';
+
+    if (document.getElementById('review-stat-total')) document.getElementById('review-stat-total').textContent = total;
+    if (document.getElementById('review-stat-pending')) document.getElementById('review-stat-pending').textContent = pending;
+    if (document.getElementById('review-stat-approved')) document.getElementById('review-stat-approved').textContent = approved;
+    if (document.getElementById('review-stat-avg')) document.getElementById('review-stat-avg').textContent = `${avg} ★`;
+  }
+
+  function filterReviews() {
+    const query = (document.getElementById('search-reviews')?.value || '').trim().toLowerCase();
+    const status = document.getElementById('filter-review-status')?.value || '';
+
+    const filtered = allReviews.filter(r => {
+      const matchQuery = !query || (r.productId && r.productId.toLowerCase().includes(query)) || (r.userName && r.userName.toLowerCase().includes(query)) || (r.text && r.text.toLowerCase().includes(query));
+      const matchStatus = !status || r.status === status;
+      return matchQuery && matchStatus;
+    });
+
+    renderReviewsTable(filtered);
+  }
+
+  function renderReviewsTable(list) {
+    const tbody = document.getElementById('reviews-tbody');
+    if (!tbody) return;
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No product reviews match your criteria.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list.map(r => `
+      <tr>
+        <td class="fw-bold">${r.productId}</td>
+        <td>${r.userName}<br><span class="badge bg-light text-dark" style="font-size:0.7rem;">${r.verifiedBuyer ? '✓ Verified Purchase' : 'Guest'}</span></td>
+        <td><span class="text-warning fw-bold">${r.rating} ★</span></td>
+        <td style="max-width: 300px;"><strong>${r.title || ''}</strong><p class="m-0 text-muted small">${r.text || ''}</p></td>
+        <td><span class="badge ${r.status === 'Approved' ? 'bg-success' : (r.status === 'Rejected' ? 'bg-danger' : 'bg-warning text-dark')}">${r.status || 'Pending'}</span></td>
+        <td class="text-end">
+          ${r.status !== 'Approved' ? `<button class="btn btn-success btn-xs me-1" onclick="updateReviewStatus('${r._id}', 'Approved')">Approve</button>` : ''}
+          ${r.status !== 'Rejected' ? `<button class="btn btn-warning btn-xs me-1" onclick="updateReviewStatus('${r._id}', 'Rejected')">Reject</button>` : ''}
+          <button class="btn btn-danger btn-xs" onclick="deleteReview('${r._id}')"><i class="bi bi-trash"></i></button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  async function updateReviewStatus(id, status) {
+    try {
+      const res = await fetch(`/api/admin/review/${id}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`✓ Review status updated to ${status}`);
+        loadReviews();
+      } else { showToast('❌ ' + data.message); }
+    } catch (e) { showToast('❌ Failed to update review status.'); }
+  }
+
+  async function deleteReview(id) {
+    if (!confirm('Are you sure you want to delete this review?')) return;
+    try {
+      const res = await fetch(`/api/admin/review/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        showToast('✓ Review deleted.');
+        loadReviews();
+      } else { showToast('❌ ' + data.message); }
+    } catch (e) { showToast('❌ Failed to delete review.'); }
+  }
+
+  // Audit Logs
+  async function loadAuditLogs() {
+    try {
+      const res = await fetch('/api/admin/audit-logs');
+      const data = await res.json();
+      if (data.success) {
+        allAuditLogs = data.logs || [];
+        updateAuditStats();
+        filterAuditLogs();
+      }
+    } catch (e) { console.error('Error loading audit logs:', e); }
+  }
+
+  function updateAuditStats() {
+    const total = allAuditLogs.length;
+    const todayStr = new Date().toDateString();
+    const today = allAuditLogs.filter(l => new Date(l.createdAt || l.timestamp).toDateString() === todayStr).length;
+    const admins = new Set(allAuditLogs.map(l => l.adminName)).size || 1;
+
+    if (document.getElementById('audit-stat-total')) document.getElementById('audit-stat-total').textContent = total;
+    if (document.getElementById('audit-stat-today')) document.getElementById('audit-stat-today').textContent = today;
+    if (document.getElementById('audit-stat-admins')) document.getElementById('audit-stat-admins').textContent = admins;
+  }
+
+  function filterAuditLogs() {
+    const query = (document.getElementById('search-auditlogs')?.value || '').trim().toLowerCase();
+
+    const filtered = allAuditLogs.filter(l => {
+      if (!query) return true;
+      return (l.adminName && l.adminName.toLowerCase().includes(query)) ||
+             (l.action && l.action.toLowerCase().includes(query)) ||
+             (l.resource && l.resource.toLowerCase().includes(query)) ||
+             (l.details && l.details.toLowerCase().includes(query)) ||
+             (l.ipAddress && l.ipAddress.toLowerCase().includes(query));
+    });
+
+    renderAuditLogsTable(filtered);
+  }
+
+  function renderAuditLogsTable(list) {
+    const tbody = document.getElementById('auditlogs-tbody');
+    if (!tbody) return;
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No admin activity logs recorded yet.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list.map(l => `
+      <tr>
+        <td class="text-muted">${new Date(l.createdAt || l.timestamp).toLocaleString('en-IN')}</td>
+        <td class="fw-bold">${l.adminName}</td>
+        <td><span class="badge bg-secondary">${l.action}</span></td>
+        <td><code>${l.resource}:${l.resourceId || '-'}</code></td>
+        <td>${l.details}</td>
+        <td class="text-muted font-monospace">${l.ipAddress}</td>
+      </tr>
+    `).join('');
+  }
+
+  // Product Actions
+  async function adjustStock(productId, stockChange) {
+    try {
+      const res = await fetch('/api/admin/product/stock-adjust', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, stockChange })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`✓ Stock updated to ${data.stock}`);
+        const el = document.getElementById(`stock-val-${productId}`);
+        if (el) el.textContent = data.stock;
+      } else { showToast('❌ ' + data.message); }
+    } catch (e) { showToast('❌ Failed to adjust stock.'); }
+  }
+
+  async function toggleProductBadge(productId, badge, currentVal) {
+    try {
+      const newVal = !currentVal;
+      const res = await fetch('/api/admin/product/toggle-badge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, badge, value: newVal })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`✓ ${badge} updated.`);
+        window.location.reload();
+      } else { showToast('❌ ' + data.message); }
+    } catch (e) { showToast('❌ Failed to toggle badge.'); }
+  }
+
+  async function duplicateProduct(productId) {
+    if (!confirm('Duplicate this product?')) return;
+    try {
+      const res = await fetch(`/api/admin/product/duplicate/${productId}`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        showToast('✓ Product duplicated successfully.');
+        window.location.reload();
+      } else { showToast('❌ ' + data.message); }
+    } catch (e) { showToast('❌ Failed to duplicate product.'); }
+  }
+
+  // Bulk CSV Import
+  function openBulkImportModal() {
+    const modalHtml = `
+      <div class="modal fade" id="csvImportModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Bulk Import Products via CSV</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <div class="alert alert-info py-2">
+                <i class="bi bi-info-circle me-1"></i> Ensure your CSV file matches the strict schema format. 
+                <a href="/admin/products/csv-template" target="_blank" class="fw-bold text-decoration-underline ms-1">Download Strict CSV Template</a>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold">Select CSV File</label>
+                <input type="file" id="csvFileInput" class="form-control" accept=".csv">
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold">Or Paste Raw CSV Data</label>
+                <textarea id="csvRawText" class="form-control font-monospace" rows="5" placeholder="productId,name,category,brand,price,stock..."></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-secondary" onclick="previewBulkImport()">Preview CSV</button>
+              <button type="button" class="btn btn-accent" onclick="executeBulkImport()">Start Import</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    const old = document.getElementById('csvImportModal');
+    if (old) old.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const m = new bootstrap.Modal(document.getElementById('csvImportModal'));
+    m.show();
+  }
+
+  async function getCsvPayload() {
+    const fileInput = document.getElementById('csvFileInput');
+    const textInput = document.getElementById('csvRawText');
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+      return await fileInput.files[0].text();
+    } else if (textInput && textInput.value.trim()) {
+      return textInput.value.trim();
+    }
+    return '';
+  }
+
+  async function previewBulkImport() {
+    const csvData = await getCsvPayload();
+    if (!csvData) return showToast('❌ Please select a CSV file or paste raw CSV text first.');
+
+    try {
+      const res = await fetch('/api/admin/products/preview-csv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: csvData
+      });
+      const data = await res.json();
+      if (!data.success) {
+        return showToast('❌ ' + (data.message || 'CSV preview failed'));
+      }
+
+      let previewHtml = `
+        <div class="modal fade" id="csvPreviewModal" tabindex="-1">
+          <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title fw-bold">CSV Import Validation & Data Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <div class="row text-center mb-3">
+                  <div class="col-4">
+                    <div class="p-2 border rounded bg-light">
+                      <div class="small text-muted">Total Rows</div>
+                      <div class="fs-4 fw-bold">${data.total || 0}</div>
+                    </div>
+                  </div>
+                  <div class="col-4">
+                    <div class="p-2 border rounded bg-success-subtle text-success">
+                      <div class="small">Valid Rows</div>
+                      <div class="fs-4 fw-bold">${data.validCount || 0}</div>
+                    </div>
+                  </div>
+                  <div class="col-4">
+                    <div class="p-2 border rounded bg-danger-subtle text-danger">
+                      <div class="small">Invalid Rows</div>
+                      <div class="fs-4 fw-bold">${data.invalidCount || 0}</div>
+                    </div>
+                  </div>
+                </div>
+      `;
+
+      if (data.previewSamples && data.previewSamples.length > 0) {
+        previewHtml += `
+          <h6 class="fw-bold mb-2">Sample Products Preview (${data.previewSamples.length} rows):</h6>
+          <div class="table-responsive border rounded mb-3" style="max-height: 250px;">
+            <table class="table table-sm table-hover m-0 align-middle" style="font-size:0.8rem;">
+              <thead class="table-dark">
+                <tr><th>Row</th><th>Product Name</th><th>Category</th><th>Brand</th><th>Price</th><th>Discount</th><th>Stock</th><th>SKU</th><th>Images</th></tr>
+              </thead>
+              <tbody>
+                ${data.previewSamples.map(p => `
+                  <tr>
+                    <td class="fw-bold">${p.row}</td>
+                    <td class="fw-semibold">${p.name}</td>
+                    <td>${p.category}</td>
+                    <td>${p.brand}</td>
+                    <td>₹${p.price}</td>
+                    <td>₹${p.discountPrice}</td>
+                    <td>${p.stock}</td>
+                    <td><code>${p.sku}</code></td>
+                    <td><span class="badge bg-info">${p.imageCount} imgs</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      if (data.errors && data.errors.length > 0) {
+        previewHtml += `
+          <h6 class="text-danger fw-bold">Validation Errors Detected (${data.errors.length}):</h6>
+          <div style="max-height: 180px; overflow-y: auto;" class="border rounded">
+            <table class="table table-sm table-striped m-0" style="font-size:0.8rem;">
+              <thead><tr><th>Row #</th><th>Error Reason</th></tr></thead>
+              <tbody>
+                ${data.errors.map(err => `<tr><td class="fw-bold">Row ${err.row}</td><td class="text-danger">${err.error}</td></tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      previewHtml += `
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Close Preview</button>
+                <button type="button" class="btn btn-accent" onclick="bootstrap.Modal.getInstance(document.getElementById('csvPreviewModal')).hide(); executeBulkImport();">Confirm & Execute Import (${data.validCount} valid)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const oldPrev = document.getElementById('csvPreviewModal');
+      if (oldPrev) oldPrev.remove();
+      document.body.insertAdjacentHTML('beforeend', previewHtml);
+      const mPrev = new bootstrap.Modal(document.getElementById('csvPreviewModal'));
+      mPrev.show();
+
+    } catch (err) {
+      showToast('❌ Error generating CSV preview.');
+    }
+  }
+
+  async function executeBulkImport() {
+    const csvData = await getCsvPayload();
+    if (!csvData) {
+      return showToast('❌ Please select a CSV file or paste raw CSV text.');
+    }
+
+    try {
+      const res = await fetch('/api/admin/products/bulk-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: csvData
+      });
+      const data = await res.json();
+      const mEl = document.getElementById('csvImportModal');
+      if (mEl) bootstrap.Modal.getInstance(mEl).hide();
+
+      // Show Results Modal
+      let reportHtml = `
+        <div class="modal fade" id="importReportModal" tabindex="-1">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Bulk Import Summary</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <div class="row text-center mb-3">
+                  <div class="col-4">
+                    <div class="p-2 border rounded bg-light">
+                      <div class="small text-muted">Total Rows</div>
+                      <div class="fs-4 fw-bold">${data.total || 0}</div>
+                    </div>
+                  </div>
+                  <div class="col-4">
+                    <div class="p-2 border rounded bg-success-subtle text-success">
+                      <div class="small">Successful</div>
+                      <div class="fs-4 fw-bold">${data.successCount || 0}</div>
+                    </div>
+                  </div>
+                  <div class="col-4">
+                    <div class="p-2 border rounded bg-danger-subtle text-danger">
+                      <div class="small">Failed</div>
+                      <div class="fs-4 fw-bold">${data.failCount || 0}</div>
+                    </div>
+                  </div>
+                </div>
+      `;
+
+      if (data.errors && data.errors.length > 0) {
+        reportHtml += `
+          <h6 class="text-danger fw-bold">Validation Errors (${data.errors.length}):</h6>
+          <div style="max-height: 250px; overflow-y: auto;" class="border rounded">
+            <table class="table table-sm table-striped m-0" style="font-size:0.8rem;">
+              <thead><tr><th>Row #</th><th>Error Details</th></tr></thead>
+              <tbody>
+                ${data.errors.map(err => `<tr><td class="fw-bold">Row ${err.row}</td><td class="text-danger">${err.error}</td></tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } else {
+        reportHtml += `<div class="alert alert-success py-2">✓ All rows imported successfully with 0 errors!</div>`;
+      }
+
+      reportHtml += `
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-accent" onclick="window.location.reload()">Done</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const oldR = document.getElementById('importReportModal');
+      if (oldR) oldR.remove();
+      document.body.insertAdjacentHTML('beforeend', reportHtml);
+      const mR = new bootstrap.Modal(document.getElementById('importReportModal'));
+      mR.show();
+
+    } catch (e) {
+      showToast('❌ Error executing CSV import.');
+    }
+  }
+
+  function exportProductsCSV() {
+    window.open('/admin/products/export-csv', '_blank');
+  }
+
+  // Extend Tab Switch interceptor
+  const prevSwitch = window.switchAdminTab;
+  window.switchAdminTab = function(tabId) {
+    if (prevSwitch) prevSwitch(tabId);
+    if (tabId === 'categories') loadCategories();
+    if (tabId === 'brands') loadBrands();
+    if (tabId === 'reviews') loadReviews();
+    if (tabId === 'auditlogs') loadAuditLogs();
+  };
+</script>
 </body>
 </html>

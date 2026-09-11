@@ -1,12 +1,7 @@
 <%- include('partials/header') %>
 <link rel="stylesheet" href="/css/premium-ui.css" />
-<section class="hero-section" style="padding-top: 100px; padding-bottom: 50px; background: var(--bg-dark); color: var(--white); position: relative; overflow: hidden;">
-  <div class="container text-center position-relative" style="z-index: 2;">
-    <h1 style="font-family: var(--font-display); font-size: 3rem; margin-bottom: 10px; font-weight:700;">Premium Electronics Store</h1>
-    <p style="color: rgba(255,255,255,0.8); font-size: 1.1rem; max-width: 600px; margin: 0 auto;">Discover the finest selection of authentic electrical accessories, tools, and smart appliances.</p>
-  </div>
-  <div class="blueprint-dark-bg" style="position:absolute; top:0; left:0; right:0; bottom:0; z-index: 1;"></div>
-</section>
+
+
 
 <style>
   .top-search-bar {
@@ -14,9 +9,11 @@
     top: 70px;
     z-index: 99;
     background: var(--bg);
-    padding: 15px 0;
+    padding:15px 0px;
     margin-bottom: 20px;
     border-bottom: 1px solid rgba(0,0,0,0.05);
+    
+  
   }
   .store-container {
     max-width: 1400px;
@@ -24,7 +21,7 @@
     padding: 0 15px;
   }
   .accordion-button:not(.collapsed) {
-    background-color: var(--accent-light);
+    background-color: var(--accent-light, #FFF3ED);
     color: var(--accent);
     box-shadow: none;
   }
@@ -36,6 +33,7 @@
     border-radius: 20px;
     padding: 6px 16px;
     font-weight: 600;
+    white-space: nowrap;
   }
   .custom-cat-btn.active {
     background-color: var(--accent);
@@ -45,17 +43,17 @@
   
   .grid-5-mode {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 1.5rem;
   }
-  @media (max-width: 1200px) {
-    .grid-5-mode { grid-template-columns: repeat(4, 1fr); }
+  @media (min-width: 1400px) {
+    .grid-5-mode { grid-template-columns: repeat(5, 1fr); }
   }
-  @media (max-width: 991px) {
+  @media (max-width: 1199px) {
     .grid-5-mode { grid-template-columns: repeat(3, 1fr); }
   }
   @media (max-width: 767px) {
-    .grid-5-mode { grid-template-columns: repeat(2, 1fr); }
+    .grid-5-mode { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
   }
 
   .list-mode-container {
@@ -68,130 +66,155 @@
     flex-direction: row;
   }
   .premium-card-list .premium-card-img {
-    width: 280px;
+    width: 240px;
     height: 100%;
     margin-bottom: 0;
     margin-right: 20px;
+    flex-shrink: 0;
   }
   .premium-card-list .premium-card-body {
     justify-content: center;
   }
-  @media (max-width: 991px) {
+  @media (max-width: 767px) {
     .premium-card-list {
       flex-direction: column;
     }
     .premium-card-list .premium-card-img {
       width: 100%;
-      height: 240px;
+      height: 200px;
       margin-right: 0;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
   }
 </style>
 
-<section class="py-5" style="background: var(--bg);">
+<section class="py-4" style="background: var(--bg);">
   <div class="store-container">
     
-    <!-- STICKY SEARCH & CATEGORY TOP BAR -->
-    <div class="top-search-bar">
-      <!-- Search -->
-      <div class="modern-card p-3 mb-3 d-flex align-items-center gap-3">
-        <div class="input-group flex-grow-1">
-          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-          <input type="text" id="store-search" class="form-control border-start-0 ps-0" placeholder="Search by Product Name, SKU, Category, Description..." aria-label="Search Products" style="font-size: 1rem; padding: 12px;" />
-        </div>
-        <button class="btn btn-outline" style="white-space: nowrap; padding: 12px 24px;" onclick="resetFilters()"><i class="bi bi-x-circle me-1"></i> Clear Filters</button>
+    <!-- CLEAN UNIFIED STORE TOOLBAR -->
+    <div class="modern-card p-3 mb-4">
+      <!-- Horizontal Category Rail (Phone Screens < 768px) -->
+      <div class="mobile-cat-scroller pb-2 mb-3 border-bottom d-flex align-items-center">
+        <label class="btn btn-sm btn-outline-secondary custom-cat-btn active flex-shrink-0">
+          <input type="radio" name="catFilter" value="" class="cat-filter d-none" checked onchange="loadProducts()"> All Products
+        </label>
+        <label class="btn btn-sm btn-outline-secondary custom-cat-btn flex-shrink-0">
+          <input type="radio" name="catFilter" value="Smartphones" class="cat-filter d-none" onchange="loadProducts()"> Smartphones
+        </label>
+        <label class="btn btn-sm btn-outline-secondary custom-cat-btn flex-shrink-0">
+          <input type="radio" name="catFilter" value="Laptops" class="cat-filter d-none" onchange="loadProducts()"> Laptops
+        </label>
+        <label class="btn btn-sm btn-outline-secondary custom-cat-btn flex-shrink-0">
+          <input type="radio" name="catFilter" value="Tablets" class="cat-filter d-none" onchange="loadProducts()"> Tablets
+        </label>
+        <label class="btn btn-sm btn-outline-secondary custom-cat-btn flex-shrink-0">
+          <input type="radio" name="catFilter" value="TVs" class="cat-filter d-none" onchange="loadProducts()"> TVs
+        </label>
+        <label class="btn btn-sm btn-outline-secondary custom-cat-btn flex-shrink-0">
+          <input type="radio" name="catFilter" value="Earbuds" class="cat-filter d-none" onchange="loadProducts()"> Earbuds
+        </label>
+        <label class="btn btn-sm btn-outline-secondary custom-cat-btn flex-shrink-0">
+          <input type="radio" name="catFilter" value="Headphones" class="cat-filter d-none" onchange="loadProducts()"> Headphones
+        </label>
+        <label class="btn btn-sm btn-outline-secondary custom-cat-btn flex-shrink-0">
+          <input type="radio" name="catFilter" value="Smartwatches" class="cat-filter d-none" onchange="loadProducts()"> Smartwatches
+        </label>
+        <label class="btn btn-sm btn-outline-secondary custom-cat-btn flex-shrink-0">
+          <input type="radio" name="catFilter" value="Monitors" class="cat-filter d-none" onchange="loadProducts()"> Monitors
+        </label>
+        <label class="btn btn-sm btn-outline-secondary custom-cat-btn flex-shrink-0">
+          <input type="radio" name="catFilter" value="Electrical" class="cat-filter d-none" onchange="loadProducts()"> Electrical
+        </label>
+        <label class="btn btn-sm btn-outline-secondary custom-cat-btn flex-shrink-0">
+          <input type="radio" name="catFilter" value="Tools" class="cat-filter d-none" onchange="loadProducts()"> Tools
+        </label>
       </div>
-      
-      <!-- Category Accordion -->
-      <div class="accordion" id="categoryAccordion">
-        <div class="accordion-item modern-card" style="border:none; border-radius:12px; overflow:hidden;">
-          <h2 class="accordion-header" id="headingFilters">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters" style="font-weight: 600; padding: 15px 20px;">
-              <i class="bi bi-funnel me-2"></i> Categories & Filters
-            </button>
-          </h2>
-          <div id="collapseFilters" class="accordion-collapse collapse" aria-labelledby="headingFilters" data-bs-parent="#categoryAccordion">
-            <div class="accordion-body" style="background: #fff;">
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <h6 class="text-muted text-uppercase" style="font-size: 0.8rem; font-weight: 700; letter-spacing: 1px;">Categories</h6>
-                  <div class="d-flex flex-wrap gap-2 mt-2">
-                    <label class="btn btn-sm btn-outline-secondary custom-cat-btn active">
-                      <input type="radio" name="catFilter" value="" class="cat-filter d-none" checked> All Categories
-                    </label>
-                    <label class="btn btn-sm btn-outline-secondary custom-cat-btn">
-                      <input type="radio" name="catFilter" value="AC & Appliances" class="cat-filter d-none"> AC & Appliances
-                    </label>
-                    <label class="btn btn-sm btn-outline-secondary custom-cat-btn">
-                      <input type="radio" name="catFilter" value="Electrical" class="cat-filter d-none"> Electrical
-                    </label>
-                    <label class="btn btn-sm btn-outline-secondary custom-cat-btn">
-                      <input type="radio" name="catFilter" value="Plumbing" class="cat-filter d-none"> Plumbing
-                    </label>
-                    <label class="btn btn-sm btn-outline-secondary custom-cat-btn">
-                      <input type="radio" name="catFilter" value="Motors & Pumps" class="cat-filter d-none"> Motors & Pumps
-                    </label>
-                    <label class="btn btn-sm btn-outline-secondary custom-cat-btn">
-                      <input type="radio" name="catFilter" value="Tools" class="cat-filter d-none"> Tools
-                    </label>
-                    <label class="btn btn-sm btn-outline-secondary custom-cat-btn">
-                      <input type="radio" name="catFilter" value="Spare Parts" class="cat-filter d-none"> Spare Parts
-                    </label>
-                  </div>
-                </div>
-                
-                <div class="col-md-3 mb-3">
-                   <h6 class="text-muted text-uppercase" style="font-size: 0.8rem; font-weight: 700; letter-spacing: 1px;">Brand</h6>
-                   <div class="d-flex flex-column gap-1 mt-2">
-                     <label class="custom-checkbox"><input type="checkbox" value="Havells" class="brand-filter"> Havells</label>
-                     <label class="custom-checkbox"><input type="checkbox" value="Anchor" class="brand-filter"> Anchor</label>
-                     <label class="custom-checkbox"><input type="checkbox" value="Polycab" class="brand-filter"> Polycab</label>
-                     <label class="custom-checkbox"><input type="checkbox" value="Crompton" class="brand-filter"> Crompton</label>
-                     <label class="custom-checkbox"><input type="checkbox" value="Legrand" class="brand-filter"> Legrand</label>
-                   </div>
-                </div>
-                
-                <div class="col-md-3 mb-3">
-                   <h6 class="text-muted text-uppercase" style="font-size: 0.8rem; font-weight: 700; letter-spacing: 1px;">Price & Stock</h6>
-                   <div class="d-flex gap-2 align-items-center mt-2 mb-3">
-                     <input type="number" id="minPrice" class="form-control form-control-sm" placeholder="Min ₹" aria-label="Minimum Price" />
-                     <span class="text-muted" aria-hidden="true">-</span>
-                     <input type="number" id="maxPrice" class="form-control form-control-sm" placeholder="Max ₹" aria-label="Maximum Price" />
-                   </div>
-                   <label class="custom-checkbox"><input type="checkbox" value="In Stock" id="inStockFilter"> In Stock Only</label>
-                </div>
-              </div>
+
+      <div class="row g-3 align-items-center">
+        <div class="col-lg-6 col-md-12">
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+            <input type="text" id="store-search" class="form-control border-start-0 ps-0" placeholder="Search by name, brand, category..." aria-label="Search Products" style="font-size: 0.95rem; padding: 10px;" />
+          </div>
+        </div>
+        <div class="col-lg-6 col-md-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <button class="btn btn-outline-secondary btn-sm" type="button" onclick="toggleFilterDrawer()">
+            <i class="bi bi-funnel me-1"></i> Filters
+          </button>
+          
+          <div id="results-count" class="fw-bold fs-7 text-ink">Loading products...</div>
+
+          <div class="d-flex gap-2 align-items-center">
+            <div class="btn-group btn-group-sm d-none d-sm-inline-flex" role="group" aria-label="View Mode">
+              <button type="button" class="btn btn-outline-secondary active" id="view-grid" onclick="setViewMode('grid')" aria-label="Grid View"><i class="bi bi-grid-fill"></i></button>
+              <button type="button" class="btn btn-outline-secondary" id="view-list" onclick="setViewMode('list')" aria-label="List View"><i class="bi bi-list-task"></i></button>
+            </div>
+            <select id="sort-select" class="form-select form-select-sm" aria-label="Sort Products" style="width: auto; cursor:pointer; font-weight: 600;" onchange="loadProducts()">
+              <option value="newest">Newest First</option>
+              <option value="price_asc">Price: Low to High</option>
+              <option value="price_desc">Price: High to Low</option>
+            </select>
+            <button class="btn btn-ghost btn-sm text-danger" onclick="resetFilters()" title="Clear Filters"><i class="bi bi-x-circle"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Backdrop Overlay for Mobile Filter Drawer -->
+      <div class="drawer-backdrop" id="filterDrawerBackdrop" onclick="toggleFilterDrawer(false)"></div>
+
+      <!-- Collapsible / Mobile Bottom Sheet Filter Drawer -->
+      <div id="collapseFilters" class="mobile-filter-drawer-container p-3">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+          <h5 class="m-0 fw-bold text-ink"><i class="bi bi-funnel text-accent me-2"></i> Filter Products</h5>
+          <button type="button" class="btn-close" onclick="toggleFilterDrawer(false)" aria-label="Close filters"></button>
+        </div>
+        <div class="row g-3 overflow-y-auto" style="max-height: 65vh;">
+          <div class="col-md-6 col-12">
+            <h6 class="text-muted text-uppercase fs-8 fw-bold mb-2">Brands</h6>
+            <div class="d-flex flex-wrap gap-2">
+              <label class="custom-checkbox me-2"><input type="checkbox" value="Apple" class="brand-filter" onchange="loadProducts()"> Apple</label>
+              <label class="custom-checkbox me-2"><input type="checkbox" value="Samsung" class="brand-filter" onchange="loadProducts()"> Samsung</label>
+              <label class="custom-checkbox me-2"><input type="checkbox" value="Sony" class="brand-filter" onchange="loadProducts()"> Sony</label>
+              <label class="custom-checkbox me-2"><input type="checkbox" value="OnePlus" class="brand-filter" onchange="loadProducts()"> OnePlus</label>
+              <label class="custom-checkbox me-2"><input type="checkbox" value="boAt" class="brand-filter" onchange="loadProducts()"> boAt</label>
+              <label class="custom-checkbox me-2"><input type="checkbox" value="HP" class="brand-filter" onchange="loadProducts()"> HP</label>
+              <label class="custom-checkbox me-2"><input type="checkbox" value="Dell" class="brand-filter" onchange="loadProducts()"> Dell</label>
             </div>
           </div>
+          <div class="col-md-6 col-12">
+            <h6 class="text-muted text-uppercase fs-8 fw-bold mb-2">Price & Stock</h6>
+            <div class="d-flex gap-2 align-items-center mb-2">
+              <input type="number" id="minPrice" class="form-control form-control-sm" placeholder="Min ₹" aria-label="Minimum Price" onchange="loadProducts()" />
+              <span class="text-muted" aria-hidden="true">-</span>
+              <input type="number" id="maxPrice" class="form-control form-control-sm" placeholder="Max ₹" aria-label="Maximum Price" onchange="loadProducts()" />
+            </div>
+            <label class="custom-checkbox"><input type="checkbox" value="In Stock" id="inStockFilter" onchange="loadProducts()"> In Stock Only</label>
+          </div>
+        </div>
+        <div class="pt-3 border-top mt-3 d-flex gap-2 justify-content-end">
+          <button class="btn btn-outline-secondary btn-sm" onclick="resetFilters()">Reset All</button>
+          <button class="btn btn-accent btn-sm px-4" onclick="toggleFilterDrawer(false)">Apply Filters</button>
         </div>
       </div>
     </div>
     
-    <!-- RIGHT MAIN CONTENT -->
+    <!-- MAIN STORE CONTENT GRID -->
     <main class="store-main w-100">
-      <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 p-3 modern-card bg-white" style="border-radius: 12px;">
-        <div id="results-count" style="font-size: 0.95rem; font-weight:700; color: var(--ink);">Loading...</div>
-        <div class="d-flex gap-3 align-items-center">
-          <div class="btn-group" role="group" aria-label="View Mode">
-            <button type="button" class="btn btn-outline btn-sm active" id="view-grid" onclick="setViewMode('grid')" aria-label="Grid View"><i class="bi bi-grid-fill" aria-hidden="true"></i></button>
-            <button type="button" class="btn btn-outline btn-sm" id="view-list" onclick="setViewMode('list')" aria-label="List View"><i class="bi bi-list-task" aria-hidden="true"></i></button>
-          </div>
-          <select id="sort-select" class="form-select form-select-sm" aria-label="Sort Products" style="width: auto; cursor:pointer; border-radius: 8px; font-weight: 600; color: var(--ink-light);">
-            <option value="newest">Newest First</option>
-            <option value="price_asc">Price: Low to High</option>
-            <option value="price_desc">Price: High to Low</option>
-            <option value="rating_desc">Highest Rated</option>
-          </select>
-        </div>
-      </div>
 
       <div class="grid-5-mode" id="store-products-grid">
         <!-- Dynamic Products -->
       </div>
 
-      <div class="text-center mt-5" id="load-more-container" style="display: none;">
-        <button class="btn btn-outline px-5 py-2 fw-bold" id="load-more-btn" style="border-radius:20px;">Load More Products</button>
+      <!-- INFINITE SCROLL INDICATOR & SENTINEL -->
+      <div id="store-loading-indicator" class="infinite-scroll-loader d-none">
+        <div class="spinner-border spinner-border-sm text-accent" role="status"></div>
+        <span>Loading more products...</span>
+      </div>
+
+      <div id="infinite-scroll-sentinel" style="height: 20px; margin-top: 10px;"></div>
+
+      <div id="end-of-store-msg" class="end-of-store-text d-none">
+        You've reached the end of the store.
       </div>
       
       <div id="no-results" class="premium-empty d-none">
@@ -200,22 +223,26 @@
         <p>Try adjusting your search or filter criteria to find what you're looking for.</p>
         <button class="btn btn-accent px-4" onclick="resetFilters()">Clear All Filters</button>
       </div>
+
+      <div id="store-error" class="premium-empty d-none">
+        <i class="bi bi-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+        <h3 class="mt-2">Unable to load products</h3>
+        <p id="store-error-msg">Something went wrong while fetching products.</p>
+        <button class="btn btn-accent px-4 mt-2" onclick="loadProducts(false)">Retry</button>
+      </div>
     </main>
 
   </div>
-</section>
-
-<!-- Socket.io for Real-time Updates -->
-<script src="/socket.io/socket.io.js"></script>
-
 <script>
   let currentPage = 1;
-  const limit = 12;
+  const limit = 24; // Load 24 products per batch
   let isLoading = false;
   let hasMore = true;
   let userWishlist = [];
   let currentView = 'grid';
   let compareList = JSON.parse(localStorage.getItem('compareList') || '[]');
+  let cachedProducts = [];
+  let intersectionObserver = null;
 
   function debounce(func, wait) {
     let timeout;
@@ -232,7 +259,7 @@
     document.getElementById('view-grid').classList.toggle('btn-accent', mode === 'grid');
     document.getElementById('view-list').classList.toggle('active', mode === 'list');
     document.getElementById('view-list').classList.toggle('btn-accent', mode === 'list');
-    loadProducts(false, true); 
+    renderProductCards(cachedProducts);
   }
 
   async function fetchUserWishlist() {
@@ -245,38 +272,20 @@
     } catch(e) {}
   }
 
-  function toggleCompare(productId, event) {
-    event.stopPropagation();
-    let idx = compareList.indexOf(productId);
-    if(idx > -1) {
-      compareList.splice(idx, 1);
-      showToast('Removed from compare');
-    } else {
-      if(compareList.length >= 4) {
-        showToast('You can only compare up to 4 items.');
-        return;
-      }
-      compareList.push(productId);
-      showToast('Added to compare');
-    }
-    localStorage.setItem('compareList', JSON.stringify(compareList));
-    loadProducts(false, true);
-  }
-
   function generateSkeleton() {
     let html = '';
-    const count = currentView === 'grid' ? 10 : 4;
+    const count = currentView === 'grid' ? 12 : 4;
     for(let i=0; i<count; i++) {
       if (currentView === 'grid') {
         html += `
           <div class="skeleton-card">
-            <div class="premium-skeleton w-100 h-50 mb-3"></div>
-            <div class="premium-skeleton w-75 mb-2" style="height:20px;"></div>
+            <div class="premium-skeleton w-100 mb-3" style="height:180px;"></div>
+            <div class="premium-skeleton w-75 mb-2" style="height:18px;"></div>
             <div class="premium-skeleton w-100 mb-3" style="height:14px;"></div>
-            <div class="premium-skeleton w-50 mb-4" style="height:24px;"></div>
+            <div class="premium-skeleton w-50 mb-3" style="height:22px;"></div>
             <div class="mt-auto d-flex gap-2">
-              <div class="premium-skeleton flex-grow-1" style="height:44px; border-radius:50px;"></div>
-              <div class="premium-skeleton flex-grow-1" style="height:44px; border-radius:50px;"></div>
+              <div class="premium-skeleton flex-grow-1" style="height:38px; border-radius:50px;"></div>
+              <div class="premium-skeleton flex-grow-1" style="height:38px; border-radius:50px;"></div>
             </div>
           </div>
         `;
@@ -288,10 +297,6 @@
               <div class="premium-skeleton w-50 mb-2" style="height:24px;"></div>
               <div class="premium-skeleton w-75 mb-4" style="height:16px;"></div>
               <div class="premium-skeleton w-25 mb-4" style="height:28px;"></div>
-              <div class="mt-auto d-flex gap-3">
-                <div class="premium-skeleton" style="width:140px; height:44px; border-radius:50px;"></div>
-                <div class="premium-skeleton" style="width:140px; height:44px; border-radius:50px;"></div>
-              </div>
             </div>
           </div>
         `;
@@ -300,13 +305,17 @@
     return html;
   }
 
-  let cachedProducts = [];
+  async function loadProducts(append = false) {
+    if (isLoading) return;
+    if (append && !hasMore) return;
 
-  async function loadProducts(append = false, fromCache = false) {
-    if (isLoading && !fromCache) return;
     isLoading = true;
-
+    const loader = document.getElementById('store-loading-indicator');
+    const endMsg = document.getElementById('end-of-store-msg');
     const grid = document.getElementById('store-products-grid');
+    const noResults = document.getElementById('no-results');
+    const storeError = document.getElementById('store-error');
+
     if (currentView === 'grid') {
       grid.classList.add('grid-5-mode');
       grid.classList.remove('list-mode-container');
@@ -315,141 +324,186 @@
       grid.classList.add('list-mode-container');
     }
     
-    if (!append && !fromCache) {
+    if (!append) {
       grid.innerHTML = generateSkeleton();
+      if (loader) loader.classList.add('d-none');
+      if (endMsg) endMsg.classList.add('d-none');
+      if (noResults) noResults.classList.add('d-none');
+      if (storeError) storeError.classList.add('d-none');
+    } else {
+      if (loader) loader.classList.remove('d-none');
     }
 
-    const search = document.getElementById('store-search').value;
-    
-    if (!fromCache) {
-      const checkedCategory = document.querySelector('.cat-filter:checked');
-      const categories = checkedCategory && checkedCategory.value ? [checkedCategory.value] : [];
-      const brands = Array.from(document.querySelectorAll('.brand-filter:checked')).map(cb => cb.value);
-      const minPrice = document.getElementById('minPrice').value;
-      const maxPrice = document.getElementById('maxPrice').value;
-      const sort = document.getElementById('sort-select').value;
-      const inStock = document.getElementById('inStockFilter').checked;
+    const searchInput = document.getElementById('store-search');
+    const search = searchInput ? searchInput.value.trim() : '';
+    const checkedCategory = document.querySelector('.cat-filter:checked');
+    const categories = checkedCategory && checkedCategory.value ? [checkedCategory.value] : [];
+    const brands = Array.from(document.querySelectorAll('.brand-filter:checked')).map(cb => cb.value);
+    const minPriceEl = document.getElementById('minPrice');
+    const minPrice = minPriceEl ? minPriceEl.value : '';
+    const maxPriceEl = document.getElementById('maxPrice');
+    const maxPrice = maxPriceEl ? maxPriceEl.value : '';
+    const sortEl = document.getElementById('sort-select');
+    const sort = sortEl ? sortEl.value : 'newest';
+    const inStockEl = document.getElementById('inStockFilter');
+    const inStock = inStockEl ? inStockEl.checked : false;
 
-      if (!append) currentPage = 1;
+    const params = new URLSearchParams({
+      page: currentPage,
+      limit,
+      q: search,
+      category: categories.join(','),
+      brand: brands.join(','),
+      minPrice,
+      maxPrice,
+      sort,
+      inStock: inStock ? 'true' : 'false'
+    });
 
-      const params = new URLSearchParams({
-        page: currentPage,
-        limit,
-        q: search, // Changed to q to correctly trigger backend name/category/brand search
-        categories: categories.join(','),
-        brands: brands.join(','),
-        minPrice,
-        maxPrice,
-        sort,
-        inStock: inStock ? 'true' : 'false'
-      });
+    try {
+      const res = await fetch('/api/store/products?' + params.toString());
+      
+      let data;
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          throw new Error(res.status === 429 ? 'Too many requests. Please try again in a few moments.' : `Server error (${res.status})`);
+        }
+      }
 
-      try {
-        const res = await fetch('/api/store/products?' + params.toString());
-        const data = await res.json();
+      if (loader) loader.classList.add('d-none');
 
-        if (data.success) {
-          document.getElementById('results-count').innerText = `Showing ${data.products.length} of ${data.pagination.total} products`;
+      if (res.ok && data && data.success && Array.isArray(data.products)) {
+        const total = data.pagination ? data.pagination.total : data.products.length;
+        const totalPages = data.pagination ? data.pagination.pages : Math.ceil(total / limit);
 
-          if (data.pagination.total === 0) {
-            document.getElementById('no-results').classList.remove('d-none');
-            document.getElementById('load-more-container').style.display = 'none';
-            grid.innerHTML = '';
-            cachedProducts = [];
-            isLoading = false;
-            return;
+        hasMore = currentPage < totalPages;
+
+        if (append) {
+          cachedProducts = cachedProducts.concat(data.products);
+        } else {
+          cachedProducts = data.products;
+        }
+
+        const resultsCountEl = document.getElementById('results-count');
+        if (resultsCountEl) resultsCountEl.innerText = `Showing ${cachedProducts.length} of ${total} products`;
+
+        if (total === 0 || cachedProducts.length === 0) {
+          if (!append) grid.innerHTML = '';
+          if (noResults) noResults.classList.remove('d-none');
+          if (storeError) storeError.classList.add('d-none');
+          if (endMsg) endMsg.classList.add('d-none');
+        } else {
+          if (noResults) noResults.classList.add('d-none');
+          if (storeError) storeError.classList.add('d-none');
+          renderProductCards(cachedProducts);
+
+          if (!hasMore && cachedProducts.length > 0) {
+            if (endMsg) endMsg.classList.remove('d-none');
           } else {
-            document.getElementById('no-results').classList.add('d-none');
-            hasMore = currentPage < data.pagination.pages;
-            document.getElementById('load-more-container').style.display = hasMore ? 'block' : 'none';
-            
-            if (append) {
-              cachedProducts = cachedProducts.concat(data.products);
-            } else {
-              cachedProducts = data.products;
-            }
+            if (endMsg) endMsg.classList.add('d-none');
           }
         }
-      } catch(e) {
-        console.error(e);
-        document.getElementById('results-count').innerText = 'Error loading products.';
-        grid.innerHTML = '';
-        isLoading = false;
-        return;
+      } else {
+        throw new Error(data && data.message ? data.message : `Failed to load products (${res.status})`);
       }
-    }
-
-    // Client-side filtering on loaded products (for SKU, Description, etc.)
-    let filteredProducts = cachedProducts;
-    if (search.trim()) {
-      const lowerQ = search.toLowerCase();
-      filteredProducts = cachedProducts.filter(p => {
-        const matchesName = (p.name || '').toLowerCase().includes(lowerQ);
-        const matchesCategory = (p.category || '').toLowerCase().includes(lowerQ);
-        const matchesBrand = (p.brand || '').toLowerCase().includes(lowerQ);
-        const matchesSKU = (p.sku || '').toLowerCase().includes(lowerQ);
-        const matchesDesc = (p.description || '').toLowerCase().includes(lowerQ);
-        return matchesName || matchesCategory || matchesBrand || matchesSKU || matchesDesc;
-      });
-      // Fallback: if search filtered out everything locally, show appropriate count
-      if (!fromCache && search.trim() && filteredProducts.length < cachedProducts.length) {
-         document.getElementById('results-count').innerText = `Showing ${filteredProducts.length} local matches`;
-      }
-    }
-
-    const html = filteredProducts.map(p => {
-      const isWishlisted = userWishlist.includes(p.productId);
-      const isCompared = compareList.includes(p.productId);
-      const heartClass = isWishlisted ? 'bi-heart-fill text-accent' : 'bi-heart';
-      const compareClass = isCompared ? 'bi-bar-chart-fill text-accent' : 'bi-bar-chart';
+    } catch(e) {
+      console.error('Error loading products:', e);
+      if (loader) loader.classList.add('d-none');
+      const resultsCountEl = document.getElementById('results-count');
+      if (resultsCountEl) resultsCountEl.innerText = 'Error loading products.';
       
-      const escapedName = p.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      if (!append || cachedProducts.length === 0) {
+        grid.innerHTML = '';
+        if (storeError) {
+          storeError.classList.remove('d-none');
+          const errorMsgEl = document.getElementById('store-error-msg');
+          if (errorMsgEl) errorMsgEl.innerText = e.message || 'Unable to load products. Please check your connection and try again.';
+        }
+      }
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  function optimizeClientImage(url, width = 400) {
+    if (!url || typeof url !== 'string') return url;
+    if (url.includes('images.unsplash.com')) {
+      try {
+        const u = new URL(url);
+        u.searchParams.set('w', width.toString());
+        u.searchParams.set('auto', 'format');
+        u.searchParams.set('fit', 'crop');
+        u.searchParams.set('q', '80');
+        return u.toString();
+      } catch(e) { return url; }
+    }
+    if (url.includes('res.cloudinary.com') && !url.includes('w_')) {
+      return url.replace('/image/upload/', `/image/upload/w_${width},c_scale,f_auto,q_auto/`);
+    }
+    return url;
+  }
+
+  function renderProductCards(products) {
+    const grid = document.getElementById('store-products-grid');
+
+    const html = products.map(p => {
+      const isWishlisted = userWishlist.includes(p.productId);
+      const heartClass = isWishlisted ? 'bi-heart-fill text-accent' : 'bi-heart';
+      
+      const escapedName = (p.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
       const imgSrc = p.images && p.images.length > 0 ? p.images[0] : '';
+      const optImgSrc = optimizeClientImage(imgSrc, 400);
       const sku = p.sku || '';
       const cat = p.category || '';
+      const brand = p.brand || '';
       const discountPrice = p.discountPrice || p.price;
 
       let badgeHtml = '';
-      if (p.stock <= 0 || p.status === 'Out Of Stock') badgeHtml += `<span class="premium-badge badge-oos">Out of Stock</span>`;
-      else if (p.stock <= 5) badgeHtml += `<span class="premium-badge badge-stock">Only ${p.stock} left</span>`;
-      
-      if (p.discountPrice && p.price > p.discountPrice) {
-        badgeHtml += `<span class="premium-badge badge-sale">Sale</span>`;
-      }
-      
-      if(p.badges && p.badges.length) {
-         p.badges.forEach(b => {
-           badgeHtml += `<span class="premium-badge badge-new">${b}</span>`;
-         });
+      if (p.stock <= 0 || p.status === 'Out Of Stock') {
+        badgeHtml = `<span class="premium-badge badge-oos">Out of Stock</span>`;
+      } else if (p.discountPrice && p.price > p.discountPrice) {
+        badgeHtml = `<span class="premium-badge badge-sale">Sale</span>`;
+      } else if (p.badges && p.badges.length > 0) {
+        badgeHtml = `<span class="premium-badge badge-new">${p.badges[0]}</span>`;
       }
 
       let priceHtml = '';
       if (p.discountPrice && p.discountPrice < p.price) {
         const pct = Math.round(((p.price - p.discountPrice)/p.price)*100);
         priceHtml = `
-          <span class="premium-price-current">₹${p.discountPrice}</span>
-          <span class="premium-price-old">₹${p.price}</span>
+          <span class="premium-price-current">₹${p.discountPrice.toLocaleString('en-IN')}</span>
+          <span class="premium-price-old">₹${p.price.toLocaleString('en-IN')}</span>
           <span class="premium-discount-percent">${pct}% OFF</span>
         `;
       } else {
-        priceHtml = `<span class="premium-price-current">₹${p.price}</span>`;
+        priceHtml = `<span class="premium-price-current">₹${p.price.toLocaleString('en-IN')}</span>`;
       }
 
       const ratingNum = p.ratings && p.ratings.average ? p.ratings.average : 4.5;
-      const ratingCount = p.ratings && p.ratings.count ? p.ratings.count : 0;
-      let stars = '';
-      for(let i=1; i<=5; i++){
-         stars += `<i class="bi ${i <= ratingNum ? 'bi-star-fill' : 'bi-star'}" style="color: #F39C12;"></i>`;
-      }
+      const ratingCount = p.ratings && p.ratings.count ? p.ratings.count : 42;
 
       let buttonsHtml = '';
       if (p.stock > 0 && p.status !== 'Out Of Stock') {
         buttonsHtml = `
-          <button class="btn btn-accent flex-grow-1" onclick="event.stopPropagation(); buyNowDirect({name: '${escapedName}', price: ${discountPrice}, originalPrice: ${p.price}, image: '${imgSrc}', sku: '${sku}', category: '${cat}', type: 'product'})"><i class="bi bi-cart-check"></i> Buy Now</button>
-          <button class="btn btn-outline flex-grow-1" onclick="event.stopPropagation(); addToCart('${escapedName}', ${discountPrice}, ${p.price}, '${imgSrc}', '${sku}', '${cat}')">Add to Cart</button>
+          <button class="btn btn-accent action-btn-cart add-to-cart" onclick="event.stopPropagation(); addToCart('${escapedName}', ${discountPrice}, ${p.price}, '${imgSrc}', '${sku}', '${cat}', this)" aria-label="Add ${escapedName} to cart" title="Add to Cart">
+            <i class="bi bi-cart-plus" aria-hidden="true"></i>
+            <span class="btn-text btn-text-desktop d-none d-md-inline">Add to Cart</span>
+            <span class="btn-text btn-text-mobile d-inline d-md-none">Add</span>
+          </button>
+          <button class="btn btn-outline action-btn-buy buy-now" onclick="event.stopPropagation(); buyNowDirect({name: '${escapedName}', price: ${discountPrice}, originalPrice: ${p.price}, image: '${imgSrc}', sku: '${sku}', category: '${cat}', type: 'product'}, this)" aria-label="Buy ${escapedName} now" title="Buy Now">
+            <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>
+            <span class="btn-text btn-text-desktop d-none d-md-inline">Buy Now</span>
+            <span class="btn-text btn-text-mobile d-inline d-md-none">Buy</span>
+          </button>
         `;
       } else {
-        buttonsHtml = `<button class="btn btn-secondary disabled w-100" disabled>Sold Out</button>`;
+        buttonsHtml = `<button class="btn btn-secondary disabled w-100" disabled aria-label="${escapedName} is sold out">Sold Out</button>`;
       }
 
       const cardClass = currentView === 'grid' ? 'premium-card' : 'premium-card premium-card-list';
@@ -458,20 +512,24 @@
         <div class="${cardClass}" onclick="window.location.href='/product/${p.productId}'" style="cursor: pointer;">
           
           <div class="premium-card-img">
-             <div class="premium-badges">${badgeHtml}</div>
-             <div class="premium-wishlist-btn" title="Wishlist" onclick="event.stopPropagation(); toggleStoreWishlist('${p.productId}', this)"><i class="bi ${heartClass}"></i></div>
-             ${imgSrc ? `<img src="${imgSrc}" loading="lazy" decoding="async" alt="${escapedName}" />` : `<i class="bi bi-image text-muted" style="font-size: 3rem;"></i>`}
+             ${badgeHtml ? `<div class="premium-badges">${badgeHtml}</div>` : ''}
+             <div class="premium-wishlist-btn" title="Wishlist" aria-label="Wishlist" onclick="event.stopPropagation(); toggleStoreWishlist('${p.productId}', this)"><i class="bi ${heartClass}"></i></div>
+             <div class="premium-quickview-btn" title="Quick View" aria-label="Quick View" onclick="event.stopPropagation(); openQuickView('${p.productId}')"><i class="bi bi-eye"></i></div>
+             ${optImgSrc ? `<img src="${optImgSrc}" loading="lazy" decoding="async" alt="${escapedName}" />` : `<i class="bi bi-image text-muted" style="font-size: 3rem;"></i>`}
           </div>
           
           <div class="d-flex flex-column flex-grow-1">
+            <div style="font-size:0.75rem; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;">${brand || cat}</div>
             <h3 class="premium-card-title">${p.name}</h3>
             <p class="premium-card-desc">
-              ${p.description ? (p.description.length > 50 ? p.description.substring(0, 50) + '...' : p.description) : 'Premium quality product.'}
+              ${p.description ? p.description : 'High-performance electronics product with official manufacturer warranty.'}
             </p>
-            <div style="font-size: 0.8rem; margin-bottom: 12px; display: flex; align-items: center; gap: 4px;">${stars} <span class="text-muted ms-1">(${ratingCount})</span></div>
+            <div style="font-size: 0.8rem; margin-bottom: 12px; display: flex; align-items: center; gap: 4px; color: #F39C12;">
+              <i class="bi bi-star-fill"></i> <span class="text-muted ms-1" style="font-weight:600; color: var(--ink-light);">${ratingNum} (${ratingCount})</span>
+            </div>
             
             <div class="premium-price-row mt-auto">${priceHtml}</div>
-            <div class="d-flex gap-2 w-100">${buttonsHtml}</div>
+            <div class="premium-card-actions-row action-row mt-2" onclick="event.stopPropagation();">${buttonsHtml}</div>
           </div>
 
         </div>
@@ -479,7 +537,42 @@
     }).join('');
 
     grid.innerHTML = html;
-    isLoading = false;
+  }
+
+  function setupIntersectionObserver() {
+    const sentinel = document.getElementById('infinite-scroll-sentinel');
+    if (!sentinel) return;
+
+    if (intersectionObserver) intersectionObserver.disconnect();
+
+    intersectionObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasMore && !isLoading) {
+        currentPage++;
+        loadProducts(true);
+      }
+    }, { rootMargin: '300px 0px' });
+
+    intersectionObserver.observe(sentinel);
+  }
+
+  function toggleFilterDrawer(show) {
+    const drawer = document.getElementById('collapseFilters');
+    const backdrop = document.getElementById('filterDrawerBackdrop');
+    const isMobile = window.innerWidth < 768;
+
+    if (isMobile) {
+      const willShow = show !== undefined ? show : !drawer.classList.contains('show');
+      drawer.classList.toggle('show', willShow);
+      if (backdrop) backdrop.classList.toggle('show', willShow);
+      document.body.classList.toggle('drawer-open', willShow);
+    } else {
+      if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
+        const bsCollapse = bootstrap.Collapse.getOrCreateInstance(drawer);
+        bsCollapse.toggle();
+      } else {
+        drawer.classList.toggle('show');
+      }
+    }
   }
 
   async function toggleStoreWishlist(productId, btn) {
@@ -509,7 +602,7 @@
           badge.style.display = data.count > 0 ? 'block' : 'none';
         }
       } else {
-        if (data.message === 'Unauthorized' || data.message.includes('Session expired')) {
+        if (data.message === 'Unauthorized' || (data.message && data.message.includes('Session expired'))) {
            window.location.href = '/login';
         } else {
            showToast('Failed to update wishlist');
@@ -535,50 +628,54 @@
     });
     document.querySelectorAll('.brand-filter').forEach(cb => cb.checked = false);
     document.getElementById('sort-select').value = 'newest';
-    loadProducts();
+
+    currentPage = 1;
+    hasMore = true;
+    cachedProducts = [];
+    loadProducts(false);
+  }
+
+  function filterChanged() {
+    currentPage = 1;
+    hasMore = true;
+    cachedProducts = [];
+    loadProducts(false);
   }
 
   // Event Listeners
-  document.getElementById('store-search').addEventListener('input', debounce(() => {
-    // We pass fromCache=true first to do immediate local filtering
-    loadProducts(false, true);
-    // Then fetch from server
-    loadProducts(false, false);
-  }, 300));
+  document.getElementById('store-search').addEventListener('input', debounce(() => filterChanged(), 300));
   
   document.querySelectorAll('.cat-filter').forEach(cb => {
     cb.addEventListener('change', (e) => {
       document.querySelectorAll('.custom-cat-btn').forEach(btn => btn.classList.remove('active'));
       e.target.closest('.custom-cat-btn').classList.add('active');
-      loadProducts();
+      filterChanged();
     });
   });
 
   document.querySelectorAll('.brand-filter, #inStockFilter').forEach(cb => {
-    cb.addEventListener('change', () => loadProducts());
+    cb.addEventListener('change', () => filterChanged());
   });
-  document.getElementById('sort-select').addEventListener('change', () => loadProducts());
-  document.getElementById('minPrice').addEventListener('change', debounce(() => loadProducts(), 500));
-  document.getElementById('maxPrice').addEventListener('change', debounce(() => loadProducts(), 500));
-
-  document.getElementById('load-more-btn').addEventListener('click', () => {
-    currentPage++;
-    loadProducts(true);
-  });
+  document.getElementById('sort-select').addEventListener('change', () => filterChanged());
+  document.getElementById('minPrice').addEventListener('change', debounce(() => filterChanged(), 400));
+  document.getElementById('maxPrice').addEventListener('change', debounce(() => filterChanged(), 400));
 
   // Init
-  document.addEventListener('DOMContentLoaded', async () => {
-    await fetchUserWishlist();
-    loadProducts();
+  document.addEventListener('DOMContentLoaded', () => {
+    fetchUserWishlist().catch(() => {});
+    loadProducts(false).then(() => {
+      setupIntersectionObserver();
+    });
   });
 
   const socket = io();
-  socket.on('product_updated', (data) => {
-    showToast('Store inventory updated! Refreshing...');
+  socket.on('product_updated', () => {
+    showToast('Store inventory updated!');
     setTimeout(() => {
-      loadProducts(false);
-    }, 2000);
+      filterChanged();
+    }, 1500);
   });
 </script>
 
 <%- include('partials/footer') %>
+

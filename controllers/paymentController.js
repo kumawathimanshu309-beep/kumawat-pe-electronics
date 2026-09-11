@@ -30,8 +30,41 @@ exports.createPaymentIntent = async (req, res) => {
       }
     }
 
-    // 2. Validate Amount
-    const numericAmount = parseFloat(amount);
+    // 2. Validate & Calculate Authoritative Amount
+    const cleanAmountStr = String(amount || '').replace(/[^0-9.]/g, '').trim();
+    let numericAmount = parseFloat(cleanAmountStr);
+
+    if (items && items.length > 0) {
+      let dbProducts = [];
+      const itemNames = items.map(i => i.name).filter(Boolean);
+      if (itemNames.length > 0) {
+        try {
+          dbProducts = await Product.find({ name: { $in: itemNames } });
+        } catch(e) {}
+      }
+      
+      let calculatedItemsTotal = 0;
+      let calculatedDiscount = 0;
+
+      for (let item of items) {
+        const product = dbProducts.find(p => p.name === item.name);
+        const dbPrice = product ? product.price : (parseFloat(item.originalPrice) || parseFloat(item.price) || 0);
+        const dbDiscountPrice = product ? (product.discountPrice || product.price) : (parseFloat(item.price) || 0);
+        const qty = parseInt(item.quantity) || 1;
+        
+        calculatedItemsTotal += (dbPrice * qty);
+        calculatedDiscount += ((dbPrice - dbDiscountPrice) * qty);
+      }
+
+      const handlingCharge = 11;
+      const deliveryFee = 0;
+      const serverCalculatedTotal = calculatedItemsTotal + handlingCharge + deliveryFee - calculatedDiscount;
+      
+      if (serverCalculatedTotal > 0) {
+        numericAmount = serverCalculatedTotal;
+      }
+    }
+
     if (!numericAmount || isNaN(numericAmount) || numericAmount <= 0) {
       return res.status(400).json({ success: false, message: "Invalid Amount" });
     }
@@ -62,6 +95,13 @@ exports.createPaymentIntent = async (req, res) => {
       await paymentService.releaseInventory(items);
       return res.status(500).json({ success: false, message: err.message || "Failed to contact Payment Gateway" });
     }
+
+    // Debug logging for payment intent creation
+    console.log(`\n==================================================`);
+    console.log(`[RAZORPAY DEBUG] Website final total: ₹${numericAmount}`);
+    console.log(`[RAZORPAY DEBUG] Razorpay amount in paise: ${rzpOrder.amount}`);
+    console.log(`[RAZORPAY DEBUG] Razorpay order id: ${rzpOrder.id}`);
+    console.log(`==================================================\n`);
 
     // 6. Save PaymentRecord
     const record = new PaymentRecord({

@@ -1,0 +1,300 @@
+<!-- Global Product Quick View Modal V2 -->
+<div class="modal fade" id="quickViewModal" tabindex="-1" aria-labelledby="quickViewModalLabel" aria-hidden="true" role="dialog">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: var(--radius-lg, 12px); overflow: hidden;">
+      <div class="modal-header border-bottom py-3 px-4">
+        <h5 class="modal-title font-display fw-bold text-ink" id="quickViewModalLabel">
+          <i class="bi bi-eye text-accent me-2" aria-hidden="true"></i> Product Quick View
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close quick view" style="min-width: 36px; min-height: 36px;"></button>
+      </div>
+      <div class="modal-body p-3 p-md-4 p-lg-4" id="quickViewModalBody" style="max-height: 85vh; overflow-y: auto; overflow-x: hidden;">
+        <!-- Loaded dynamically via JS -->
+        <div class="text-center py-5">
+          <div class="spinner-border text-accent" role="status" style="width: 2.5rem; height: 2.5rem;">
+            <span class="visually-hidden">Loading product...</span>
+          </div>
+          <p class="text-muted mt-2" style="font-size: 0.88rem;">Loading product details...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentqvQty = 1;
+
+  async function openQuickView(productId) {
+    if (!productId) return;
+    const modalEl = document.getElementById('quickViewModal');
+    const modalBody = document.getElementById('quickViewModalBody');
+    if (!modalEl || !modalBody) return;
+
+    let bsModal = bootstrap.Modal.getInstance(modalEl);
+    if (!bsModal) bsModal = new bootstrap.Modal(modalEl);
+    
+    currentqvQty = 1;
+
+    // Reset Body to Loader
+    modalBody.innerHTML = `
+      <div class="text-center py-5">
+        <div class="spinner-border text-accent" role="status" style="width: 2.5rem; height: 2.5rem;">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="text-muted mt-2" style="font-size: 0.88rem;">Loading product details...</p>
+      </div>
+    `;
+
+    bsModal.show();
+
+    try {
+      const res = await fetch('/api/products/' + productId);
+      const data = await res.json();
+
+      if (!data.success || !data.product) {
+        modalBody.innerHTML = `
+          <div class="alert alert-danger text-center py-4 my-3">
+            <i class="bi bi-exclamation-triangle-fill fs-3 d-block mb-2"></i>
+            <h5>Unable to load product</h5>
+            <p class="mb-3" style="font-size: 0.88rem;">The requested product details could not be retrieved.</p>
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="openQuickView('${productId}')">
+              <i class="bi bi-arrow-clockwise me-1"></i> Retry
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      const p = data.product;
+      const targetProdId = p.productId || p._id || productId;
+      const images = (p.images && p.images.length > 0) ? p.images : [];
+      const mainImgSrc = images.length > 0 ? images[0] : '';
+      const discountPrice = p.discountPrice || p.price;
+      const escapedName = (p.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      const sku = p.sku || 'N/A';
+      const cat = p.category || 'General';
+      const brand = p.brand || cat || 'Kumawat P&E';
+      const rating = (p.ratings && p.ratings.average) ? p.ratings.average : (p.rating || '4.8');
+      const reviewCount = (p.ratings && p.ratings.count) ? p.ratings.count : 24;
+
+      let priceHtml = '';
+      if (p.discountPrice && p.discountPrice < p.price) {
+        const pct = Math.round(((p.price - p.discountPrice) / p.price) * 100);
+        priceHtml = `
+          <div class="d-flex align-items-baseline gap-2 flex-wrap mb-2 qv-price-row">
+            <span class="fs-3 fw-bold text-ink" style="white-space: nowrap;">₹${p.discountPrice.toLocaleString('en-IN')}</span>
+            <span class="fs-6 text-muted text-decoration-line-through" style="white-space: nowrap;">₹${p.price.toLocaleString('en-IN')}</span>
+            <span class="badge bg-success-subtle text-success px-2 py-1 fw-bold" style="white-space: nowrap;">${pct}% OFF</span>
+          </div>
+        `;
+      } else {
+        priceHtml = `<div class="fs-3 fw-bold text-ink mb-2 qv-price-row" style="white-space: nowrap;">₹${p.price.toLocaleString('en-IN')}</div>`;
+      }
+
+      // Thumbnails HTML
+      let thumbnailsHtml = '';
+      if (images.length > 1) {
+        thumbnailsHtml = `
+          <div class="qv-thumbnails-strip d-flex gap-2 mt-2 overflow-x-auto py-1">
+            ${images.map((img, idx) => `
+              <button type="button" class="qv-thumb-btn border rounded ${idx === 0 ? 'active border-accent' : 'border-rule'}" onclick="changeQvMainImage('${img}', this)" aria-label="View Image ${idx + 1}" style="width: 54px; height: 54px; padding: 2px; background: #fff; flex-shrink: 0; cursor: pointer;">
+                <img src="${img}" alt="${escapedName} thumbnail ${idx + 1}" style="width: 100%; height: 100%; object-fit: contain;" />
+              </button>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      // Highlights List
+      let highlightsHtml = '';
+      if (p.features && p.features.length > 0) {
+        highlightsHtml = `
+          <div class="qv-highlights mb-3">
+            <div class="text-muted fw-bold mb-1" style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em;">Key Highlights</div>
+            <ul class="list-unstyled mb-0" style="font-size: 0.84rem; color: var(--ink-light);">
+              ${p.features.slice(0, 3).map(feat => `<li class="d-flex align-items-center mb-1"><i class="bi bi-check2 text-accent me-2 font-weight-bold"></i><span>${feat}</span></li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }
+
+      modalBody.innerHTML = `
+        <div class="qv-body-grid">
+          
+          <!-- LEFT COLUMN: GALLERY -->
+          <div class="qv-gallery-col text-center">
+            <div class="qv-main-image-wrap border rounded p-3 bg-surface">
+              ${mainImgSrc ? `
+                <img id="qvMainImage" src="${mainImgSrc}" class="img-fluid" alt="${escapedName}" />
+              ` : `
+                <i class="bi bi-image text-muted fs-1"></i>
+              `}
+            </div>
+            ${thumbnailsHtml}
+          </div>
+
+          <!-- RIGHT COLUMN: PRODUCT DETAILS -->
+          <div class="qv-info-col d-flex flex-column">
+            
+            <div class="text-uppercase fw-bold text-accent mb-1 qv-brand" style="font-size: 0.75rem; letter-spacing: 0.08em;">${brand}</div>
+            <h3 class="fw-bold mb-2 text-ink qv-title" style="font-family: var(--font-display); font-size: 1.3rem; line-height: 1.3;">${p.name}</h3>
+            
+            <div class="d-flex align-items-center gap-3 mb-2 flex-wrap qv-meta" style="font-size: 0.82rem;">
+              <span class="text-muted">SKU: <strong class="text-dark qv-sku" style="overflow-wrap: anywhere;">${sku}</strong></span>
+              <span class="text-muted">·</span>
+              <span class="text-warning d-flex align-items-center gap-1 qv-rating" style="white-space: nowrap;">
+                <i class="bi bi-star-fill"></i>
+                <strong class="text-dark">${rating}</strong>
+                <span class="text-muted">(${reviewCount} reviews)</span>
+              </span>
+            </div>
+
+            ${priceHtml}
+
+            <!-- Stock Status -->
+            <div class="mb-3 qv-stock">
+              ${p.stock > 0 ? `
+                <span class="badge bg-success-subtle text-success px-2.5 py-1.5" style="font-size: 0.78rem;">
+                  <i class="bi bi-check-circle-fill me-1"></i> In Stock (${p.stock} available)
+                </span>
+                ${p.stock <= 5 ? `<span class="badge bg-warning-subtle text-warning ms-1 px-2 py-1" style="font-size: 0.75rem;">Only ${p.stock} left!</span>` : ''}
+              ` : `
+                <span class="badge bg-danger-subtle text-danger px-2.5 py-1.5" style="font-size: 0.78rem;">
+                  <i class="bi bi-x-circle-fill me-1"></i> Out of Stock
+                </span>
+              `}
+            </div>
+
+            ${highlightsHtml}
+
+            <!-- Short Description -->
+            <p class="text-muted mb-3 qv-desc" style="font-size: 0.84rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+              ${p.description || 'High-performance authentic plumbing & electrical product with store warranty and same-day doorstep delivery option.'}
+            </p>
+
+            ${p.stock > 0 ? `
+              <!-- Quantity Selector -->
+              <div class="d-flex align-items-center gap-3 mb-3 qv-qty-row">
+                <span class="fw-bold text-dark qv-qty-label" style="font-size: 0.85rem; white-space: nowrap; flex-shrink: 0;">Quantity:</span>
+                <div class="input-group" style="width: 120px; flex-shrink: 0;">
+                  <button class="btn btn-outline-secondary btn-sm" type="button" onclick="adjustQvQty(-1, ${p.stock})"><i class="bi bi-dash"></i></button>
+                  <input type="text" id="qvQtyInput" class="form-control form-control-sm text-center fw-bold" value="1" readonly style="background: #fff;" />
+                  <button class="btn btn-outline-secondary btn-sm" type="button" onclick="adjustQvQty(1, ${p.stock})"><i class="bi bi-plus"></i></button>
+                </div>
+              </div>
+
+              <!-- Main Primary Actions Grid -->
+              <div class="qv-actions-grid mb-3">
+                <button type="button" class="btn btn-accent py-2.5 fw-bold text-truncate" onclick="addQvToCart({
+                  id: '${p._id || p.id}',
+                  productId: '${targetProdId}',
+                  name: '${escapedName}',
+                  price: ${discountPrice},
+                  originalPrice: ${p.price},
+                  image: '${mainImgSrc}',
+                  sku: '${sku}',
+                  category: '${cat}',
+                  type: 'product'
+                })">
+                  <i class="bi bi-bag-plus me-1.5"></i> Add to Cart
+                </button>
+                
+                <button type="button" class="btn btn-outline-dark py-2.5 fw-bold text-truncate" onclick="buyQvDirect({
+                  id: '${p._id || p.id}',
+                  productId: '${targetProdId}',
+                  name: '${escapedName}',
+                  price: ${discountPrice},
+                  image: '${mainImgSrc}',
+                  type: 'product'
+                })">
+                  <i class="bi bi-lightning-charge me-1.5 text-warning"></i> Buy Now
+                </button>
+              </div>
+            ` : ''}
+
+            <!-- Sub-actions Row (Wishlist, Share, View Full Details) -->
+            <div class="d-flex align-items-center justify-content-between pt-3 border-top gap-2 flex-wrap qv-sub-actions" style="font-size: 0.85rem;">
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleWishlist('${targetProdId}', this)" title="Add to Wishlist">
+                  <i class="bi bi-heart me-1"></i> Wishlist
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="shareQvProduct('${targetProdId}', '${escapedName}')" title="Share Product">
+                  <i class="bi bi-share me-1"></i> Share
+                </button>
+              </div>
+              
+              <a href="/product/${targetProdId}" class="btn btn-sm btn-link text-accent fw-bold p-0 text-decoration-none" onclick="bootstrap.Modal.getInstance(document.getElementById('quickViewModal')).hide();">
+                View Full Details <i class="bi bi-arrow-right ms-1"></i>
+              </a>
+            </div>
+
+          </div>
+        </div>
+      `;
+
+    } catch (err) {
+      console.error('Quick view error:', err);
+      modalBody.innerHTML = `
+        <div class="alert alert-danger text-center py-4 my-3">
+          <i class="bi bi-exclamation-circle-fill fs-3 d-block mb-2"></i>
+          <h5>Error loading product</h5>
+          <p class="mb-0" style="font-size: 0.88rem;">An error occurred while fetching details. Please try again.</p>
+        </div>
+      `;
+    }
+  }
+
+  function changeQvMainImage(imgSrc, btnEl) {
+    const mainImg = document.getElementById('qvMainImage');
+    if (mainImg) mainImg.src = imgSrc;
+
+    const btns = document.querySelectorAll('.qv-thumb-btn');
+    btns.forEach(b => b.classList.remove('active', 'border-accent'));
+    if (btnEl) btnEl.classList.add('active', 'border-accent');
+  }
+
+  function adjustQvQty(delta, maxStock) {
+    currentqvQty += delta;
+    if (currentqvQty < 1) currentqvQty = 1;
+    if (currentqvQty > maxStock) currentqvQty = maxStock;
+    const input = document.getElementById('qvQtyInput');
+    if (input) input.value = currentqvQty;
+  }
+
+  function addQvToCart(productData) {
+    if (typeof addToCart === 'function') {
+      const payload = { ...productData, quantity: currentqvQty };
+      addToCart(payload);
+      if (typeof showToast === 'function') {
+        showToast('🛒 Added to cart ✓');
+      }
+    }
+    const modalEl = document.getElementById('quickViewModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) modal.hide();
+  }
+
+  function buyQvDirect(productData) {
+    if (typeof buyNowDirect === 'function') {
+      buyNowDirect(productData);
+    } else {
+      if (typeof addToCart === 'function') addToCart(productData);
+      window.location.href = '/checkout';
+    }
+  }
+
+  function shareQvProduct(productId, productName) {
+    const shareUrl = window.location.origin + '/product/' + productId;
+    if (navigator.share) {
+      navigator.share({
+        title: productName,
+        text: 'Check out ' + productName + ' on Kumawat P&E',
+        url: shareUrl
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        if (typeof showToast === 'function') showToast('🔗 Product link copied to clipboard ✓');
+      }).catch(() => {});
+    }
+  }
+</script>

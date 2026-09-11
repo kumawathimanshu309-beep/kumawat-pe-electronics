@@ -1,19 +1,3 @@
-<!-- Floating Cart Button -->
-<button class="floating-cart-btn" onclick="toggleCartDrawer()">
-  <i class="bi bi-cart3"></i> Cart (<span id="floating-cart-count">0</span>)
-</button>
-
-<!-- Sticky Mobile Checkout Bar -->
-<div class="mobile-checkout-bar d-md-none" id="mobile-checkout-bar" style="display: none !important;">
-  <div class="d-flex justify-content-between align-items-center w-100 px-3 py-2">
-    <div>
-      <div style="font-size: 0.8rem; color: rgba(255,255,255,0.7);">Items: <span id="mobile-cart-count">0</span></div>
-      <div style="font-weight: bold; font-size: 1.1rem;" id="mobile-cart-total">₹0</div>
-    </div>
-    <button class="btn btn-accent btn-sm" onclick="toggleCartDrawer()">View Cart</button>
-  </div>
-</div>
-
 <!-- Cart Drawer Overlay -->
 <div class="cart-drawer-overlay" id="cartDrawerOverlay" onclick="toggleCartDrawer()"></div>
 
@@ -51,39 +35,6 @@
 </div>
 
 <style>
-  /* Floating Cart Button */
-  .floating-cart-btn {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    background: var(--accent);
-    color: var(--dark);
-    border: none;
-    padding: 12px 24px;
-    border-radius: 50px;
-    font-weight: bold;
-    font-size: 1.1rem;
-    box-shadow: 0 10px 25px rgba(201, 96, 42, 0.4);
-    cursor: pointer;
-    z-index: 1040;
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
-  .floating-cart-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 15px 30px rgba(201, 96, 42, 0.5);
-  }
-
-  /* Sticky Mobile Bar */
-  .mobile-checkout-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--bg-dark);
-    color: var(--white);
-    z-index: 1035;
-    border-top: 1px solid rgba(255,255,255,0.1);
-  }
 
   /* Cart Drawer */
   .cart-drawer-overlay {
@@ -173,11 +124,71 @@
   let cart = [];
   const isLoggedIn = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
 
+  function getCurrentCartQuantity() {
+    if (!Array.isArray(cart)) return 0;
+    // Count products for ecommerce navbar badge (exclude services)
+    return cart
+      .filter(item => item.type === 'product' || item.productId || (item.id && item.type !== 'service'))
+      .reduce((sum, item) => sum + (parseInt(item.quantity) || 1), 0);
+  }
+
+  // Global window helpers for synchronized state
+  window.getKumawatCart = function() {
+    return Array.isArray(cart) ? cart : [];
+  };
+
+  window.setKumawatCart = function(newCart) {
+    if (Array.isArray(newCart)) {
+      cart = newCart;
+      saveCart();
+    }
+  };
+
+  function updateCartIndicators(totalItems) {
+    const count = typeof totalItems === 'number' ? totalItems : getCurrentCartQuantity();
+    const displayCount = count > 99 ? '99+' : String(count);
+
+    const badges = document.querySelectorAll('#cart-badge-count, #mobile-bottom-cart-count, .cart-count-badge, [data-cart-count]');
+    badges.forEach(badge => {
+      badge.textContent = displayCount;
+      if (count > 0) {
+        badge.style.display = 'inline-flex';
+        badge.removeAttribute('hidden');
+        if (typeof window.animateBadgeBump === 'function' && badge.id) {
+          window.animateBadgeBump(badge.id);
+        }
+      } else {
+        badge.style.display = 'none';
+        badge.setAttribute('hidden', 'true');
+      }
+      const parentBtn = badge.closest('button, a, .mobile-bottom-nav-item');
+      if (parentBtn) {
+        parentBtn.setAttribute('aria-label', count > 0 ? `Shopping cart, ${count} item${count !== 1 ? 's' : ''}` : 'Shopping cart');
+      }
+    });
+  }
+
+  function openCartDrawer() {
+    const drawer = document.getElementById('cartDrawer');
+    const overlay = document.getElementById('cartDrawerOverlay');
+    if (drawer && overlay) {
+      drawer.classList.add('open');
+      overlay.classList.add('show');
+    }
+  }
+
   function toggleCartDrawer() {
     const drawer = document.getElementById('cartDrawer');
     const overlay = document.getElementById('cartDrawerOverlay');
-    drawer.classList.toggle('open');
-    overlay.classList.toggle('show');
+    if (drawer && overlay) {
+      const isOpen = drawer.classList.contains('open');
+      if (isOpen) {
+        drawer.classList.remove('open');
+        overlay.classList.remove('show');
+      } else {
+        openCartDrawer();
+      }
+    }
   }
 
   async function loadCart() {
@@ -198,10 +209,15 @@
       }
       
       try {
-        const res = await fetch('/api/cart');
-        const data = await res.json();
-        if (data.success) cart = data.cart;
-      } catch (e) { console.error(e); }
+        if (!window._cartFetchPromise) {
+          window._cartFetchPromise = fetch('/api/cart').then(r => r.json());
+        }
+        const data = await window._cartFetchPromise;
+        if (data && data.success) cart = data.cart;
+      } catch (e) {
+        window._cartFetchPromise = null;
+        console.error(e);
+      }
     } else {
       const saved = localStorage.getItem('kumawat_cart');
       if (saved) {
@@ -212,6 +228,7 @@
   }
 
   async function saveCart() {
+    window._cartFetchPromise = null;
     if (isLoggedIn) {
       try {
         await fetch('/api/cart/overwrite', {
@@ -227,50 +244,117 @@
   }
 
   window.addEventListener('DOMContentLoaded', loadCart);
+  window.addEventListener('pageshow', loadCart);
+  window.addEventListener('storage', function(e) {
+    if (e.key === 'kumawat_cart') {
+      try {
+        cart = JSON.parse(e.newValue || '[]');
+        updateCartUI();
+      } catch (err) {}
+    }
+  });
 
-  function addToCart(escapedName, price, originalPrice, image, sku, category) {
-    let item;
-    if (typeof escapedName === 'object') {
-      item = escapedName;
-      item.name = unescape(item.name);
-      item.quantity = 1;
-    } else {
-      const name = unescape(escapedName);
-      item = { name, price, originalPrice, image, sku, category, type: typeof category !== 'undefined' ? 'product' : 'service', quantity: 1 };
+  async function addToCart(escapedName, price, originalPrice, image, sku, category, buttonEl) {
+    let btn = null;
+    if (buttonEl && buttonEl instanceof HTMLElement) {
+      btn = buttonEl;
+    } else if (typeof event !== 'undefined' && event && event.currentTarget instanceof HTMLElement) {
+      btn = event.currentTarget;
     }
 
-    const existing = cart.find(i => i.name === item.name);
-    if (existing) {
-      existing.quantity += 1;
-    } else {
-      cart.push(item);
+    let originalBtnHtml = '';
+    if (btn && !btn.disabled) {
+      btn.disabled = true;
+      originalBtnHtml = btn.innerHTML;
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="width: 0.85rem; height: 0.85rem;"></span> Adding...`;
     }
-    saveCart();
-    
-    showToast(`✅ ${item.name} Added to Cart`);
+
+    try {
+      let item;
+      if (typeof escapedName === 'object') {
+        item = escapedName;
+        item.name = unescape(item.name);
+        item.quantity = item.quantity || 1;
+      } else {
+        const name = unescape(escapedName);
+        item = { name, price, originalPrice, image, sku, category, type: typeof category !== 'undefined' ? 'product' : 'service', quantity: 1 };
+      }
+
+      const existing = cart.find(i => i.name === item.name);
+      if (existing) {
+        existing.quantity += 1;
+      } else {
+        cart.push(item);
+      }
+
+      await saveCart();
+      
+      const displayName = item.name.length > 28 ? item.name.substring(0, 28) + '…' : item.name;
+      if (typeof showToast === 'function') {
+        showToast(`🛒 ${displayName} added to cart ✓`);
+      }
+    } catch (err) {
+      console.error("Add to cart error:", err);
+      if (typeof showToast === 'function') {
+        showToast("⚠️ Could not add to cart. Please try again.");
+      }
+    } finally {
+      if (btn) {
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.innerHTML = originalBtnHtml;
+        }, 300);
+      }
+    }
   }
 
-  async function buyNowDirect(itemObj) {
-    if(typeof itemObj.name === 'string') itemObj.name = unescape(itemObj.name);
-    const existing = cart.find(item => item.name === itemObj.name);
-    if (!existing) {
-      itemObj.quantity = 1;
-      cart.push(itemObj);
-    } else {
-      existing.quantity += 1;
+  async function buyNowDirect(itemObj, buttonEl) {
+    let btn = null;
+    if (buttonEl && buttonEl instanceof HTMLElement) {
+      btn = buttonEl;
+    } else if (typeof event !== 'undefined' && event && event.currentTarget instanceof HTMLElement) {
+      btn = event.currentTarget;
     }
-    await saveCart();
-    window.location.href = '/checkout';
+
+    let originalBtnHtml = '';
+    if (btn && !btn.disabled) {
+      btn.disabled = true;
+      originalBtnHtml = btn.innerHTML;
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="width: 0.85rem; height: 0.85rem;"></span> Processing...`;
+    }
+
+    try {
+      if (typeof itemObj.name === 'string') itemObj.name = unescape(itemObj.name);
+      const existing = cart.find(item => item.name === itemObj.name);
+      if (!existing) {
+        itemObj.quantity = 1;
+        cart.push(itemObj);
+      } else {
+        existing.quantity += 1;
+      }
+      await saveCart();
+      window.location.href = '/checkout';
+    } catch (err) {
+      console.error("Buy now error:", err);
+      if (typeof showToast === 'function') {
+        showToast("⚠️ Could not process request. Please try again.");
+      }
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalBtnHtml;
+      }
+    }
   }
 
   async function removeFromCart(name) {
-    cart = cart.filter(item => item.name !== name);
+    const rawName = unescape(name);
+    cart = cart.filter(item => item.name !== rawName);
     if (isLoggedIn) {
       try {
         await fetch('/api/cart/remove', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId: name }) // using name as identifier fallback
+          body: JSON.stringify({ productId: rawName })
         });
       } catch (e) { console.error(e); }
     } else {
@@ -280,18 +364,19 @@
   }
 
   async function adjustQty(name, amount) {
-    const item = cart.find(item => item.name === name);
+    const rawName = unescape(name);
+    const item = cart.find(item => item.name === rawName);
     if (item) {
       item.quantity += amount;
       if (item.quantity <= 0) {
-        await removeFromCart(name);
+        await removeFromCart(rawName);
       } else {
         if (isLoggedIn) {
           try {
             await fetch('/api/cart/update', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ productId: name, quantity: item.quantity })
+              body: JSON.stringify({ productId: rawName, quantity: item.quantity })
             });
           } catch (e) { console.error(e); }
         } else {
@@ -302,9 +387,28 @@
     }
   }
 
+  async function clearCart() {
+    cart = [];
+    if (isLoggedIn) {
+      try {
+        await fetch('/api/cart/clear', { method: 'POST' });
+      } catch (e) { console.error(e); }
+    } else {
+      localStorage.removeItem('kumawat_cart');
+    }
+    updateCartUI();
+  }
+
   function updateCartUI() {
-    let totalItems = 0;
+    const totalItems = getCurrentCartQuantity();
     let totalPrice = 0;
+
+    if (Array.isArray(cart)) {
+      cart.forEach(item => {
+        const qty = parseInt(item.quantity) || 1;
+        totalPrice += (parseFloat(item.price) || 0) * qty;
+      });
+    }
 
     const drawerBody = document.getElementById('cart-drawer-body');
     if (drawerBody) {
@@ -319,8 +423,8 @@
         `;
       } else {
         cart.forEach(item => {
-          totalItems += item.quantity;
-          totalPrice += item.price * item.quantity;
+          const qty = parseInt(item.quantity) || 1;
+          const itemTotal = (parseFloat(item.price) || 0) * qty;
           
           let imgHtml = item.image 
             ? `<img loading="lazy" decoding="async" src="${item.image}" alt="${item.name}">` 
@@ -331,12 +435,12 @@
               ${imgHtml}
               <div class="drawer-item-details">
                 <div class="drawer-item-title">${item.name}</div>
-                <div class="drawer-item-price">₹${item.price}</div>
+                <div class="drawer-item-price">₹${parseFloat(item.price).toLocaleString('en-IN')}</div>
                 <div class="drawer-qty-controls">
-                  <button class="drawer-qty-btn" onclick="adjustQty('${item.name}', -1)">-</button>
-                  <span>${item.quantity}</span>
-                  <button class="drawer-qty-btn" onclick="adjustQty('${item.name}', 1)">+</button>
-                  <button class="btn btn-sm btn-link text-danger ms-auto p-0" onclick="removeFromCart('${item.name}')"><i class="bi bi-trash"></i></button>
+                  <button class="drawer-qty-btn" onclick="adjustQty('${escape(item.name)}', -1)" aria-label="Decrease quantity">-</button>
+                  <span>${qty}</span>
+                  <button class="drawer-qty-btn" onclick="adjustQty('${escape(item.name)}', 1)" aria-label="Increase quantity">+</button>
+                  <button class="btn btn-sm btn-link text-danger ms-auto p-0" onclick="removeFromCart('${escape(item.name)}')" aria-label="Remove item"><i class="bi bi-trash"></i></button>
                 </div>
               </div>
             </div>
@@ -345,27 +449,18 @@
       }
     }
 
-    // Update floating buttons and texts
-    document.getElementById('floating-cart-count') && (document.getElementById('floating-cart-count').textContent = totalItems);
-    document.getElementById('mobile-cart-count') && (document.getElementById('mobile-cart-count').textContent = totalItems);
-    document.getElementById('mobile-cart-total') && (document.getElementById('mobile-cart-total').textContent = `₹${totalPrice}`);
-    document.getElementById('drawer-items-total') && (document.getElementById('drawer-items-total').textContent = `₹${totalPrice}`);
-    document.getElementById('drawer-grand-total') && (document.getElementById('drawer-grand-total').textContent = `₹${totalPrice}`);
+    // Update all visible cart count indicators across navigation
+    updateCartIndicators(totalItems);
 
-    // Show/hide floating btn
-    const floatBtn = document.querySelector('.floating-cart-btn');
-    const mobileBar = document.getElementById('mobile-checkout-bar');
+    // Update Drawer totals
+    const drawerItemsTotal = document.getElementById('drawer-items-total');
+    if (drawerItemsTotal) drawerItemsTotal.textContent = `₹${totalPrice.toLocaleString('en-IN')}`;
     
-    // Hide cart buttons on checkout page
-    if (window.location.pathname === '/checkout') {
-      if(floatBtn) floatBtn.style.display = 'none';
-      if(mobileBar) mobileBar.style.setProperty('display', 'none', 'important');
-    } else {
-      if(floatBtn) floatBtn.style.display = totalItems > 0 ? 'block' : 'none';
-      if(mobileBar) mobileBar.style.setProperty('display', totalItems > 0 ? 'block' : 'none', 'important');
-    }
-  }
+    const drawerGrandTotal = document.getElementById('drawer-grand-total');
+    if (drawerGrandTotal) drawerGrandTotal.textContent = `₹${totalPrice.toLocaleString('en-IN')}`;
 
-  // Init
-  document.addEventListener('DOMContentLoaded', loadCart);
+    // Dispatch cart updated custom events for any external listeners
+    window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { cart, totalItems, totalPrice } }));
+    window.dispatchEvent(new CustomEvent('cart:updated', { detail: { cart, totalItems, totalPrice } }));
+  }
 </script>

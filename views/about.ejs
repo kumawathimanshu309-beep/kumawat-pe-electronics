@@ -1,52 +1,191 @@
 <%- include('partials/header', { title: 'About Us | Kumawat P&E', activePage: 'about' }) %>
 
-<div class="container" style="padding: 80px 24px;">
-  <div class="about-inner">
-    <div class="about-left">
-      <div class="owner-avatar" aria-label="Owner initials: HK">HK</div>
-      <p class="section-label">About the Owner</p>
-      <h2>Himanshu Kumawat</h2>
-      <p style="color:var(--ink-light); font-size:.88rem; margin-top:6px;">Plumber &amp; Electrician · Govindgarh Since 2014</p>
+<div class="about-page-wrapper">
+  <div class="container">
 
-      <div class="differentiators">
-        <div class="diff-item">
-          <span class="diff-dot"></span>
-          <span>Licensed contractor with a verified safety certification.</span>
+    <!-- About Hero -->
+    <div class="about-hero" data-reveal>
+      <p class="section-label">About Kumawat P&amp;E</p>
+      <h1 class="about-hero-title">Built locally. Trusted through the work.</h1>
+      <p class="about-hero-sub">Providing reliable plumbing, electrical repairs, and genuine hardware supplies across Govindgarh since 2014.</p>
+      <div class="about-hero-actions">
+        <a href="/services" class="btn btn-accent btn-md">
+          <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i> Book a Service
+        </a>
+        <a href="/store" class="btn btn-outline btn-md">
+          <i class="bi bi-shop" aria-hidden="true"></i> Explore Products
+        </a>
+      </div>
+    </div>
+
+    <!-- Owner / Founder Section & Core Standards -->
+    <div class="about-owner-section" data-reveal>
+      <div class="owner-profile-card">
+        <div class="owner-avatar" aria-label="Owner initials: HK">HK</div>
+        <div class="owner-info">
+          <h2 class="owner-name">Himanshu Kumawat</h2>
+          <p class="owner-meta">Plumber &amp; Electrician · Govindgarh · Serving Since 2014</p>
+          <div class="owner-badges">
+            <span class="owner-badge"><i class="bi bi-patch-check-fill" aria-hidden="true"></i> Licensed Contractor</span>
+            <span class="owner-badge"><i class="bi bi-shield-lock-fill" aria-hidden="true"></i> Verified Safety Practice</span>
+          </div>
         </div>
-        <div class="diff-item">
-          <span class="diff-dot"></span>
-          <span>Carries replacement parts on service calls to prevent duplicate trips.</span>
+      </div>
+
+      <div class="owner-standards-card">
+        <h3 class="standards-title">How We Stand Out</h3>
+        <ul class="standards-list">
+          <li>
+            <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+            <span><strong>Upfront Itemized Quotations:</strong> Transparent pricing provided before work begins, with no hidden surcharges.</span>
+          </li>
+          <li>
+            <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+            <span><strong>Replacement Parts On-Hand:</strong> Key plumbing and electrical fittings carried on service calls to prevent duplicate visits.</span>
+          </li>
+          <li>
+            <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+            <span><strong>30-Day Labor Guarantee:</strong> Standing behind every repair and installation with dedicated after-service support.</span>
+          </li>
+          <li>
+            <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+            <span><strong>Direct Local Technicians:</strong> All work managed directly by Himanshu Kumawat and assistant Deepak — no unverified third-party laborers.</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Our Story - 3 Scannable Pillars -->
+    <div class="about-story-section">
+      <div class="story-header">
+        <p class="section-label">Our Journey</p>
+        <h2 class="story-title">Our Story &amp; Work Ethic</h2>
+      </div>
+      <div class="story-grid">
+        <div class="story-card">
+          <span class="story-step">01</span>
+          <h3 class="story-card-title">How It Started</h3>
+          <p class="story-card-text">Kumawat Plumbing &amp; Electricals started in 2014 with a single set of toolbags and a focus on serving local residents around Station Road, Govindgarh. Over 12 years of active service, our growth has come purely from word-of-mouth recommendations and local trust.</p>
         </div>
-        <div class="diff-item">
-          <span class="diff-dot"></span>
-          <span>Itemized quotations provided upfront with no hidden surcharges.</span>
+        <div class="story-card">
+          <span class="story-step">02</span>
+          <h3 class="story-card-title">How We Work</h3>
+          <p class="story-card-text">We believe in providing practical solutions rather than excuses. Whether diagnosing short circuits, fixing low water pressure, or servicing geysers, we arrive equipped with replacement parts, complete work neatly, and clean up after finishing.</p>
         </div>
-        <div class="diff-item">
-          <span class="diff-dot"></span>
-          <span>Same-day home delivery of hardware supplies and backup installations.</span>
-        </div>
-        <div class="diff-item">
-          <span class="diff-dot"></span>
-          <span>Active digital client loyalty cards featuring QR code profiles.</span>
+        <div class="story-card">
+          <span class="story-step">03</span>
+          <h3 class="story-card-title">What We Support Today</h3>
+          <p class="story-card-text">Beyond on-site repair visits, Kumawat P&amp;E delivers genuine replacement fittings, electrical supplies, and hardware directly to customers' doorsteps, combining skilled trade service with accessible local retail support.</p>
         </div>
       </div>
     </div>
 
-    <div class="about-right">
-      <p class="section-label" style="margin-bottom:16px;">Our Story</p>
-      <p>Kumawat Plumbing &amp; Electricals started with a single set of toolbags and a focus on serving local residents on Station Road, Govindgarh. Over the last 12 years, our reputation has grown purely from recommendations and trust. We believe in providing solutions, not excuses.</p>
-      <p>Whether you are dealing with a faulty geyser thermostat, low water pressure, a short circuit in your distribution panel, or you simply need quality replacement fittings delivered to your doorstep, Himanshu Kumawat and his assistant Deepak ensure high-quality workmanship.</p>
-      <p>We do not outsource or hire unverified day laborers. When you hire Kumawat P&amp;E, you get expert technicians who know the systems inside out, tidy up after completion, and stand by their work with a 30-day labor guarantee.</p>
-      
-      <div style="margin-top: 36px; border: 1.5px solid var(--rule); padding: 24px; border-radius: 8px; background: var(--white);">
-        <h3 style="font-family: var(--font-display); font-size: 1.2rem; margin-bottom: 12px;">Loyalty Program &amp; Digital Cards</h3>
-        <p style="font-size: 0.88rem; color: var(--ink-light); margin-bottom: 14px;">Every registered user is assigned a unique digital customer card with a generated QR code. Our technicians scan the card at your residence to log activities, apply exclusive discounts, track deliveries, and complete contactless payment validation.</p>
-        <div class="d-flex gap-3">
-          <a href="/register" class="btn btn-accent btn-sm">Register Now</a>
-          <a href="/login" class="btn btn-outline btn-sm">Access Account</a>
+    <!-- Why Choose Us - 4 Feature Grid -->
+    <div class="about-why-section">
+      <h2 class="why-title">Why Customers Rely On Us</h2>
+      <div class="why-grid">
+        <div class="why-card">
+          <div class="why-icon"><i class="bi bi-receipt" aria-hidden="true"></i></div>
+          <div class="why-content">
+            <h4>Upfront Quotations</h4>
+            <p>Clear, itemized cost estimates shared before any work starts so you always know what to expect.</p>
+          </div>
+        </div>
+        <div class="why-card">
+          <div class="why-icon"><i class="bi bi-box-seam" aria-hidden="true"></i></div>
+          <div class="why-content">
+            <h4>Genuine Spare Parts</h4>
+            <p>Quality plumbing fittings and electrical components delivered or brought directly to your location.</p>
+          </div>
+        </div>
+        <div class="why-card">
+          <div class="why-icon"><i class="bi bi-shield-check" aria-hidden="true"></i></div>
+          <div class="why-content">
+            <h4>30-Day Labor Support</h4>
+            <p>Every completed job comes with a 30-day labor guarantee for complete peace of mind.</p>
+          </div>
+        </div>
+        <div class="why-card">
+          <div class="why-icon"><i class="bi bi-person-check" aria-hidden="true"></i></div>
+          <div class="why-content">
+            <h4>Verified Local Service</h4>
+            <p>Handled personally by Himanshu Kumawat and Deepak, ensuring accountable workmanship on every call.</p>
+          </div>
         </div>
       </div>
     </div>
+
+    <!-- Services & Products Synergy Section -->
+    <div class="about-synergy-section">
+      <div class="synergy-card">
+        <div class="synergy-text">
+          <h2>Services &amp; Genuine Hardware Products</h2>
+          <p>Alongside professional plumbing and electrical service work, Kumawat P&amp;E provides customers with genuine replacement parts, hardware, and home-electrical supplies available for direct purchase.</p>
+        </div>
+        <div class="synergy-actions">
+          <a href="/services" class="btn btn-accent btn-md">
+            <i class="bi bi-tools" aria-hidden="true"></i> Book a Service
+          </a>
+          <a href="/store" class="btn btn-outline btn-md">
+            <i class="bi bi-bag" aria-hidden="true"></i> Shop Products
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Verified Timeline -->
+    <div class="about-timeline-section">
+      <h2 class="timeline-title">Milestones</h2>
+      <div class="timeline-container">
+        <div class="timeline-item">
+          <span class="timeline-year">2014</span>
+          <div class="timeline-content">
+            <h4>Business Established</h4>
+            <p>Kumawat Plumbing &amp; Electricals established on Station Road, Govindgarh.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <span class="timeline-year">Present</span>
+          <div class="timeline-content">
+            <h4>Expanded Support &amp; Loyalty Program</h4>
+            <p>Providing doorstep hardware delivery, 30-day labor guarantees, and digital QR customer loyalty cards.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loyalty Program Panel -->
+    <div class="about-loyalty-section">
+      <div class="loyalty-card">
+        <div class="loyalty-info">
+          <div class="loyalty-tag"><i class="bi bi-qr-code-scan" aria-hidden="true"></i> Customer Loyalty</div>
+          <h3>Digital Customer Cards &amp; QR Profiles</h3>
+          <p>Every registered user receives a digital customer card with a unique QR code. Our technicians scan your card on-site to log service activities, track hardware deliveries, and apply eligible discounts.</p>
+        </div>
+        <div class="loyalty-actions">
+          <a href="/register" class="btn btn-accent btn-md">Register Now</a>
+          <a href="/login" class="btn btn-outline btn-md">Access Account</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Final Call to Action -->
+    <div class="about-final-cta">
+      <h2>Need Help At Home Or Looking For Replacement Parts?</h2>
+      <p>Get in touch with Himanshu Kumawat for quick service bookings or product inquiries.</p>
+      <div class="final-cta-buttons">
+        <a href="/services" class="btn btn-accent btn-md">
+          <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i> Book a Service
+        </a>
+        <a href="https://wa.me/919462759965?text=Hi%20Himanshu%2C%20I%20read%20your%20About%20page%20and%20want%20to%20inquire%20about%20a%20service." target="_blank" rel="noopener noreferrer" class="btn btn-whatsapp btn-md">
+          <i class="bi bi-whatsapp" aria-hidden="true"></i> WhatsApp Chat
+        </a>
+        <a href="tel:+919462759965" class="btn btn-outline btn-md">
+          <i class="bi bi-telephone-fill" aria-hidden="true"></i> Call +91 94627 59965
+        </a>
+      </div>
+    </div>
+
   </div>
 </div>
 

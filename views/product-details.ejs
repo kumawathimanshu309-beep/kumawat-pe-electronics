@@ -1,3 +1,17 @@
+<%
+  function getSpecVal(mapOrObj, propKey, defaultVal = 'N/A') {
+    if (!mapOrObj) return defaultVal;
+    if (typeof mapOrObj.get === 'function') {
+      const val = mapOrObj.get(propKey);
+      return (val !== undefined && val !== null && val !== '') ? val : defaultVal;
+    }
+    if (typeof mapOrObj === 'object') {
+      const val = mapOrObj[propKey];
+      return (val !== undefined && val !== null && val !== '') ? val : defaultVal;
+    }
+    return defaultVal;
+  }
+%>
 <%- include('partials/header') %>
 
 <!-- JSON-LD SEO Schema -->
@@ -28,15 +42,7 @@
 <section class="py-4 mt-4" style="background: var(--bg); min-height: 80vh;">
   <div class="container">
     
-    <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb" class="mb-4">
-      <ol class="breadcrumb" style="font-size:0.85rem; font-weight:500;">
-        <li class="breadcrumb-item"><a href="/" style="color:var(--ink-light)">Home</a></li>
-        <li class="breadcrumb-item"><a href="/store" style="color:var(--ink-light)">Store</a></li>
-        <li class="breadcrumb-item"><a href="/store?category=<%= encodeURIComponent(product.category) %>" style="color:var(--accent)"><%= product.category %></a></li>
-        <li class="breadcrumb-item active" aria-current="page"><%= product.name %></li>
-      </ol>
-    </nav>
+    
 
     <div class="row g-5">
       <!-- Product Gallery -->
@@ -44,7 +50,7 @@
         <div class="modern-card p-3">
           <div class="gallery-main" id="main-image-container">
             <% if (product.images && product.images.length > 0) { %>
-              <img fetchpriority="high" loading="eager" decoding="sync" id="main-image" src="<%= optimizeImage(product.images[0]) %>" alt="<%= product.name %>" style="max-height: 500px; object-fit: contain; width: 100%; border-radius: var(--radius);" />
+              <img fetchpriority="high" loading="eager" decoding="sync" id="main-image" src="<%= optimizeImage(product.images[0]) %>" alt="<%= product.name %>" onclick="openLightboxCurrent()" style="max-height: 500px; object-fit: contain; width: 100%; border-radius: var(--radius); cursor: zoom-in;" title="Click to open large image viewer" />
             <% } else { %>
               <div style="width:100%; height:400px; display:flex; align-items:center; justify-content:center; background:#eee;">
                 <i class="bi bi-image text-muted" style="font-size: 4rem;"></i>
@@ -129,7 +135,10 @@
         <!-- Action Buttons -->
         <div class="d-flex gap-3 align-items-center mb-4">
           <% if (product.stock > 0 && product.status !== 'Out Of Stock') { %>
-            <button class="btn btn-accent flex-grow-1" style="padding: 14px; font-size: 1.1rem; border-radius: 8px;" onclick="buyNowDirect({
+            <button class="btn btn-accent flex-grow-1" style="padding: 14px; font-size: 1.05rem; border-radius: 8px;" onclick="addToCart('<%= escape(product.name) %>', <%= product.discountPrice || product.price %>, <%= product.price %>, '<%= product.images && product.images.length ? product.images[0] : '' %>', '<%= product.sku || 'N/A' %>', '<%= product.category || 'General' %>', this)">
+              <i class="bi bi-cart-plus"></i> Add to Cart
+            </button>
+            <button class="btn btn-outline flex-grow-1" style="padding: 14px; font-size: 1.05rem; border-radius: 8px; color: var(--accent); border-color: var(--accent);" onclick="buyNowDirect({
               name: '<%= escape(product.name) %>',
               price: <%= product.discountPrice || product.price %>,
               originalPrice: <%= product.price %>,
@@ -137,14 +146,14 @@
               sku: '<%= product.sku || 'N/A' %>',
               category: '<%= product.category || 'General' %>',
               type: 'product'
-            })">
-              <i class="bi bi-cart-plus"></i> Add to Cart
+            }, this)">
+              <i class="bi bi-lightning-charge-fill"></i> Buy Now
             </button>
           <% } else { %>
             <button class="btn flex-grow-1 disabled" style="background:#ddd; color:#888; padding: 14px; font-size: 1.1rem; border-radius: 8px;" disabled>Out of Stock</button>
           <% } %>
           
-          <button class="btn btn-outline" style="padding: 14px; font-size: 1.4rem; border-radius: 8px; color: var(--accent); border-color: var(--rule);" onclick="toggleWishlist('<%= product.productId %>', this)" id="wishlist-btn">
+          <button class="btn btn-outline" style="padding: 14px; font-size: 1.4rem; border-radius: 8px; color: var(--accent); border-color: var(--rule);" onclick="toggleWishlist('<%= product.productId %>', this)" id="wishlist-btn" title="Add to Wishlist" aria-label="Add to Wishlist">
             <i class="bi bi-heart"></i>
           </button>
         </div>
@@ -166,7 +175,7 @@
           <div class="col-4">
             <div class="modern-card p-3 h-100 d-flex flex-column align-items-center justify-content-center">
               <i class="bi bi-award fs-4 text-warning mb-2"></i>
-              <span><%= product.specifications && product.specifications.warranty && product.specifications.warranty.get('duration') ? product.specifications.warranty.get('duration') : 'Brand Warranty' %></span>
+              <span><%= getSpecVal(product.specifications && product.specifications.warranty, 'duration', 'Brand Warranty') %></span>
             </div>
           </div>
         </div>
@@ -193,43 +202,43 @@
         <div class="tab-pane fade show active" id="specs" role="tabpanel">
           <div class="row">
             <div class="col-md-6 mb-4">
-              <h5 style="color:var(--accent); font-family:var(--font-display);"><i class="bi bi-cpu"></i> General Information</h5>
+              <h2 style="color:var(--accent); font-family:var(--font-display); font-size: var(--fs-lg); font-weight:700;"><i class="bi bi-cpu"></i> General Information</h2>
               <table class="spec-table mt-3">
                 <tbody>
                   <tr><th>Brand</th><td><%= product.brand || 'Generic' %></td></tr>
-                  <tr><th>Model Number</th><td><%= (product.specifications && product.specifications.general) ? (product.specifications.general.get('modelNumber') || 'N/A') : 'N/A' %></td></tr>
-                  <tr><th>SKU</th><td><%= product.sku || 'N/A' %></td></tr>
-                  <tr><th>Country of Origin</th><td><%= (product.specifications && product.specifications.general) ? (product.specifications.general.get('countryOfOrigin') || 'N/A') : 'N/A' %></td></tr>
+                  <tr><th>Model Number</th><td><%= getSpecVal(product.specifications && product.specifications.general, 'modelNumber') %></td></tr>
+                  <tr><th>SKU</th><td><code style="font-family:monospace; font-size:var(--fs-sm);"><%= product.sku || 'N/A' %></code></td></tr>
+                  <tr><th>Country of Origin</th><td><%= getSpecVal(product.specifications && product.specifications.general, 'countryOfOrigin') %></td></tr>
                 </tbody>
               </table>
             </div>
             <div class="col-md-6 mb-4">
-              <h5 style="color:var(--accent); font-family:var(--font-display);"><i class="bi bi-lightning-charge"></i> Electrical Specifications</h5>
+              <h2 style="color:var(--accent); font-family:var(--font-display); font-size: var(--fs-lg); font-weight:700;"><i class="bi bi-lightning-charge"></i> Electrical Specifications</h2>
               <table class="spec-table mt-3">
                 <tbody>
-                  <tr><th>Voltage</th><td><%= (product.specifications && product.specifications.electrical) ? (product.specifications.electrical.get('voltage') || 'N/A') : 'N/A' %></td></tr>
-                  <tr><th>Power/Wattage</th><td><%= (product.specifications && product.specifications.electrical) ? (product.specifications.electrical.get('wattage') || 'N/A') : 'N/A' %></td></tr>
-                  <tr><th>Current</th><td><%= (product.specifications && product.specifications.electrical) ? (product.specifications.electrical.get('current') || 'N/A') : 'N/A' %></td></tr>
+                  <tr><th>Voltage</th><td><%= getSpecVal(product.specifications && product.specifications.electrical, 'voltage') %></td></tr>
+                  <tr><th>Power/Wattage</th><td><%= getSpecVal(product.specifications && product.specifications.electrical, 'wattage') %></td></tr>
+                  <tr><th>Current</th><td><%= getSpecVal(product.specifications && product.specifications.electrical, 'current') %></td></tr>
                 </tbody>
               </table>
             </div>
             <div class="col-md-6 mb-4">
-              <h5 style="color:var(--accent); font-family:var(--font-display);"><i class="bi bi-box"></i> Physical Dimensions</h5>
+              <h2 style="color:var(--accent); font-family:var(--font-display); font-size: var(--fs-lg); font-weight:700;"><i class="bi bi-box"></i> Physical Dimensions</h2>
               <table class="spec-table mt-3">
                 <tbody>
-                  <tr><th>Weight</th><td><%= (product.specifications && product.specifications.physical) ? (product.specifications.physical.get('weight') || 'N/A') : 'N/A' %></td></tr>
-                  <tr><th>Dimensions</th><td><%= (product.specifications && product.specifications.physical) ? (product.specifications.physical.get('dimensions') || 'N/A') : 'N/A' %></td></tr>
-                  <tr><th>Material</th><td><%= (product.specifications && product.specifications.physical) ? (product.specifications.physical.get('material') || 'N/A') : 'N/A' %></td></tr>
-                  <tr><th>Color</th><td><%= (product.specifications && product.specifications.physical) ? (product.specifications.physical.get('color') || 'N/A') : 'N/A' %></td></tr>
+                  <tr><th>Weight</th><td><%= getSpecVal(product.specifications && product.specifications.physical, 'weight') %></td></tr>
+                  <tr><th>Dimensions</th><td><%= getSpecVal(product.specifications && product.specifications.physical, 'dimensions') %></td></tr>
+                  <tr><th>Material</th><td><%= getSpecVal(product.specifications && product.specifications.physical, 'material') %></td></tr>
+                  <tr><th>Color</th><td><%= getSpecVal(product.specifications && product.specifications.physical, 'color') %></td></tr>
                 </tbody>
               </table>
             </div>
             <div class="col-md-6 mb-4">
-              <h5 style="color:var(--accent); font-family:var(--font-display);"><i class="bi bi-shield-check"></i> Warranty & Support</h5>
+              <h2 style="color:var(--accent); font-family:var(--font-display); font-size: var(--fs-lg); font-weight:700;"><i class="bi bi-shield-check"></i> Warranty & Support</h2>
               <table class="spec-table mt-3">
                 <tbody>
-                  <tr><th>Warranty</th><td><%= (product.specifications && product.specifications.warranty) ? (product.specifications.warranty.get('duration') || 'N/A') : 'N/A' %></td></tr>
-                  <tr><th>Coverage</th><td><%= (product.specifications && product.specifications.warranty) ? (product.specifications.warranty.get('coverage') || 'N/A') : 'N/A' %></td></tr>
+                  <tr><th>Warranty</th><td><%= getSpecVal(product.specifications && product.specifications.warranty, 'duration') %></td></tr>
+                  <tr><th>Coverage</th><td><%= getSpecVal(product.specifications && product.specifications.warranty, 'coverage') %></td></tr>
                   <tr><th>Package Contents</th><td><%= (product.packageContents && product.packageContents.length > 0) ? product.packageContents.join(', ') : 'Unit, User Manual' %></td></tr>
                 </tbody>
               </table>
@@ -239,7 +248,7 @@
 
         <!-- Features Tab -->
         <div class="tab-pane fade" id="features" role="tabpanel">
-          <h5 style="color:var(--accent); font-family:var(--font-display); margin-bottom: 20px;">Key Features</h5>
+          <h2 style="color:var(--accent); font-family:var(--font-display); font-size: var(--fs-lg); font-weight:700; margin-bottom: 20px;">Key Features</h2>
           <% if (product.features && product.features.length > 0) { %>
             <ul style="list-style: none; padding-left:0;">
               <% product.features.forEach(f => { %>
@@ -254,7 +263,7 @@
           <% } %>
           
           <% if (product.video) { %>
-            <h5 style="color:var(--accent); font-family:var(--font-display); margin-top: 30px; margin-bottom: 20px;">Product Video</h5>
+            <h2 style="color:var(--accent); font-family:var(--font-display); font-size: var(--fs-lg); font-weight:700; margin-top: 30px; margin-bottom: 20px;">Product Video</h2>
             <div class="ratio ratio-16x9" style="max-width: 600px; border-radius: var(--radius); overflow:hidden;">
               <iframe src="<%= optimizeImage(product.video) %>" title="Product Video" allowfullscreen></iframe>
             </div>
@@ -264,7 +273,7 @@
         <!-- Reviews Tab (Placeholder for React / AJAX Injection) -->
         <div class="tab-pane fade" id="reviews" role="tabpanel">
           <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 style="color:var(--accent); font-family:var(--font-display);">Verified Customer Reviews</h5>
+            <h2 style="color:var(--accent); font-family:var(--font-display); font-size: var(--fs-lg); font-weight:700;">Verified Customer Reviews</h2>
             <button class="btn btn-outline btn-sm" onclick="openReviewModal()">Write a Review</button>
           </div>
           <div id="reviews-container">
@@ -528,7 +537,187 @@
       document.getElementById('reviews-container').innerHTML = '<div class="text-danger py-4">Error loading reviews.</div>';
     }
   }
+
+  // ── SHARE PRODUCT & RECENTLY VIEWED LOGIC ───────────────────
+  async function shareProduct() {
+    const shareData = {
+      title: '<%= product.name.replace(/'/g, "\\'") %>',
+      text: 'Check out <%= product.name.replace(/'/g, "\\'") %> on Kumawat P&E!',
+      url: window.location.href
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {}
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        if (typeof showToast === 'function') showToast('✅ Product link copied to clipboard!');
+        else alert('Link copied to clipboard!');
+      } catch (e) {
+        alert('Product URL: ' + window.location.href);
+      }
+    }
+  }
+
+  function recordRecentlyViewed() {
+    try {
+      const currentProd = {
+        productId: '<%= product.productId %>',
+        name: '<%= product.name.replace(/'/g, "\\'") %>',
+        price: <%= product.discountPrice || product.price %>,
+        image: '<%= product.images && product.images.length ? product.images[0] : "" %>'
+      };
+      let list = JSON.parse(localStorage.getItem('kumawat_recently_viewed') || '[]');
+      list = list.filter(p => p.productId !== currentProd.productId);
+      list.unshift(currentProd);
+      if (list.length > 8) list.pop();
+      localStorage.setItem('kumawat_recently_viewed', JSON.stringify(list));
+    } catch(e) {}
+  }
+  document.addEventListener('DOMContentLoaded', recordRecentlyViewed);
+
+  // ── AMAZON-STYLE PRODUCT LIGHTBOX CONTROLLER ────────────────
+  const rawProductImages = <%- JSON.stringify(product.images || []) %>;
+  let currentImageIdx = 0;
+  let currentZoom = 1;
+
+  function changeMainImage(thumbEl, imgSrc) {
+    document.querySelectorAll('.gallery-thumb').forEach(el => el.classList.remove('active'));
+    if (thumbEl) thumbEl.classList.add('active');
+    const mainImg = document.getElementById('main-image');
+    if (mainImg) mainImg.src = imgSrc;
+    const foundIdx = rawProductImages.indexOf(imgSrc);
+    if (foundIdx !== -1) currentImageIdx = foundIdx;
+  }
+
+  function openLightboxCurrent() {
+    selectLightboxImage(currentImageIdx);
+    const modal = document.getElementById('productImageLightbox');
+    if (modal) {
+      modal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+  }
+
+  function closeImageLightbox() {
+    const modal = document.getElementById('productImageLightbox');
+    if (modal) {
+      modal.classList.remove('open');
+      document.body.style.overflow = '';
+      resetLightboxZoom();
+    }
+  }
+
+  function selectLightboxImage(idx) {
+    if (!rawProductImages || rawProductImages.length === 0) return;
+    if (idx < 0) idx = rawProductImages.length - 1;
+    if (idx >= rawProductImages.length) idx = 0;
+    currentImageIdx = idx;
+
+    const lbImg = document.getElementById('lightboxMainImg');
+    if (lbImg) lbImg.src = rawProductImages[currentImageIdx];
+
+    const mainImg = document.getElementById('main-image');
+    if (mainImg) mainImg.src = rawProductImages[currentImageIdx];
+
+    document.querySelectorAll('.product-lightbox-thumb').forEach((thumb, i) => {
+      thumb.classList.toggle('active', i === currentImageIdx);
+    });
+
+    document.querySelectorAll('.gallery-thumb').forEach((thumb, i) => {
+      thumb.classList.toggle('active', i === currentImageIdx);
+    });
+
+    resetLightboxZoom();
+  }
+
+  function prevLightboxImage() {
+    selectLightboxImage(currentImageIdx - 1);
+  }
+
+  function nextLightboxImage() {
+    selectLightboxImage(currentImageIdx + 1);
+  }
+
+  function zoomLightboxImage(factor) {
+    const lbImg = document.getElementById('lightboxMainImg');
+    if (!lbImg) return;
+    if (factor === 1.25) currentZoom = Math.min(currentZoom * 1.25, 3.0);
+    else if (factor === 0.8) currentZoom = Math.max(currentZoom * 0.8, 0.8);
+    lbImg.style.transform = `scale(${currentZoom})`;
+  }
+
+  function resetLightboxZoom() {
+    currentZoom = 1.0;
+    const lbImg = document.getElementById('lightboxMainImg');
+    if (lbImg) lbImg.style.transform = 'scale(1)';
+  }
+
+  document.addEventListener('keydown', (e) => {
+    const modal = document.getElementById('productImageLightbox');
+    if (!modal || !modal.classList.contains('open')) return;
+    if (e.key === 'Escape') closeImageLightbox();
+    else if (e.key === 'ArrowLeft') prevLightboxImage();
+    else if (e.key === 'ArrowRight') nextLightboxImage();
+  });
 </script>
+
+<!-- AMAZON-STYLE PRODUCT IMAGE LIGHTBOX HTML -->
+<div id="productImageLightbox" class="product-image-lightbox" role="dialog" aria-modal="true" aria-label="Product Image Viewer">
+  <div class="product-lightbox-overlay" onclick="closeImageLightbox()"></div>
+  <div class="product-lightbox-content">
+    <button type="button" class="product-lightbox-close" onclick="closeImageLightbox()" aria-label="Close Lightbox viewer">✕</button>
+
+    <!-- Sidebar Thumbnails -->
+    <div class="product-lightbox-sidebar" id="lightboxThumbnails">
+      <% if (product.images && product.images.length > 0) { %>
+        <% product.images.forEach((img, idx) => { %>
+          <img src="<%= optimizeImage(img) %>" alt="<%= product.name %> thumbnail <%= idx+1 %>" class="product-lightbox-thumb <%= idx === 0 ? 'active' : '' %>" onclick="selectLightboxImage(<%= idx %>)" />
+        <% }) %>
+      <% } %>
+    </div>
+
+    <!-- Main Image Stage -->
+    <div class="product-lightbox-stage">
+      <button type="button" class="product-lightbox-nav product-lightbox-prev" onclick="prevLightboxImage()" aria-label="Previous Image">‹</button>
+      <div class="product-lightbox-img-wrapper" id="lightboxImgWrapper">
+        <img id="lightboxMainImg" src="<%= product.images && product.images.length > 0 ? optimizeImage(product.images[0]) : '' %>" alt="<%= product.name %> Large View" />
+      </div>
+      <button type="button" class="product-lightbox-nav product-lightbox-next" onclick="nextLightboxImage()" aria-label="Next Image">›</button>
+
+      <!-- Zoom Controls Bar -->
+      <div class="product-lightbox-zoom-bar">
+        <button type="button" class="product-lightbox-zoom-btn" onclick="zoomLightboxImage(1.25)" title="Zoom In"><i class="bi bi-zoom-in"></i> Zoom In</button>
+        <button type="button" class="product-lightbox-zoom-btn" onclick="zoomLightboxImage(0.8)" title="Zoom Out"><i class="bi bi-zoom-out"></i> Zoom Out</button>
+        <button type="button" class="product-lightbox-zoom-btn" onclick="resetLightboxZoom()" title="Reset Zoom">Reset</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STICKY MOBILE PURCHASE ACTION BAR (< 768px) -->
+<div class="mobile-purchase-bar d-md-none">
+  <div>
+    <div style="font-size: 0.72rem; color: var(--ink-light); font-weight: 600;">Total Price</div>
+    <div style="font-size: 1.15rem; font-weight: 800; color: var(--accent); line-height: 1;">₹<%= product.discountPrice || product.price %></div>
+  </div>
+  <% if (product.stock > 0 && product.status !== 'Out Of Stock') { %>
+    <button class="btn btn-accent flex-grow-1" style="height: 44px; font-size: 0.95rem;" onclick="buyNowDirect({
+      name: '<%= escape(product.name) %>',
+      price: <%= product.discountPrice || product.price %>,
+      originalPrice: <%= product.price %>,
+      image: '<%= product.images && product.images.length ? product.images[0] : '' %>',
+      sku: '<%= product.sku || 'N/A' %>',
+      category: '<%= product.category || 'General' %>',
+      type: 'product'
+    })">
+      <i class="bi bi-cart-plus me-1"></i> Add to Cart
+    </button>
+  <% } else { %>
+    <button class="btn btn-secondary flex-grow-1 disabled" style="height: 44px;" disabled>Out of Stock</button>
+  <% } %>
+</div>
 
 </main>
 <%- include('partials/footer') %>

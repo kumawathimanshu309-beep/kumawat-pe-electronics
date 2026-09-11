@@ -1,56 +1,176 @@
 <%- include('partials/header', { title: 'Contact Us | Kumawat P&E', activePage: 'contact' }) %>
 
-<div class="container" style="padding: 80px 24px;">
-  <p class="section-label">Find Us</p>
-  <h2 style="margin-bottom:48px;">We're right around the corner.</h2>
+<div class="contact-page-wrapper">
+  <div class="container">
+    
+    <!-- Hero Intro -->
+    <div class="contact-hero">
+      <p class="section-label">Find Us</p>
+      <h1 class="contact-title">We're right around the corner.</h1>
+    </div>
 
-  <div class="contact-grid">
-    <div>
-      <div class="map-wrap">
-        <iframe
-          src="https://maps.google.com/maps?q=Govindgarh+Rajasthan+India&output=embed"
-          allowfullscreen=""
-          loading="lazy"
-          title="Kumawat Plumbing & Electricals location on map"
-        ></iframe>
+    <!-- Main 2-Column Contact Grid -->
+    <div class="contact-grid">
+      
+      <!-- LEFT COLUMN: Map + Directions + Summary -->
+      <div class="contact-map-col">
+        <div class="map-wrap">
+          <iframe
+            src="https://maps.google.com/maps?q=Govindgarh+Rajasthan+India&output=embed"
+            allowfullscreen=""
+            loading="lazy"
+            title="Kumawat Plumbing & Electricals location on map"
+          ></iframe>
+        </div>
+        <div class="map-summary-card">
+          <div class="map-summary-info">
+            <h3 class="map-summary-name">Kumawat Plumbing &amp; Electricals</h3>
+            <p class="map-summary-address">Adda Ball, Kui Ke Pass, Station Road, Govindgarh, Rajasthan 305201</p>
+          </div>
+          <a href="https://maps.google.com/maps?q=Govindgarh+Rajasthan+India" target="_blank" rel="noopener noreferrer" class="btn btn-outline-sm get-directions-btn" aria-label="Get Directions on Google Maps">
+            <i class="bi bi-compass-fill" aria-hidden="true"></i> Get Directions
+          </a>
+        </div>
       </div>
-      <div style="margin-top: 20px; border: 1.5px solid var(--rule); border-radius: 8px; padding: 18px; background: var(--white);">
-        <h4 style="font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; margin-bottom: 8px;">Billing &amp; Payment Options</h4>
-        <p style="font-size: 0.8rem; color: var(--ink-light); margin-bottom: 12px;">For delivery and service bookings, we accept all digital payment formats. Scan your Digital Customer Card upon service delivery to complete payments instantly.</p>
+
+      <!-- RIGHT COLUMN: Actions, Details, Hours, Emergency & Primary CTA -->
+      <div class="contact-info-col">
+        
+        <!-- Primary Action Group -->
+        <div class="contact-actions-bar">
+          <a href="tel:+919462759965" class="action-chip call-chip" aria-label="Call +91 94627 59965">
+            <i class="bi bi-telephone-fill" aria-hidden="true"></i>
+            <span>Call Now</span>
+          </a>
+          <a href="https://wa.me/919462759965?text=Hi%20Himanshu%2C%20I%20saw%20your%20website%20and%20want%20to%20inquire%20about%20a%20service." target="_blank" rel="noopener noreferrer" class="action-chip whatsapp-chip" aria-label="Message on WhatsApp">
+            <i class="bi bi-whatsapp" aria-hidden="true"></i>
+            <span>WhatsApp</span>
+          </a>
+          <a href="https://mail.google.com/mail/?view=cm&fs=1&to=kumawathimanshu309@gmail.com" target="_blank" rel="noopener noreferrer" class="action-chip email-chip" aria-label="Send an Email">
+            <i class="bi bi-envelope-fill" aria-hidden="true"></i>
+            <span>Email Us</span>
+          </a>
+        </div>
+
+        <!-- Primary CTA: Book a Service -->
+        <div class="contact-primary-cta">
+          <a href="/services" class="btn btn-accent btn-lg w-100 book-service-btn">
+            <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i> Book a Service
+          </a>
+        </div>
+
+        <!-- Structured Contact Methods -->
+        <div class="contact-details-block">
+          <div class="detail-row">
+            <div class="detail-icon"><i class="bi bi-telephone-fill" aria-hidden="true"></i></div>
+            <div class="detail-content">
+              <span class="detail-label">Phone</span>
+              <a href="tel:+919462759965" class="detail-val">+91 94627 59965</a>
+            </div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-icon"><i class="bi bi-envelope-fill" aria-hidden="true"></i></div>
+            <div class="detail-content">
+              <span class="detail-label">Email</span>
+              <a href="https://mail.google.com/mail/?view=cm&fs=1&to=kumawathimanshu309@gmail.com" target="_blank" rel="noopener noreferrer" class="detail-val">kumawathimanshu309@gmail.com</a>
+            </div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-icon"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i></div>
+            <div class="detail-content">
+              <span class="detail-label">Store Location</span>
+              <address class="detail-val address-val">
+                Adda Ball, Kui Ke Pass<br>
+                Station Road<br>
+                Govindgarh, Rajasthan 305201
+              </address>
+            </div>
+          </div>
+        </div>
+
+        <!-- Working Hours & Dynamic Status Card -->
+        <div class="working-hours-card">
+          <div class="hours-card-header">
+            <h3>Working Hours</h3>
+            <div id="open-status-badge" class="status-badge" aria-live="polite">
+              <span class="status-dot"></span>
+              <span id="status-text">Checking...</span>
+            </div>
+          </div>
+          <div class="hours-grid">
+            <span class="day">Monday – Saturday</span><span class="time">8:00 AM – 9:00 PM</span>
+            <span class="day">Sunday</span><span class="time">9:00 AM – 6:00 PM</span>
+          </div>
+
+          <!-- Emergency repairs highlight row -->
+          <div class="emergency-row">
+            <div class="emergency-badge">
+              <i class="bi bi-shield-check" aria-hidden="true"></i>
+              <span>24/7 Emergency Repairs Available</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Compact Payment Options Section -->
+    <div class="contact-payment-section">
+      <div class="payment-header">
+        <h4 class="payment-title">Secure Payment Options</h4>
+        <p class="payment-subtitle">For delivery and service bookings, we accept cash and all digital payment formats upon delivery.</p>
+      </div>
+      <div class="payment-icons-wrapper">
         <%- include('partials/payment_icons') %>
       </div>
     </div>
 
-    <div class="contact-details">
-      <div>
-        <h3 style="margin-bottom:12px;">Working Hours</h3>
-        <div class="hours-grid">
-          <span class="day">Monday – Saturday</span><span class="time">8:00 am – 9:00 pm</span>
-          <span class="day">Sunday</span><span class="time">9:00 am – 6:00 pm</span>
-          <span class="day">Emergency Repairs</span><span class="time">24 Hours Available</span>
-        </div>
-      </div>
-
-      <div class="contact-methods">
-        <div class="contact-method">
-          <i class="bi bi-telephone-fill" style="color: var(--accent); font-size: 1.15rem;"></i>
-          <a href="tel:+919462759965">+91 94627 59965</a>
-        </div>
-        <div class="contact-method">
-          <i class="bi bi-envelope-fill" style="color: var(--accent); font-size: 1.15rem;"></i>
-          <a href="https://mail.google.com/mail/?view=cm&fs=1&to=kumawathimanshu309@gmail.com" target="_blank">kumawathimanshu309@gmail.com</a>
-        </div>
-        <div class="contact-method">
-          <i class="bi bi-geo-alt-fill" style="color: var(--accent); font-size: 1.15rem;"></i>
-          <span>Adda Ball, Kui Ke Pass, Station Road, Govindgarh</span>
-        </div>
-      </div>
-
-      <a href="https://wa.me/919462759965?text=Hi%20Himanshu%2C%20I%20saw%20your%20website%20and%20want%20to%20book%20a%20service." target="_blank" class="btn btn-whatsapp" style="align-self: flex-start;">
-        <i class="bi bi-whatsapp"></i> WhatsApp Chat to Book
-      </a>
-    </div>
   </div>
 </div>
+
+<script>
+  (function() {
+    function updateOpenStatus() {
+      var badge = document.getElementById('open-status-badge');
+      var textEl = document.getElementById('status-text');
+      if (!badge || !textEl) return;
+
+      var now = new Date();
+      var day = now.getDay(); // 0 = Sunday, 1 = Mon, ..., 6 = Sat
+      var hour = now.getHours();
+      var min = now.getMinutes();
+      var currentMinutes = hour * 60 + min;
+
+      var isOpen = false;
+
+      if (day >= 1 && day <= 6) {
+        // Mon-Sat: 8:00 AM (480 mins) to 9:00 PM (1260 mins)
+        if (currentMinutes >= 480 && currentMinutes < 1260) {
+          isOpen = true;
+        }
+      } else if (day === 0) {
+        // Sun: 9:00 AM (540 mins) to 6:00 PM (1080 mins)
+        if (currentMinutes >= 540 && currentMinutes < 1080) {
+          isOpen = true;
+        }
+      }
+
+      if (isOpen) {
+        badge.className = 'status-badge open';
+        textEl.textContent = 'Open Now';
+      } else {
+        badge.className = 'status-badge closed';
+        textEl.textContent = 'Closed';
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', updateOpenStatus);
+    } else {
+      updateOpenStatus();
+    }
+  })();
+</script>
 
 <%- include('partials/footer') %>

@@ -126,22 +126,30 @@
             </div>
           </div>
 
+<%
+  function getSpecEditVal(mapOrObj, propKey) {
+    if (!mapOrObj) return '';
+    if (typeof mapOrObj.get === 'function') return mapOrObj.get(propKey) || '';
+    if (typeof mapOrObj === 'object') return mapOrObj[propKey] || '';
+    return '';
+  }
+%>
           <div class="row mb-3">
             <div class="col-md-3 field">
               <label>Warranty Duration</label>
-              <input type="text" name="spec_warranty" class="form-control" value="<%= (product.specifications && product.specifications.warranty && product.specifications.warranty.get) ? product.specifications.warranty.get('duration') : '' %>" />
+              <input type="text" name="spec_warranty" class="form-control" value="<%= getSpecEditVal(product.specifications && product.specifications.warranty, 'duration') %>" />
             </div>
             <div class="col-md-3 field">
               <label>Voltage</label>
-              <input type="text" name="spec_voltage" class="form-control" value="<%= (product.specifications && product.specifications.electrical && product.specifications.electrical.get) ? product.specifications.electrical.get('voltage') : '' %>" />
+              <input type="text" name="spec_voltage" class="form-control" value="<%= getSpecEditVal(product.specifications && product.specifications.electrical, 'voltage') %>" />
             </div>
             <div class="col-md-3 field">
               <label>Power/Wattage</label>
-              <input type="text" name="spec_wattage" class="form-control" value="<%= (product.specifications && product.specifications.electrical && product.specifications.electrical.get) ? product.specifications.electrical.get('wattage') : '' %>" />
+              <input type="text" name="spec_wattage" class="form-control" value="<%= getSpecEditVal(product.specifications && product.specifications.electrical, 'wattage') %>" />
             </div>
             <div class="col-md-3 field">
               <label>Physical Weight</label>
-              <input type="text" name="spec_weight" class="form-control" value="<%= (product.specifications && product.specifications.physical && product.specifications.physical.get) ? product.specifications.physical.get('weight') : '' %>" />
+              <input type="text" name="spec_weight" class="form-control" value="<%= getSpecEditVal(product.specifications && product.specifications.physical, 'weight') %>" />
             </div>
           </div>
 

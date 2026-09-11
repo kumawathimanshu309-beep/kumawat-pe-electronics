@@ -1,199 +1,871 @@
 <%- include('partials/header', { title: 'Our Services & Parts | Kumawat P&E', activePage: 'services' }) %>
 
-<div class="container" style="padding: 60px 24px;">
-  <div class="services-header text-center" style="max-width: 720px; margin: 0 auto 50px;">
-    <p class="section-label">Service &amp; Supply Catalog</p>
-    <h2>Book Services or Order Spare Parts</h2>
-    <p style="margin-top: 10px;">Select from our premium range of plumbing and electrical services. Any required parts can be delivered directly to your home with optional on-site installation.</p>
-    <div style="margin-top: 15px;">
-      <%- include('partials/payment_icons') %>
+<div class="services-page-wrapper">
+  <div class="container">
+    
+    <!-- SERVICES PAGE HERO -->
+    <div class="services-hero">
+      <span class="section-label"><i class="bi bi-tools text-accent me-1" aria-hidden="true"></i> SERVICE &amp; SUPPORT CATALOG</span>
+      <h1 class="services-hero-title">Book Services or Order Spare Parts</h1>
+      <p class="services-hero-sub">Select from our range of certified electrical, plumbing, and appliance repair services, or order genuine replacement parts with same-day local delivery in Govindgarh.</p>
+      
+      <div class="d-flex flex-wrap gap-2 justify-content-center mt-3">
+        <a href="#services-section" class="btn btn-accent btn-sm">
+          <i class="bi bi-wrench-adjust me-1" aria-hidden="true"></i> Book a Service
+        </a>
+        <a href="#products-section" class="btn btn-outline-dark btn-sm">
+          <i class="bi bi-bag-plus me-1" aria-hidden="true"></i> Shop Spare Parts
+        </a>
+      </div>
     </div>
-  </div>
 
-  <div class="row">
-    <!-- Services List -->
-    <div class="col-lg-8 col-md-12">
-      <div class="row g-4">
-        <!-- Service Card 1 -->
-        <div class="col-md-6 col-12">
-          <div class="service-card h-100">
-            <span class="badge-delivery"><i class="bi bi-truck"></i> Delivery Avail.</span>
-            <div class="service-icon" style="color: var(--accent); font-size: 2rem;"><i class="bi bi-droplet"></i></div>
-            <h3>Leak Detection &amp; Repair</h3>
-            <p>Wall seepage, pipe bursts, hidden leaks. Our acoustic detection equipment locates the exact failure point to avoid unnecessary wall cutting.</p>
-            <div class="d-flex justify-content-between align-items-center mt-3">
-              <span class="service-price">₹299 <small>onwards</small></span>
-              <button class="btn btn-accent btn-sm" onclick="addToCart('Leak Detection & Repair', 299)">Add to Booking</button>
+    <!-- SEARCH BAR & CATEGORY NAVIGATION RAIL -->
+    <div id="services-section" class="services-filter-toolbar mb-4">
+      <div class="row g-3 align-items-center">
+        <!-- Search Services Input -->
+        <div class="col-lg-5 col-md-6 col-12">
+          <div class="service-search-box">
+            <i class="bi bi-search search-icon" aria-hidden="true"></i>
+            <input type="text" id="serviceSearchInput" class="form-control service-search-input" placeholder="Search electrical, plumbing, or AC repair..." onkeyup="filterServicesSearch(this.value)" aria-label="Search Services" />
+            <button type="button" id="clearSearchBtn" class="btn-clear-search d-none" onclick="clearServiceSearch()" aria-label="Clear Search">
+              <i class="bi bi-x-circle-fill"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Category Navigation Rail Pills -->
+        <div class="col-lg-7 col-md-6 col-12">
+          <div class="category-pill-rail" role="tablist" aria-label="Service Categories">
+            <button type="button" class="category-pill active" onclick="filterServiceCategory('all', this)" role="tab" aria-selected="true">
+              All Services <span class="pill-count-badge" id="count-pill-all">7</span>
+            </button>
+            <button type="button" class="category-pill" onclick="filterServiceCategory('electrical', this)" role="tab" aria-selected="false">
+              <i class="bi bi-lightning-charge" aria-hidden="true"></i> Electrical <span class="pill-count-badge">2</span>
+            </button>
+            <button type="button" class="category-pill" onclick="filterServiceCategory('plumbing', this)" role="tab" aria-selected="false">
+              <i class="bi bi-droplet" aria-hidden="true"></i> Plumbing <span class="pill-count-badge">2</span>
+            </button>
+            <button type="button" class="category-pill" onclick="filterServiceCategory('appliances', this)" role="tab" aria-selected="false">
+              <i class="bi bi-gear-wide-connected" aria-hidden="true"></i> Appliances &amp; Pumps <span class="pill-count-badge">3</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN SERVICES AREA (GRID + SIDEBAR) -->
+    <div class="row g-4 mb-5">
+      
+      <!-- LEFT: BOOKABLE SERVICES GRID -->
+      <div class="col-lg-8 col-md-12">
+        
+        <div id="no-services-found" class="alert alert-info d-none text-center py-4">
+          <i class="bi bi-search fs-3 text-muted d-block mb-2" aria-hidden="true"></i>
+          <h5>No matching services found</h5>
+          <p class="mb-0">Try searching for different keywords or select "All Services".</p>
+        </div>
+
+        <!-- CATEGORY 1: ELECTRICAL SERVICES -->
+        <div class="service-category-block" id="cat-electrical" data-category="electrical">
+          <h2 class="services-category-title">
+            <i class="bi bi-lightning-charge text-accent" aria-hidden="true"></i> Electrical Services
+          </h2>
+          <div class="row g-3 mb-4">
+            <!-- Service 1 -->
+            <div class="col-md-6 col-12 service-card-col" data-title="Electrical Wiring & MCB Repair" data-desc="Load balancing, MCB replacements, switchboard repairs, and short circuit diagnosis conforming to IS safety standards." data-cat="electrical">
+              <div class="service-card-item">
+                <div class="service-card-header">
+                  <div class="service-icon"><i class="bi bi-lightning-charge" aria-hidden="true"></i></div>
+                  <span class="service-badge-subtle"><i class="bi bi-shield-check" aria-hidden="true"></i> Certified Expert</span>
+                </div>
+                <h3 class="service-card-title">Electrical Wiring &amp; MCB Repair</h3>
+                <p class="service-card-desc">Load balancing, MCB replacements, switchboard repairs, and short circuit diagnosis conforming to IS safety standards.</p>
+                
+                <div class="service-card-meta">
+                  <span><i class="bi bi-clock me-1" aria-hidden="true"></i> 1-2 Hours</span>
+                  <span><i class="bi bi-shield-check me-1 text-success" aria-hidden="true"></i> 30-Day Guarantee</span>
+                </div>
+
+                <div class="service-card-footer">
+                  <div class="service-footer-top">
+                    <div class="service-price-block">
+                      <span class="price-val">₹499</span>
+                      <span class="price-sub">onwards</span>
+                    </div>
+                    <span class="service-guarantee-badge"><i class="bi bi-shield-check text-success me-1"></i> 30-Day Guarantee</span>
+                  </div>
+                  <div class="service-card-actions">
+                    <button type="button" class="btn btn-accent btn-sm btn-add-booking" onclick="addServiceToBooking('Electrical Wiring & MCB Repair', 499)">
+                      <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Add to Booking
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm btn-details" onclick="openServiceDetails({
+                      name: 'Electrical Wiring & MCB Repair',
+                      category: 'Electrical',
+                      price: 499,
+                      duration: '1 - 2 Hours',
+                      desc: 'Load balancing, MCB replacements, switchboard repairs, and short circuit diagnosis conforming to IS safety standards.',
+                      inclusions: ['Full switchboard & MCB diagnostic check', 'Short circuit & overload safety testing', 'Upfront pricing quote before work begins', '30-day labor guarantee on replaced wiring']
+                    })" title="View Service Details">
+                      <i class="bi bi-info-circle me-1" aria-hidden="true"></i> Details
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Service 2 -->
+            <div class="col-md-6 col-12 service-card-col" data-title="Safety Inspection & Earthing" data-desc="Comprehensive home electrical safety inspection, earth resistance test, and surge protection setup." data-cat="electrical">
+              <div class="service-card-item">
+                <div class="service-card-header">
+                  <div class="service-icon"><i class="bi bi-shield-lock" aria-hidden="true"></i></div>
+                  <span class="service-badge-subtle"><i class="bi bi-check2-circle" aria-hidden="true"></i> Safety Checked</span>
+                </div>
+                <h3 class="service-card-title">Safety Inspection &amp; Earthing</h3>
+                <p class="service-card-desc">Comprehensive home electrical safety inspection, earth resistance test, and surge protection setup.</p>
+
+                <div class="service-card-meta">
+                  <span><i class="bi bi-clock me-1" aria-hidden="true"></i> 45 Mins</span>
+                  <span><i class="bi bi-shield-check me-1 text-success" aria-hidden="true"></i> Earth Resistance Test</span>
+                </div>
+
+                <div class="service-card-footer">
+                  <div class="service-footer-top">
+                    <div class="service-price-block">
+                      <span class="price-val">₹399</span>
+                      <span class="price-sub">onwards</span>
+                    </div>
+                    <span class="service-guarantee-badge"><i class="bi bi-shield-check text-success me-1"></i> Safety Audit</span>
+                  </div>
+                  <div class="service-card-actions">
+                    <button type="button" class="btn btn-accent btn-sm btn-add-booking" onclick="addServiceToBooking('Safety Inspection & Earthing', 399)">
+                      <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Add to Booking
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm btn-details" onclick="openServiceDetails({
+                      name: 'Safety Inspection & Earthing',
+                      category: 'Electrical',
+                      price: 399,
+                      duration: '45 Mins',
+                      desc: 'Comprehensive home electrical safety inspection, earth resistance test, and surge protection setup.',
+                      inclusions: ['Earth leakage & voltage fluctuation check', 'Main Distribution Board (MDB) audit', 'Shock hazard risk inspection', 'Detailed safety summary report']
+                    })" title="View Service Details">
+                      <i class="bi bi-info-circle me-1" aria-hidden="true"></i> Details
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Service Card 2 -->
-        <div class="col-md-6 col-12">
-          <div class="service-card h-100">
-            <span class="badge-delivery"><i class="bi bi-truck"></i> Delivery Avail.</span>
-            <div class="service-icon" style="color: var(--accent); font-size: 2rem;"><i class="bi bi-lightning-charge"></i></div>
-            <h3>Electrical Wiring / MCB Repair</h3>
-            <p>Load balancing, MCB replacements, points install, short circuit diagnosis. All repairs conform to safety standards.</p>
-            <div class="d-flex justify-content-between align-items-center mt-3">
-              <span class="service-price">₹499 <small>onwards</small></span>
-              <button class="btn btn-accent btn-sm" onclick="addToCart('Electrical Wiring & MCB Repair', 499)">Add to Booking</button>
+        <!-- CATEGORY 2: PLUMBING & SANITARY -->
+        <div class="service-category-block" id="cat-plumbing" data-category="plumbing">
+          <h2 class="services-category-title">
+            <i class="bi bi-droplet text-accent" aria-hidden="true"></i> Plumbing &amp; Sanitary
+          </h2>
+          <div class="row g-3 mb-4">
+            <!-- Service 3 -->
+            <div class="col-md-6 col-12 service-card-col" data-title="Leak Detection & Pipe Repair" data-desc="Wall seepage, pipe bursts, and concealed leak detection using acoustic sensors to prevent unnecessary damage." data-cat="plumbing">
+              <div class="service-card-item">
+                <div class="service-card-header">
+                  <div class="service-icon"><i class="bi bi-droplet-half" aria-hidden="true"></i></div>
+                  <span class="service-badge-subtle"><i class="bi bi-search" aria-hidden="true"></i> Sensor Checked</span>
+                </div>
+                <h3 class="service-card-title">Leak Detection &amp; Pipe Repair</h3>
+                <p class="service-card-desc">Wall seepage, pipe bursts, and concealed leak detection using acoustic sensors to prevent unnecessary damage.</p>
+
+                <div class="service-card-meta">
+                  <span><i class="bi bi-clock me-1" aria-hidden="true"></i> 1 Hour</span>
+                  <span><i class="bi bi-shield-check me-1 text-success" aria-hidden="true"></i> Concealed Seepage Fix</span>
+                </div>
+
+                <div class="service-card-footer">
+                  <div class="service-footer-top">
+                    <div class="service-price-block">
+                      <span class="price-val">₹299</span>
+                      <span class="price-sub">onwards</span>
+                    </div>
+                    <span class="service-guarantee-badge"><i class="bi bi-shield-check text-success me-1"></i> Sensor Traced</span>
+                  </div>
+                  <div class="service-card-actions">
+                    <button type="button" class="btn btn-accent btn-sm btn-add-booking" onclick="addServiceToBooking('Leak Detection & Pipe Repair', 299)">
+                      <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Add to Booking
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm btn-details" onclick="openServiceDetails({
+                      name: 'Leak Detection & Pipe Repair',
+                      category: 'Plumbing',
+                      price: 299,
+                      duration: '1 Hour',
+                      desc: 'Wall seepage, pipe bursts, and concealed leak detection using acoustic sensors to prevent unnecessary damage.',
+                      inclusions: ['Acoustic sensor leak tracing', 'CPVC/GI pipe joint sealing', 'Wall seepage risk assessment', 'Clean work area restoration']
+                    })" title="View Service Details">
+                      <i class="bi bi-info-circle me-1" aria-hidden="true"></i> Details
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Service 4 -->
+            <div class="col-md-6 col-12 service-card-col" data-title="Tap & Sanitary Fitting Replacement" data-desc="Installation of bibcocks, angle valves, health faucets, washbasins, and flush valves with leak-tight sealants." data-cat="plumbing">
+              <div class="service-card-item">
+                <div class="service-card-header">
+                  <div class="service-icon"><i class="bi bi-tools" aria-hidden="true"></i></div>
+                  <span class="service-badge-subtle"><i class="bi bi-wrench" aria-hidden="true"></i> Brass Fittings</span>
+                </div>
+                <h3 class="service-card-title">Tap &amp; Sanitary Fitting Replacement</h3>
+                <p class="service-card-desc">Installation of bibcocks, angle valves, health faucets, washbasins, and flush valves with leak-tight sealants.</p>
+
+                <div class="service-card-meta">
+                  <span><i class="bi bi-clock me-1" aria-hidden="true"></i> 30-45 Mins</span>
+                  <span><i class="bi bi-shield-check me-1 text-success" aria-hidden="true"></i> Leak-Tight Seal</span>
+                </div>
+
+                <div class="service-card-footer">
+                  <div class="service-footer-top">
+                    <div class="service-price-block">
+                      <span class="price-val">₹199</span>
+                      <span class="price-sub">onwards</span>
+                    </div>
+                    <span class="service-guarantee-badge"><i class="bi bi-shield-check text-success me-1"></i> Leak Tight</span>
+                  </div>
+                  <div class="service-card-actions">
+                    <button type="button" class="btn btn-accent btn-sm btn-add-booking" onclick="addServiceToBooking('Tap & Sanitary Fitting Replacement', 199)">
+                      <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Add to Booking
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm btn-details" onclick="openServiceDetails({
+                      name: 'Tap & Sanitary Fitting Replacement',
+                      category: 'Plumbing',
+                      price: 199,
+                      duration: '30 - 45 Mins',
+                      desc: 'Installation of bibcocks, angle valves, health faucets, washbasins, and flush valves with leak-tight sealants.',
+                      inclusions: ['Removal of old damaged fittings', 'Teflon tape & silicone thread sealing', 'Pressure flow test after installation', '30-day labor guarantee']
+                    })" title="View Service Details">
+                      <i class="bi bi-info-circle me-1" aria-hidden="true"></i> Details
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Service Card 3 -->
-        <div class="col-md-6 col-12">
-          <div class="service-card h-100">
-            <span class="badge-delivery"><i class="bi bi-truck"></i> Delivery Avail.</span>
-            <div class="service-icon" style="color: var(--accent); font-size: 2rem;"><i class="bi bi-tools"></i></div>
-            <h3>Tap &amp; Sanitary Fitting</h3>
-            <p>Replacement of bibcocks, angle valves, health faucets, washbasins, flush valves. Genuine brass fittings available.</p>
-            <div class="d-flex justify-content-between align-items-center mt-3">
-              <span class="service-price">₹199 <small>onwards</small></span>
-              <button class="btn btn-accent btn-sm" onclick="addToCart('Tap & Sanitary Fitting', 199)">Add to Booking</button>
+        <!-- CATEGORY 3: APPLIANCE & PUMP SERVICING -->
+        <div class="service-category-block" id="cat-appliances" data-category="appliances">
+          <h2 class="services-category-title">
+            <i class="bi bi-gear-wide-connected text-accent" aria-hidden="true"></i> Appliance &amp; Pump Servicing
+          </h2>
+          <div class="row g-3 mb-4">
+            <!-- Service 5 -->
+            <div class="col-md-6 col-12 service-card-col" data-title="Water Motor & Pump Repair" data-desc="Submersible pump repairs, motor copper winding, capacitor replacements, and automatic float switch wiring." data-cat="appliances">
+              <div class="service-card-item">
+                <div class="service-card-header">
+                  <div class="service-icon"><i class="bi bi-speedometer2" aria-hidden="true"></i></div>
+                  <span class="service-badge-subtle"><i class="bi bi-cpu" aria-hidden="true"></i> Motor Check</span>
+                </div>
+                <h3 class="service-card-title">Water Motor &amp; Pump Repair</h3>
+                <p class="service-card-desc">Submersible pump repairs, motor copper winding, capacitor replacements, and automatic float switch wiring.</p>
+
+                <div class="service-card-meta">
+                  <span><i class="bi bi-clock me-1" aria-hidden="true"></i> 1-2 Hours</span>
+                  <span><i class="bi bi-shield-check me-1 text-success" aria-hidden="true"></i> Winding Test</span>
+                </div>
+
+                <div class="service-card-footer">
+                  <div class="service-footer-top">
+                    <div class="service-price-block">
+                      <span class="price-val">₹599</span>
+                      <span class="price-sub">onwards</span>
+                    </div>
+                    <span class="service-guarantee-badge"><i class="bi bi-shield-check text-success me-1"></i> Winding Test</span>
+                  </div>
+                  <div class="service-card-actions">
+                    <button type="button" class="btn btn-accent btn-sm btn-add-booking" onclick="addServiceToBooking('Water Motor & Pump Repair', 599)">
+                      <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Add to Booking
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm btn-details" onclick="openServiceDetails({
+                      name: 'Water Motor & Pump Repair',
+                      category: 'Appliances & Pumps',
+                      price: 599,
+                      duration: '1 - 2 Hours',
+                      desc: 'Submersible pump repairs, motor copper winding, capacitor replacements, and automatic float switch wiring.',
+                      inclusions: ['Capacitor & starter panel test', 'Motor winding resistance check', 'Submersible pump head inspection', 'Float switch auto-cutoff testing']
+                    })" title="View Service Details">
+                      <i class="bi bi-info-circle me-1" aria-hidden="true"></i> Details
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Service 6 -->
+            <div class="col-md-6 col-12 service-card-col" data-title="AC Installation & Jet Servicing" data-desc="Split AC installation, high-pressure chemical jet wash, refrigerant gas charging (R32/R410), and filter cleaning." data-cat="appliances">
+              <div class="service-card-item">
+                <div class="service-card-header">
+                  <div class="service-icon"><i class="bi bi-wind" aria-hidden="true"></i></div>
+                  <span class="service-badge-subtle"><i class="bi bi-snow" aria-hidden="true"></i> Jet Cleaned</span>
+                </div>
+                <h3 class="service-card-title">AC Installation &amp; Jet Servicing</h3>
+                <p class="service-card-desc">Split AC installation, high-pressure chemical jet wash, refrigerant gas charging (R32/R410), and filter cleaning.</p>
+
+                <div class="service-card-meta">
+                  <span><i class="bi bi-clock me-1" aria-hidden="true"></i> 1.5 Hours</span>
+                  <span><i class="bi bi-shield-check me-1 text-success" aria-hidden="true"></i> High Pressure Jet</span>
+                </div>
+
+                <div class="service-card-footer">
+                  <div class="service-footer-top">
+                    <div class="service-price-block">
+                      <span class="price-val">₹799</span>
+                      <span class="price-sub">per visit</span>
+                    </div>
+                    <span class="service-guarantee-badge"><i class="bi bi-shield-check text-success me-1"></i> Jet Cleaned</span>
+                  </div>
+                  <div class="service-card-actions">
+                    <button type="button" class="btn btn-accent btn-sm btn-add-booking" onclick="addServiceToBooking('AC Installation & Jet Servicing', 799)">
+                      <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Add to Booking
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm btn-details" onclick="openServiceDetails({
+                      name: 'AC Installation & Jet Servicing',
+                      category: 'Appliances & Pumps',
+                      price: 799,
+                      duration: '1.5 Hours',
+                      desc: 'Split AC installation, high-pressure chemical jet wash, refrigerant gas charging (R32/R410), and filter cleaning.',
+                      inclusions: ['Indoor & outdoor unit high-pressure jet wash', 'Drain line flushing & anti-bacterial foam cleaning', 'Refrigerant pressure check', '30-day cooling performance guarantee']
+                    })" title="View Service Details">
+                      <i class="bi bi-info-circle me-1" aria-hidden="true"></i> Details
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Service 7 -->
+            <div class="col-md-6 col-12 service-card-col" data-title="Geyser & Appliance Repair" data-desc="Heavy heating element replacement, thermostat safety checks, and solenoid valve fixes for gas/electric geysers." data-cat="appliances">
+              <div class="service-card-item">
+                <div class="service-card-header">
+                  <div class="service-icon"><i class="bi bi-brightness-high" aria-hidden="true"></i></div>
+                  <span class="service-badge-subtle"><i class="bi bi-fire" aria-hidden="true"></i> Element Check</span>
+                </div>
+                <h3 class="service-card-title">Geyser &amp; Appliance Repair</h3>
+                <p class="service-card-desc">Heavy heating element replacement, thermostat safety checks, and solenoid valve fixes for gas/electric geysers.</p>
+
+                <div class="service-card-meta">
+                  <span><i class="bi bi-clock me-1" aria-hidden="true"></i> 45 Mins</span>
+                  <span><i class="bi bi-shield-check me-1 text-success" aria-hidden="true"></i> Thermostat Audit</span>
+                </div>
+
+                <div class="service-card-footer">
+                  <div class="service-footer-top">
+                    <div class="service-price-block">
+                      <span class="price-val">₹349</span>
+                      <span class="price-sub">onwards</span>
+                    </div>
+                    <span class="service-guarantee-badge"><i class="bi bi-shield-check text-success me-1"></i> Thermostat Test</span>
+                  </div>
+                  <div class="service-card-actions">
+                    <button type="button" class="btn btn-accent btn-sm btn-add-booking" onclick="addServiceToBooking('Geyser & Appliance Repair', 349)">
+                      <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Add to Booking
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm btn-details" onclick="openServiceDetails({
+                      name: 'Geyser & Appliance Repair',
+                      category: 'Appliances & Pumps',
+                      price: 349,
+                      duration: '45 Mins',
+                      desc: 'Heavy heating element replacement, thermostat safety checks, and solenoid valve fixes for gas/electric geysers.',
+                      inclusions: ['Thermostat cutoff safety verification', 'Descaling & tank flushing', 'Heating element continuity test', '30-day labor guarantee']
+                    })" title="View Service Details">
+                      <i class="bi bi-info-circle me-1" aria-hidden="true"></i> Details
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Service Card 4 -->
-        <div class="col-md-6 col-12">
-          <div class="service-card h-100">
-            <span class="badge-delivery"><i class="bi bi-truck"></i> Delivery Avail.</span>
-            <div class="service-icon" style="color: var(--accent); font-size: 2rem;"><i class="bi bi-speedometer2"></i></div>
-            <h3>Water Motor &amp; Pump Repair</h3>
-            <p>Overhead float switch wiring, motor winding, submersible repair, capacitor replacement, pressure pumps set.</p>
-            <div class="d-flex justify-content-between align-items-center mt-3">
-              <span class="service-price">₹599 <small>onwards</small></span>
-              <button class="btn btn-accent btn-sm" onclick="addToCart('Water Motor & Pump Repair', 599)">Add to Booking</button>
-            </div>
-          </div>
-        </div>
+      </div>
 
-        <!-- Service Card 5 -->
-        <div class="col-md-6 col-12">
-          <div class="service-card h-100">
-            <span class="badge-delivery"><i class="bi bi-truck"></i> Delivery Avail.</span>
-            <div class="service-icon" style="color: var(--accent); font-size: 2rem;"><i class="bi bi-wind"></i></div>
-            <h3>AC Installation &amp; Service</h3>
-            <p>Split AC back-to-back install, gas charging (R22/R32/R410), chemical jet washing, filter servicing.</p>
-            <div class="d-flex justify-content-between align-items-center mt-3">
-              <span class="service-price">₹799 <small>per visit</small></span>
-              <button class="btn btn-accent btn-sm" onclick="addToCart('AC Installation & Service', 799)">Add to Booking</button>
-            </div>
+      <!-- RIGHT: SELECTED SERVICES BOOKING SIDEBAR -->
+      <div class="col-lg-4 col-md-12">
+        <div class="cart-summary-card sticky-top" style="top: 90px; z-index: 5;" id="selectedServicesSidebar">
+          <h3 class="summary-card-title d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-clipboard-check text-accent me-1" aria-hidden="true"></i> Selected Services</span>
+            <span class="badge bg-accent text-white rounded-pill px-2.5 py-1" id="cart-count-badge">0</span>
+          </h3>
+          
+          <!-- COMPACT EMPTY STATE -->
+          <div id="cart-empty-msg" class="services-empty-panel">
+            <i class="bi bi-tools text-accent" aria-hidden="true"></i>
+            <h5>No services selected</h5>
+            <p>Add a service to start your booking.</p>
           </div>
-        </div>
 
-        <!-- Service Card 6 -->
-        <div class="col-md-6 col-12">
-          <div class="service-card h-100">
-            <span class="badge-delivery"><i class="bi bi-truck"></i> Delivery Avail.</span>
-            <div class="service-icon" style="color: var(--accent); font-size: 2rem;"><i class="bi bi-brightness-high"></i></div>
-            <h3>Geyser &amp; Appliance Repair</h3>
-            <p>Replacement of heavy elements, thermostat safety checks, thermocouple fixes for gas and electrical geysers.</p>
-            <div class="d-flex justify-content-between align-items-center mt-3">
-              <span class="service-price">₹349 <small>onwards</small></span>
-              <button class="btn btn-accent btn-sm" onclick="addToCart('Geyser & Appliance Repair', 349)">Add to Booking</button>
+          <!-- ACTIVE BOOKING SUMMARY ITEM LIST -->
+          <div id="cart-items-wrapper" class="d-none">
+            <div id="services-items-list" class="mb-3" style="max-height: 280px; overflow-y: auto;">
+              <!-- Rendered dynamically -->
             </div>
+            
+            <div class="d-flex justify-content-between align-items-center py-2.5 px-3 mb-3 bg-surface rounded fw-bold">
+              <span style="font-size: 0.9rem;">Estimated Labor Total:</span>
+              <span id="services-total-price" class="text-accent" style="font-size: 1.25rem; font-weight: 800;">₹0</span>
+            </div>
+
+            <div class="alert alert-success d-flex align-items-center mb-3 py-2 px-3" role="alert" style="font-size: 0.8rem; border-radius: 8px;">
+              <i class="bi bi-shield-check me-2 font-size: 1.1rem" aria-hidden="true"></i>
+              <div>
+                <strong>On-Site Guarantee:</strong> Labor covered under 30-day guarantee.
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-accent w-100 py-2.5 fw-bold" onclick="proceedToCheckout()">
+              <i class="bi bi-arrow-right-circle me-1" aria-hidden="true"></i> Continue Booking
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- Products Section -->
-      <% if (typeof products !== 'undefined' && products.length > 0) { %>
-        <div style="margin-top: 50px;">
-          <h3 style="font-family: var(--font-display); font-size: 1.5rem; border-bottom: 2px solid var(--rule); padding-bottom: 12px; margin-bottom: 24px;">Store Products &amp; Spare Parts</h3>
-          <div class="row g-4">
-            <% products.forEach(p => { %>
-              <div class="col-md-6 col-12">
-                <div class="service-card h-100" style="padding: 24px;">
-                  <% if (p.deliveryAvailable !== false) { %>
-                    <span class="badge-delivery" style="top: 12px; right: 12px;"><i class="bi bi-truck"></i> Delivery Avail.</span>
-                  <% } %>
-                  
-                  <div style="width: 100%; height: 160px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #fff; border-radius: 6px; margin-bottom: 16px; border: 1px solid rgba(0,0,0,0.05);">
-                    <% if (p.images && p.images.length > 0) { %>
-                      <img loading="lazy" decoding="async" src="<%= optimizeImage(p.images[0]) %>" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="<%= p.name %>" />
-                    <% } else { %>
-                      <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
-                    <% } %>
-                  </div>
-
-                  <h3 style="font-size: 1.15rem; margin-bottom: 8px;"><%= p.name %></h3>
-                  <p style="font-size: 0.85rem; margin-bottom: 15px; flex-grow: 1;">
-                    <%= p.description ? (p.description.length > 60 ? p.description.substring(0, 60) + '...' : p.description) : '' %>
-                  </p>
-
-                  <div class="d-flex justify-content-between align-items-center mt-3">
-                    <span class="service-price">
-                      <% if (p.discountPrice) { %>
-                        <span style="text-decoration:line-through; color:#999; font-size:0.8rem; margin-right: 8px;">₹<%= p.price %></span>
-                        ₹<%= p.discountPrice %>
-                      <% } else { %>
-                        ₹<%= p.price %>
-                      <% } %>
-                    </span>
-                    <% if (p.stock > 0 && p.status !== 'Out Of Stock') { %>
-                      <button class="btn btn-accent btn-sm" onclick="addToCart({ 
-                        name: '<%= escape(p.name) %>', 
-                        price: <%= p.discountPrice || p.price %>, 
-                        originalPrice: <%= p.price %>,
-                        image: '<%= p.images && p.images.length ? p.images[0] : '' %>',
-                        sku: '<%= p.sku || 'N/A' %>',
-                        category: '<%= p.category || 'General' %>',
-                        type: 'product'
-                      })">Add to Booking</button>
-                    <% } else { %>
-                      <button class="btn btn-secondary btn-sm disabled" disabled>Sold Out</button>
-                    <% } %>
-                  </div>
-                </div>
-              </div>
-            <% }) %>
-          </div>
-        </div>
-      <% } %>
-
     </div>
 
-
-    <!-- Booking / Cart Sidebar -->
-    <div class="col-lg-4 col-md-12 mt-4 mt-lg-0">
-      <div class="cart-summary-card sticky-top" style="top: 84px; z-index: 5;">
-        <h3 style="margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between;">
-          <span>Selected Services</span>
-          <span class="badge bg-danger text-white" id="cart-count">0</span>
-        </h3>
-        
-        <div id="cart-empty-msg" class="text-center py-4 text-muted">
-          <i class="bi bi-cart3" style="font-size: 2.5rem; display: block; margin-bottom: 10px; color: var(--rule);"></i>
-          <p>No services selected yet. Click "Add to Booking" to start.</p>
+    <!-- DISTINCT SECTION: SHOP PRODUCTS & SPARE PARTS -->
+    <% if (typeof products !== 'undefined' && products.length > 0) { %>
+      <div id="products-section" class="distinct-products-section pt-4">
+        <div class="distinct-section-header">
+          <div>
+            <span class="section-label"><i class="bi bi-box-seam text-accent me-1" aria-hidden="true"></i> HARDWARE &amp; REPLACEMENT SUPPLIES</span>
+            <h2 class="distinct-section-title">Shop Products &amp; Spare Parts</h2>
+            <p class="distinct-section-sub">Shop tools, electronics, accessories, and spare parts available for direct home delivery or store pickup.</p>
+          </div>
+          <a href="/store" class="btn btn-outline-sm d-none d-md-inline-flex align-items-center gap-1">
+            View All Products <i class="bi bi-arrow-right" aria-hidden="true"></i>
+          </a>
         </div>
 
-        <div id="cart-items-wrapper" style="display: none;">
-          <div id="cart-items-list" style="max-height: 250px; overflow-y: auto;"></div>
-          
-          <div class="cart-total-row">
-            <span>Total Labour:</span>
-            <span id="cart-total-price">₹0</span>
-          </div>
+        <!-- CURATED PRODUCT SUBSET (4 TO 8 ITEMS MAX) -->
+        <% const curatedProducts = products.slice(0, 8); %>
+        <div class="services-products-grid">
+          <% curatedProducts.forEach(p => { %>
+            <% const targetProdId = p.productId || p._id || p.id; %>
+            <div class="product-card-premium">
+              <div class="product-card-img" style="position: relative; aspect-ratio: 1 / 1; overflow: hidden;">
+                <a href="/product/<%= targetProdId %>" aria-label="View <%= p.name %>">
+                  <% if (p.images && p.images.length > 0) { %>
+                    <img loading="lazy" decoding="async" src="<%= optimizeImage(p.images[0]) %>" alt="<%= p.name %>" style="width: 100%; height: 100%; object-fit: contain;" />
+                  <% } else { %>
+                    <div style="width:100%; height:100%; background:#f8f9fa; display:flex; align-items:center; justify-content:center;">
+                      <i class="bi bi-image text-muted" style="font-size: 2.5rem;"></i>
+                    </div>
+                  <% } %>
+                </a>
 
-          <div class="alert alert-success d-flex align-items-center" role="alert" style="font-size: 0.8rem; padding: 10px;">
-            <i class="bi bi-truck-flatbed me-2" style="font-size: 1.25rem;"></i>
-            <div>
-              <strong>Home Delivery Available!</strong> Spare parts billed at actual retail cost.
+                <div class="product-card-badges" style="position: absolute; top: 10px; left: 10px; z-index: 2; display: flex; flex-direction: column; gap: 4px;">
+                  <% if (p.discountPrice && p.discountPrice < p.price) { %>
+                    <span class="badge bg-danger">SALE</span>
+                  <% } %>
+                  <% if (p.deliveryAvailable !== false) { %>
+                    <span class="badge bg-secondary">Delivery</span>
+                  <% } %>
+                </div>
+
+                <div class="product-card-actions" style="position: absolute; top: 10px; right: 10px; z-index: 2; display: flex; flex-direction: column; gap: 6px;">
+                  <button type="button" class="btn-action-icon" onclick="toggleWishlist('<%= targetProdId %>', this)" aria-label="Add to Wishlist">
+                    <i class="bi bi-heart"></i>
+                  </button>
+                  <button type="button" class="btn-action-icon" onclick="openQuickView('<%= targetProdId %>')" aria-label="Quick View">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="product-card-body">
+                <span class="product-brand"><%= p.brand || p.category || 'Kumawat Hardware' %></span>
+                <h3 class="product-title">
+                  <a href="/product/<%= targetProdId %>"><%= p.name %></a>
+                </h3>
+
+                <div class="product-rating">
+                  <i class="bi bi-star-fill text-warning me-1"></i>
+                  <span><%= (p.ratings && p.ratings.average) ? p.ratings.average : (p.rating || '4.8') %></span>
+                </div>
+
+                <p class="product-desc"><%= p.description ? p.description.substring(0, 75) + '...' : 'Authentic spare part with warranty.' %></p>
+
+                <div class="product-price-row">
+                  <span class="price-current">₹<%= p.discountPrice || p.price %></span>
+                  <% if (p.discountPrice && p.discountPrice < p.price) { %>
+                    <span class="price-old">₹<%= p.price %></span>
+                    <% const pct = Math.round(((p.price - p.discountPrice) / p.price) * 100); %>
+                    <span class="price-discount"><%= pct %>% OFF</span>
+                  <% } %>
+                </div>
+
+                <div class="product-buttons">
+                  <% if (p.stock > 0 && p.status !== 'Out Of Stock') { %>
+                    <button type="button" class="btn btn-accent btn-sm btn-product-action" aria-label="Add <%= escape(p.name) %> to Cart" onclick="addToCart({ 
+                      id: '<%= p._id || p.id %>',
+                      productId: '<%= targetProdId %>',
+                      name: '<%= escape(p.name) %>', 
+                      price: <%= p.discountPrice || p.price %>, 
+                      originalPrice: <%= p.price %>,
+                      image: '<%= p.images && p.images.length ? p.images[0] : '' %>',
+                      sku: '<%= p.sku || 'N/A' %>',
+                      category: '<%= p.category || 'General' %>',
+                      type: 'product'
+                    })">
+                      <i class="bi bi-bag-plus" aria-hidden="true"></i>
+                      <span class="btn-text-full d-none d-sm-inline">Add to Cart</span>
+                      <span class="btn-text-compact d-inline d-sm-none">Add</span>
+                    </button>
+                    <button type="button" class="btn btn-outline-dark btn-sm btn-product-action" aria-label="Buy <%= escape(p.name) %> Now" onclick="buyNowDirect({
+                      id: '<%= p._id || p.id %>',
+                      productId: '<%= targetProdId %>',
+                      name: '<%= escape(p.name) %>',
+                      price: <%= p.discountPrice || p.price %>,
+                      image: '<%= p.images && p.images.length ? p.images[0] : '' %>',
+                      type: 'product'
+                    })">
+                      <span class="btn-text-full d-none d-sm-inline">Buy Now</span>
+                      <span class="btn-text-compact d-inline d-sm-none">⚡ Buy</span>
+                    </button>
+                  <% } else { %>
+                    <button type="button" class="btn btn-secondary btn-sm w-100 disabled" disabled>Sold Out</button>
+                  <% } %>
+                </div>
+              </div>
             </div>
-          </div>
-
-          <button class="btn btn-accent btn-full" onclick="proceedToCheckout()">Proceed to Checkout <i class="bi bi-arrow-right"></i></button>
+          <% }) %>
         </div>
+
+        <div class="text-center mt-4">
+          <a href="/store" class="btn btn-outline-dark btn-md">
+            View All Products <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i>
+          </a>
+        </div>
+      </div>
+    <% } %>
+
+  </div>
+</div>
+
+<!-- SERVICE DETAILS INTERACTION MODAL -->
+<div class="modal fade" id="serviceDetailsModal" tabindex="-1" aria-labelledby="serviceDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-bottom">
+        <div>
+          <span class="badge bg-accent text-white px-2 py-1 mb-1" id="sdModalCategory">Category</span>
+          <h5 class="modal-title font-weight-bold" id="serviceDetailsModalLabel">Service Name</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p id="sdModalDesc" class="text-muted mb-3"></p>
+        
+        <div class="d-flex justify-content-between align-items-center p-3 bg-surface rounded mb-3">
+          <div>
+            <div class="text-muted" style="font-size: 0.8rem;">Labor Starting Price</div>
+            <div id="sdModalPrice" class="text-accent fw-bold fs-4">₹0</div>
+          </div>
+          <div>
+            <div class="text-muted" style="font-size: 0.8rem;">Est. Turnaround</div>
+            <div id="sdModalDuration" class="fw-bold fs-6"><i class="bi bi-clock me-1 text-accent"></i> 1 Hour</div>
+          </div>
+        </div>
+
+        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle-fill text-success me-1"></i> What's Included:</h6>
+        <ul id="sdModalInclusions" class="list-unstyled mb-3" style="font-size: 0.88rem;">
+          <!-- Inclusions populated dynamically -->
+        </ul>
+
+        <div class="alert alert-light border d-flex align-items-start gap-2 mb-0" style="font-size: 0.82rem;">
+          <i class="bi bi-shield-check text-accent fs-5 flex-shrink-0"></i>
+          <div>
+            <strong>100% Quality Assurance:</strong> Executed directly by Himanshu Kumawat &amp; Deepak. Replacement spare parts delivered on callout at store-matched pricing.
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-top justify-content-between">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" id="sdModalAddBtn" class="btn btn-accent px-4 fw-bold">
+          <i class="bi bi-plus-lg me-1"></i> Add to Booking
+        </button>
       </div>
     </div>
   </div>
 </div>
 
+<!-- MOBILE EXPANDABLE BOOKING BAR (VISIBLE < 768px WHEN ITEMS ADDED) -->
+<div id="mobileServicesSummaryBar" class="mobile-services-summary-bar d-md-none d-none">
+  <div class="d-flex justify-content-between align-items-center">
+    <div>
+      <span id="mobileSummaryCount" class="fw-bold text-white fs-6">0 Services</span>
+      <span class="mx-1 text-white-50">·</span>
+      <span id="mobileSummaryTotal" class="fw-bold text-accent fs-6">₹0</span>
+    </div>
+    <button type="button" class="btn btn-accent btn-sm py-1.5 px-3 fw-bold" onclick="scrollToBookingSummary()">
+      View Booking <i class="bi bi-arrow-up-short ms-1"></i>
+    </button>
+  </div>
+</div>
+
 <script>
-  // Services specific logic if any, currently moved to cart-drawer.ejs
+  // Add service item specifically to normalized cart list
+  function addServiceToBooking(serviceName, price) {
+    let cart = [];
+    if (typeof window.getKumawatCart === 'function') {
+      cart = window.getKumawatCart();
+    } else {
+      try { cart = JSON.parse(localStorage.getItem('kumawat_cart')) || []; } catch(e) {}
+    }
+
+    const existingIndex = cart.findIndex(item => item.name === serviceName && item.type === 'service');
+    if (existingIndex > -1) {
+      cart[existingIndex].quantity = (cart[existingIndex].quantity || 1) + 1;
+    } else {
+      cart.push({
+        name: serviceName,
+        price: Number(price),
+        quantity: 1,
+        type: 'service'
+      });
+    }
+
+    if (typeof window.setKumawatCart === 'function') {
+      window.setKumawatCart(cart);
+    } else {
+      localStorage.setItem('kumawat_cart', JSON.stringify(cart));
+      if (typeof updateCartUI === 'function') updateCartUI();
+    }
+
+    renderServicesSummary();
+    if (typeof showToast === 'function') showToast('Added "' + serviceName + '" to booking', 'success');
+  }
+
+  // Filter Services by Category
+  function filterServiceCategory(category, btnEl) {
+    const pills = document.querySelectorAll('.category-pill');
+    pills.forEach(p => {
+      p.classList.remove('active');
+      p.setAttribute('aria-selected', 'false');
+    });
+
+    if (btnEl) {
+      btnEl.classList.add('active');
+      btnEl.setAttribute('aria-selected', 'true');
+    }
+
+    // Reset search bar if category clicked
+    const searchInput = document.getElementById('serviceSearchInput');
+    if (searchInput) searchInput.value = '';
+    const clearBtn = document.getElementById('clearSearchBtn');
+    if (clearBtn) clearBtn.classList.add('d-none');
+
+    const blocks = document.querySelectorAll('.service-category-block');
+    const noResultsMsg = document.getElementById('no-services-found');
+    if (noResultsMsg) noResultsMsg.classList.add('d-none');
+
+    if (category === 'all') {
+      blocks.forEach(b => {
+        b.style.display = 'block';
+        const cards = b.querySelectorAll('.service-card-col');
+        cards.forEach(c => c.style.display = 'block');
+      });
+    } else {
+      blocks.forEach(b => {
+        if (b.dataset.category === category) {
+          b.style.display = 'block';
+          const cards = b.querySelectorAll('.service-card-col');
+          cards.forEach(c => c.style.display = 'block');
+        } else {
+          b.style.display = 'none';
+        }
+      });
+    }
+  }
+
+  // Real-time Service Search
+  function filterServicesSearch(query) {
+    const clearBtn = document.getElementById('clearSearchBtn');
+    const cleanQuery = query.toLowerCase().trim();
+
+    if (clearBtn) {
+      if (cleanQuery.length > 0) clearBtn.classList.remove('d-none');
+      else clearBtn.classList.add('d-none');
+    }
+
+    const cards = document.querySelectorAll('.service-card-col');
+    const blocks = document.querySelectorAll('.service-category-block');
+    const noResultsMsg = document.getElementById('no-services-found');
+
+    let visibleCardCount = 0;
+
+    cards.forEach(card => {
+      const title = (card.dataset.title || '').toLowerCase();
+      const desc = (card.dataset.desc || '').toLowerCase();
+      const cat = (card.dataset.cat || '').toLowerCase();
+
+      if (!cleanQuery || title.includes(cleanQuery) || desc.includes(cleanQuery) || cat.includes(cleanQuery)) {
+        card.style.display = 'block';
+        visibleCardCount++;
+      } else {
+        card.style.display = 'none';
+      }
+    });
+
+    // Toggle block visibility based on whether it has visible children
+    blocks.forEach(block => {
+      const visibleChildren = block.querySelectorAll('.service-card-col[style*="display: block"]');
+      if (visibleChildren.length > 0) {
+        block.style.display = 'block';
+      } else {
+        block.style.display = 'none';
+      }
+    });
+
+    if (noResultsMsg) {
+      if (visibleCardCount === 0) noResultsMsg.classList.remove('d-none');
+      else noResultsMsg.classList.add('d-none');
+    }
+  }
+
+  function clearServiceSearch() {
+    const input = document.getElementById('serviceSearchInput');
+    if (input) {
+      input.value = '';
+      filterServicesSearch('');
+    }
+  }
+
+  // Service Details Modal Interaction
+  function openServiceDetails(srv) {
+    document.getElementById('serviceDetailsModalLabel').innerText = srv.name;
+    document.getElementById('sdModalCategory').innerText = srv.category || 'Service';
+    document.getElementById('sdModalDesc').innerText = srv.desc;
+    document.getElementById('sdModalPrice').innerText = `₹${srv.price}`;
+    document.getElementById('sdModalDuration').innerHTML = `<i class="bi bi-clock me-1 text-accent"></i> ${srv.duration}`;
+
+    const incList = document.getElementById('sdModalInclusions');
+    if (incList) {
+      incList.innerHTML = (srv.inclusions || []).map(inc => `
+        <li class="d-flex align-items-center mb-1.5">
+          <i class="bi bi-check2 text-success me-2 fw-bold"></i>
+          <span>${inc}</span>
+        </li>
+      `).join('');
+    }
+
+    const addBtn = document.getElementById('sdModalAddBtn');
+    if (addBtn) {
+      addBtn.onclick = function() {
+        addServiceToBooking(srv.name, srv.price);
+        const modalEl = document.getElementById('serviceDetailsModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+      };
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('serviceDetailsModal'));
+    modal.show();
+  }
+
+  // Render Services Summary & Mobile Bar
+  function renderServicesSummary() {
+    let cart = [];
+    if (typeof window.getKumawatCart === 'function') {
+      cart = window.getKumawatCart();
+    } else {
+      try { cart = JSON.parse(localStorage.getItem('kumawat_cart')) || []; } catch(e) {}
+    }
+
+    // Filter service items only for services sidebar summary
+    const serviceItems = cart.filter(item => item.type === 'service' || (!item.id && !item.productId));
+
+    const emptyMsg = document.getElementById('cart-empty-msg');
+    const itemsWrapper = document.getElementById('cart-items-wrapper');
+    const itemsList = document.getElementById('services-items-list');
+    const totalPriceEl = document.getElementById('services-total-price');
+    const countBadge = document.getElementById('cart-count-badge');
+
+    const mobileBar = document.getElementById('mobileServicesSummaryBar');
+    const mobileCount = document.getElementById('mobileSummaryCount');
+    const mobileTotal = document.getElementById('mobileSummaryTotal');
+
+    const totalQty = serviceItems.reduce((acc, item) => acc + (Number(item.quantity) || 1), 0);
+    if (countBadge) countBadge.innerText = totalQty;
+
+    if (!serviceItems || serviceItems.length === 0) {
+      if (emptyMsg) emptyMsg.classList.remove('d-none');
+      if (itemsWrapper) itemsWrapper.classList.add('d-none');
+      if (mobileBar) mobileBar.classList.add('d-none');
+      return;
+    }
+
+    if (emptyMsg) emptyMsg.classList.add('d-none');
+    if (itemsWrapper) itemsWrapper.classList.remove('d-none');
+
+    let total = 0;
+    let html = '';
+
+    serviceItems.forEach((item) => {
+      const price = Number(item.price) || 0;
+      const qty = Number(item.quantity) || 1;
+      const itemTotal = price * qty;
+      total += itemTotal;
+
+      html += `
+        <div class="d-flex justify-content-between align-items-center py-2 border-bottom" style="font-size: 0.85rem;">
+          <div style="flex-grow: 1; padding-right: 8px;">
+            <div style="font-weight: 700; color: var(--ink);">${item.name}</div>
+            <div class="text-muted" style="font-size: 0.75rem;">₹${price} x ${qty}</div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span style="font-weight: 800; color: var(--ink);">₹${itemTotal}</span>
+            <button class="btn btn-sm btn-link text-danger p-0" title="Remove" onclick="removeServiceItemByName('${escape(item.name)}')"><i class="bi bi-trash"></i></button>
+          </div>
+        </div>
+      `;
+    });
+
+    if (itemsList) itemsList.innerHTML = html;
+    if (totalPriceEl) totalPriceEl.innerText = `₹${total.toLocaleString('en-IN')}`;
+
+    // Mobile bar sync
+    if (mobileBar) {
+      mobileBar.classList.remove('d-none');
+      if (mobileCount) mobileCount.innerText = `${totalQty} Service${totalQty > 1 ? 's' : ''}`;
+      if (mobileTotal) mobileTotal.innerText = `₹${total.toLocaleString('en-IN')}`;
+    }
+  }
+
+  function removeServiceItemByName(escapedName) {
+    const targetName = unescape(escapedName);
+    let cart = typeof window.getKumawatCart === 'function' ? window.getKumawatCart() : JSON.parse(localStorage.getItem('kumawat_cart') || '[]');
+    cart = cart.filter(item => !(item.name === targetName && (item.type === 'service' || (!item.id && !item.productId))));
+    
+    if (typeof window.setKumawatCart === 'function') {
+      window.setKumawatCart(cart);
+    } else {
+      localStorage.setItem('kumawat_cart', JSON.stringify(cart));
+      if (typeof updateCartUI === 'function') updateCartUI();
+    }
+    renderServicesSummary();
+  }
+
+  function scrollToBookingSummary() {
+    const sidebar = document.getElementById('selectedServicesSidebar');
+    if (sidebar) {
+      sidebar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  function proceedToCheckout() {
+    window.location.href = '/checkout';
+  }
+
+  document.addEventListener('DOMContentLoaded', renderServicesSummary);
+  window.addEventListener('storage', renderServicesSummary);
+  window.addEventListener('cartUpdated', renderServicesSummary);
+  window.addEventListener('cart:updated', renderServicesSummary);
 </script>
 
 <%- include('partials/footer') %>

@@ -19,19 +19,24 @@
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "Organization",
+    "@type": "LocalBusiness",
     "name": "Kumawat Plumbing & Electricals",
     "url": "https://kumawatelectricals.com",
-    "logo": "https://kumawatelectricals.com/images/logo.png",
-    "contactPoint": {
-      "@type": "ContactPoint",
-      "telephone": "+91-9462759965",
-      "contactType": "customer service"
-    }
+    "telephone": "+91-9462759965",
+    "email": "kumawathimanshu309@gmail.com",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Adda Ball, Kui Ke Pass, Station Road",
+      "addressLocality": "Govindgarh",
+      "addressRegion": "Rajasthan",
+      "addressCountry": "IN"
+    },
+    "openingHours": ["Mo-Sa 08:00-21:00", "Su 09:00-18:00"],
+    "priceRange": "₹₹"
   }
-</script>
+  </script>
   
-  <!-- Open Graph / Facebook -->
+  <!-- Open Graph -->
   <meta property="og:site_name" content="Kumawat Plumbing & Electricals" />
   <meta property="og:locale" content="en_IN" />
   <meta property="og:type" content="<%= (typeof seo !== 'undefined' && seo.ogType) ? seo.ogType : 'website' %>" />
@@ -50,23 +55,25 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&family=Manrope:wght@400;500;600;700&display=swap" as="style" />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
   
-  <!-- Bootstrap 5 CSS -->
+  <!-- Bootstrap 5 CSS & Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   
   <!-- Custom CSS -->
   <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/premium-ui.css" />
 </head>
 <body>
 <a href="#main-content" class="skip-link sr-only sr-only-focusable">Skip to main content</a>
 
-<header class="site-header">
+<header class="site-header" role="banner">
   <div class="container">
     <div class="header-inner">
-      <a href="/" class="logo" aria-label="Kumawat Plumbing & Electricals home">
+
+      <!-- Logo -->
+      <a href="/" class="logo" aria-label="Kumawat Plumbing & Electricals — home">
         <svg class="logo-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <circle cx="18" cy="18" r="17" stroke="#C9602A" stroke-width="1.5"/>
           <path d="M13 23 L20 16" stroke="#1C2B2B" stroke-width="2" stroke-linecap="round"/>
@@ -77,81 +84,223 @@
       </a>
 
       <% const active = typeof activePage !== 'undefined' ? activePage : '' %>
+      <% const isAuth = (typeof user !== 'undefined' && user !== null); %>
+      <% const isAdminUser = isAuth && (user && (user.role === 'admin' || user.role === 'super_admin')); %>
+
+      <!-- Minimal Desktop Nav Links -->
       <nav class="desktop-nav" aria-label="Main navigation">
         <a href="/" class="<%= active === 'home' ? 'active' : '' %>">Home</a>
+        <a href="/store" class="<%= active === 'store' ? 'active' : '' %>">Store</a>
         <a href="/services" class="<%= active === 'services' ? 'active' : '' %>">Services</a>
         <a href="/about" class="<%= active === 'about' ? 'active' : '' %>">About</a>
-        <a href="/pricing" class="<%= active === 'pricing' ? 'active' : '' %>">Pricing</a>
         <a href="/contact" class="<%= active === 'contact' ? 'active' : '' %>">Contact</a>
-        
-        <% if (typeof user !== 'undefined' && user && (user.role === 'admin' || user.role === 'super_admin')) { %>
-          <a href="/admin" target="_blank" class="<%= active === 'admin' ? 'active' : '' %>" style="color: var(--accent); font-weight: 600;">Admin Dashboard</a>
-        <% } %>
       </nav>
 
-      <div class="header-ctas">
-        <% if (typeof user !== 'undefined' && user) { %>
-          <% const unreadCount = (typeof notifications !== 'undefined' ? notifications : []).filter(n => !n.read).length; %>
-          <span style="font-size: 0.85rem; font-weight: 600; color: var(--ink-light);">Hi, <%= user.name.split(' ')[0] %></span>
-          <a href="/auth/logout" class="btn btn-outline" style="padding: 7px 14px; font-size: 0.78rem;">Logout</a>
-          <div class="user-menu d-flex align-items-center gap-2">
-            <a href="/dashboard?tab=notifications" class="position-relative" style="color: var(--ink); margin-right: 10px; font-size: 1.2rem;">
-              <i class="bi bi-bell"></i>
-              <% if (unreadCount > 0) { %>
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
-                  <%= unreadCount %>
-                </span>
+      <!-- Header Action Controls -->
+      <div class="header-actions">
+
+        <!-- Shopping Cart Trigger -->
+        <button onclick="if(typeof openCartDrawer==='function'){openCartDrawer();}else if(typeof toggleCartDrawer==='function'){toggleCartDrawer();}else{window.location.href='/store';}" class="header-action-btn btn btn-ghost" aria-label="Shopping cart">
+          <span class="nav-icon-wrapper" style="position: relative; display: inline-flex; align-items: center; justify-content: center;">
+            <i class="bi bi-bag fs-5"></i>
+            <span id="cart-badge-count" class="cart-count-badge header-badge bg-danger" style="display: none;">0</span>
+          </span>
+        </button>
+
+        <% if (isAuth) { %>
+          <!-- AUTHENTICATED USER STATE -->
+          <% const unreadCount = (typeof notifications !== 'undefined' && Array.isArray(notifications)) ? notifications.filter(n => !n.read).length : 0; %>
+
+          <!-- Wishlist Icon -->
+          <a href="/dashboard?tab=wishlist" class="header-action-btn btn btn-ghost" aria-label="Wishlist">
+            <i class="bi bi-heart fs-5"></i>
+            <span id="wishlist-badge" class="header-badge bg-danger" style="display: none;">0</span>
+          </a>
+
+          <!-- Notifications Icon (Rendered ONLY if unread > 0) -->
+          <% if (unreadCount > 0) { %>
+            <a href="/dashboard?tab=notifications" class="header-action-btn btn btn-ghost" aria-label="Notifications">
+              <i class="bi bi-bell fs-5"></i>
+              <span class="header-badge bg-danger"><%= unreadCount %></span>
+            </a>
+          <% } %>
+
+          <!-- User Account Menu Dropdown -->
+          <div class="user-menu user-dropdown account-menu" id="userMenu">
+            <button type="button" class="user-menu-btn user-dropdown-btn account-menu-trigger" id="userMenuBtn" aria-expanded="false" aria-haspopup="true">
+              <span class="user-avatar-initial">
+                <%= user.name ? user.name.charAt(0).toUpperCase() : 'U' %>
+              </span>
+              <span class="user-name d-none d-sm-inline">Hi, <%= user.name ? user.name.split(' ')[0] : 'User' %></span>
+              <i class="bi bi-chevron-down fs-7 ms-1"></i>
+            </button>
+            <div class="user-menu-dropdown user-dropdown-menu account-menu-dropdown" id="userMenuDropdown" role="menu" hidden>
+              <div class="user-menu-header user-dropdown-header account-menu-header">
+                <strong><%= user.name %></strong>
+                <span><%= user.email || user.mobile %></span>
+              </div>
+              <a href="/dashboard" class="user-menu-item user-dropdown-item" role="menuitem"><i class="bi bi-person me-2"></i> My Account</a>
+              <a href="/dashboard?tab=orders" class="user-menu-item user-dropdown-item" role="menuitem"><i class="bi bi-box-seam me-2"></i> My Orders</a>
+              <a href="/dashboard?tab=addresses" class="user-menu-item user-dropdown-item" role="menuitem"><i class="bi bi-geo-alt me-2"></i> Addresses</a>
+              <a href="/dashboard?tab=security" class="user-menu-item user-dropdown-item" role="menuitem"><i class="bi bi-shield-lock me-2"></i> Security</a>
+              <% if (isAdminUser) { %>
+                <div class="user-menu-divider user-dropdown-divider"></div>
+                <a href="/admin" target="_blank" class="user-menu-item user-dropdown-item admin-item admin-link" role="menuitem"><i class="bi bi-speedometer2 me-2"></i> Admin Dashboard</a>
               <% } %>
-            </a>
-            <a href="/dashboard?tab=wishlist" class="position-relative" style="color: var(--ink); margin-right: 15px; font-size: 1.2rem;">
-              <i class="bi bi-heart"></i>
-              <span id="wishlist-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem; display: none;">0</span>
-            </a>
-            <a href="/dashboard" class="btn btn-outline" style="border-radius: 20px; padding: 6px 16px; font-size: 0.85rem;">My Account</a>
+              <div class="user-menu-divider user-dropdown-divider"></div>
+              <a href="/auth/logout" class="user-menu-item user-dropdown-item logout-item logout-link" role="menuitem"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
+            </div>
           </div>
-          <script>
-            document.addEventListener('DOMContentLoaded', async () => {
-              try {
-                const res = await fetch('/api/wishlist/count');
-                const data = await res.json();
-                if (data.success && data.count > 0) {
-                  const badge = document.getElementById('wishlist-badge');
-                  badge.innerText = data.count;
-                  badge.style.display = 'block';
-                }
-              } catch (e) {}
-            });
-          </script>
         <% } else { %>
-          <a href="/login" class="btn btn-outline <%= active === 'login' ? 'active' : '' %>">Login</a>
-          <a href="/register" class="btn btn-accent <%= active === 'register' ? 'active' : '' %>">Register</a>
+          <!-- GUEST STATE -->
+          <a href="/login" class="btn btn-outline btn-sm <%= active === 'login' ? 'active' : '' %>">Login</a>
+          <a href="/register" class="btn btn-accent btn-sm <%= active === 'register' ? 'active' : '' %>">Register</a>
         <% } %>
-        <a href="https://wa.me/919462759965?text=Hi%20Himanshu%2C%20I%20need%20a%20plumbing%20or%20electrical%20service.%20Can%20you%20help%3F" class="btn btn-whatsapp" target="_blank" rel="noopener">
-          <i class="bi bi-whatsapp"></i> WhatsApp
+
+        <!-- WhatsApp Support CTA -->
+        <a href="https://wa.me/919462759965?text=Hi%20Himanshu%2C%20I%20need%20help." class="btn btn-whatsapp btn-sm d-none d-lg-inline-flex align-items-center gap-1" target="_blank" rel="noopener" aria-label="Chat on WhatsApp" style="height: 40px; padding: 0 14px; border-radius: 20px; font-weight: 700;">
+          <i class="bi bi-whatsapp" aria-hidden="true"></i> <span>WhatsApp</span>
         </a>
       </div>
 
-      <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+      <!-- Hamburger Menu Button -->
+      <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false" aria-controls="mobile-nav">
         <span></span><span></span><span></span>
       </button>
     </div>
+
+    <!-- Dedicated Full-Width Mobile Search Bar (Phone Screens < 768px) -->
+    <div class="mobile-search-row d-md-none pt-2 pb-1">
+      <form action="/store" method="GET" class="w-100 position-relative">
+        <div class="input-group">
+          <span class="input-group-text bg-white border-end-0 ps-3 text-muted" style="border-radius: 24px 0 0 24px;"><i class="bi bi-search"></i></span>
+          <input type="text" name="search" class="form-control border-start-0 border-end-0 shadow-none ps-0" placeholder="Search smartphones, tools, appliances..." aria-label="Search Products" style="height: 44px; font-size: 0.95rem;" />
+          <button class="btn btn-accent px-3" type="submit" style="border-radius: 0 24px 24px 0; height: 44px;" aria-label="Submit Search">
+            <i class="bi bi-arrow-right"></i>
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 
+  <!-- Mobile Nav Drawer Overlay Backdrop -->
+  <div class="mobile-nav-backdrop" id="mobileNavBackdrop" onclick="closeMobileNav()"></div>
+
+  <!-- Mobile Nav Drawer -->
   <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
-    <a href="/" class="<%= active === 'home' ? 'active' : '' %>" onclick="closeMobileNav()">Home</a>
-    <a href="/services" class="<%= active === 'services' ? 'active' : '' %>" onclick="closeMobileNav()">Services</a>
-    <a href="/about" class="<%= active === 'about' ? 'active' : '' %>" onclick="closeMobileNav()">About</a>
-    <a href="/pricing" class="<%= active === 'pricing' ? 'active' : '' %>" onclick="closeMobileNav()">Pricing</a>
-    <a href="/contact" class="<%= active === 'contact' ? 'active' : '' %>" onclick="closeMobileNav()">Contact</a>
-    <% if (typeof user !== 'undefined' && user) { %>
-      <% if (user.role === 'admin' || user.role === 'super_admin') { %>
-        <a href="/admin" target="_blank" class="<%= active === 'admin' ? 'active' : '' %>" onclick="closeMobileNav()" style="color: var(--accent); font-weight: bold;">Admin Dashboard</a>
+    <div class="mobile-nav-header d-flex justify-content-between align-items-center p-3 border-bottom">
+      <div class="fw-bold fs-6 text-ink"><i class="bi bi-compass me-2 text-accent"></i> Navigation</div>
+      <button class="btn-close" onclick="closeMobileNav()" aria-label="Close navigation"></button>
+    </div>
+    <div class="mobile-nav-links py-2">
+      <a href="/" class="<%= active === 'home' ? 'active' : '' %>" onclick="closeMobileNav()"><i class="bi bi-house-door me-2"></i> Home</a>
+      <a href="/store" class="<%= active === 'store' ? 'active' : '' %>" onclick="closeMobileNav()"><i class="bi bi-shop me-2"></i> Store</a>
+      <a href="/services" class="<%= active === 'services' ? 'active' : '' %>" onclick="closeMobileNav()"><i class="bi bi-tools me-2"></i> Services</a>
+      <a href="/about" class="<%= active === 'about' ? 'active' : '' %>" onclick="closeMobileNav()"><i class="bi bi-info-circle me-2"></i> About</a>
+      <a href="/contact" class="<%= active === 'contact' ? 'active' : '' %>" onclick="closeMobileNav()"><i class="bi bi-envelope me-2"></i> Contact</a>
+
+      <div class="dropdown-divider my-2"></div>
+
+      <% if (isAuth) { %>
+        <% if (isAdminUser) { %>
+          <a href="/admin" target="_blank" onclick="closeMobileNav()" style="color: var(--accent); font-weight: 700;">
+            <i class="bi bi-speedometer2 me-2"></i> Admin Dashboard
+          </a>
+        <% } %>
+        <a href="/dashboard" class="<%= active === 'dashboard' ? 'active' : '' %>" onclick="closeMobileNav()"><i class="bi bi-person-gear me-2"></i> My Account</a>
+        <a href="/dashboard?tab=orders" onclick="closeMobileNav()"><i class="bi bi-box-seam me-2"></i> My Orders</a>
+        <a href="/dashboard?tab=wishlist" onclick="closeMobileNav()"><i class="bi bi-heart me-2"></i> Wishlist</a>
+        <a href="/auth/logout" onclick="closeMobileNav()" style="color: var(--danger, #dc3545);"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
+      <% } else { %>
+        <a href="/login" class="<%= active === 'login' ? 'active' : '' %>" onclick="closeMobileNav()"><i class="bi bi-box-arrow-in-right me-2"></i> Login</a>
+        <a href="/register" class="<%= active === 'register' ? 'active' : '' %>" onclick="closeMobileNav()"><i class="bi bi-person-plus me-2"></i> Register</a>
       <% } %>
-      <a href="/dashboard" class="<%= active === 'dashboard' ? 'active' : '' %>" onclick="closeMobileNav()">My Account</a>
-      <a href="/auth/logout" onclick="closeMobileNav()">Logout</a>
-    <% } else { %>
-      <a href="/login" class="<%= active === 'login' ? 'active' : '' %>" onclick="closeMobileNav()">Login</a>
-      <a href="/register" class="<%= active === 'register' ? 'active' : '' %>" onclick="closeMobileNav()">Register</a>
-    <% } %>
+      <a href="https://wa.me/919462759965?text=Hi%20Himanshu%2C%20I%20need%20help." target="_blank" rel="noopener" style="color: #25D366; font-weight: 700;" onclick="closeMobileNav()">
+        <i class="bi bi-whatsapp me-2"></i> WhatsApp Support
+      </a>
+    </div>
   </nav>
 </header>
+
+<script>
+  function closeMobileNav() {
+    const mobileNav = document.getElementById('mobile-nav');
+    const hamburger = document.getElementById('hamburger');
+    const backdrop = document.getElementById('mobileNavBackdrop');
+    if (mobileNav) mobileNav.classList.remove('open');
+    if (hamburger) hamburger.setAttribute('aria-expanded', 'false');
+    if (backdrop) backdrop.classList.remove('show');
+    document.body.classList.remove('mobile-nav-open');
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const hamburger = document.getElementById('hamburger');
+    const mobileNav = document.getElementById('mobile-nav');
+    const backdrop = document.getElementById('mobileNavBackdrop');
+
+    if (hamburger && mobileNav) {
+      hamburger.addEventListener('click', () => {
+        const isOpen = mobileNav.classList.toggle('open');
+        hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        if (backdrop) {
+          if (isOpen) backdrop.classList.add('show');
+          else backdrop.classList.remove('show');
+        }
+        if (isOpen) document.body.classList.add('mobile-nav-open');
+        else document.body.classList.remove('mobile-nav-open');
+      });
+    }
+
+    const menuBtn = document.getElementById('userMenuBtn');
+    const menuDropdown = document.getElementById('userMenuDropdown');
+
+    if (menuBtn && menuDropdown) {
+      menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isCurrentlyOpen = menuDropdown.classList.contains('show') && !menuDropdown.hasAttribute('hidden');
+        if (isCurrentlyOpen) {
+          menuDropdown.classList.remove('show');
+          menuDropdown.setAttribute('hidden', '');
+          menuBtn.setAttribute('aria-expanded', 'false');
+        } else {
+          menuDropdown.removeAttribute('hidden');
+          menuDropdown.classList.add('show');
+          menuBtn.setAttribute('aria-expanded', 'true');
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!menuDropdown.contains(e.target) && !menuBtn.contains(e.target)) {
+          menuDropdown.classList.remove('show');
+          menuDropdown.setAttribute('hidden', '');
+          menuBtn.setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && menuDropdown.classList.contains('show')) {
+          menuDropdown.classList.remove('show');
+          menuDropdown.setAttribute('hidden', '');
+          menuBtn.setAttribute('aria-expanded', 'false');
+          menuBtn.focus();
+        }
+      });
+    }
+
+    // Fetch Wishlist Count (Deduplicated)
+    if (!window._wishlistCountPromise) {
+      window._wishlistCountPromise = fetch('/api/wishlist/count').then(res => res.json());
+    }
+    window._wishlistCountPromise
+      .then(data => {
+        if (data && data.success && data.count > 0) {
+          const badge = document.getElementById('wishlist-badge');
+          if (badge) {
+            badge.innerText = data.count;
+            badge.style.display = 'block';
+          }
+        }
+      })
+      .catch(() => { window._wishlistCountPromise = null; });
+  });
+</script>

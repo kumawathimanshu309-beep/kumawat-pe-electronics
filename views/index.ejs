@@ -1,312 +1,623 @@
-<%- include('partials/header', { title: 'Kumawat Plumbing & Electricals | Govindgarh', activePage: 'home' }) %>
+<%- include('partials/header', { title: 'Kumawat Plumbing & Electricals | Electronics & Home Services — Govindgarh', activePage: 'home' }) %>
 <link rel="stylesheet" href="/css/premium-ui.css" />
 
 <main id="main-content">
 
-<!-- ── HERO ────────────────────────────────────────────── -->
-<section class="hero blueprint-bg" id="home">
+<!-- ══════════════════════════════════════════════════════════
+     HERO SECTION
+══════════════════════════════════════════════════════════ -->
+<section class="hero blueprint-bg" id="home" aria-label="Hero" data-reveal>
   <div class="hero-content">
-    <p class="hero-eyebrow">Station Road · Govindgarh</p>
-    <h1>When plumbing or wiring breaks, <em>Himanshu</em> is there.</h1>
-    <p class="hero-proof">Over 850 homes trusted, prompt and professional services.</p>
+    <p class="hero-eyebrow" aria-label="Location">Station Road · Govindgarh</p>
+
+    <h1>When plumbing or wiring breaks,<br><em>Himanshu</em> is there.</h1>
+
+    <p class="hero-proof">
+      Over 850 homes trusted — prompt, professional, and priced fairly.
+    </p>
+
     <div class="hero-ctas">
-      <a href="/services" class="btn btn-accent" aria-label="Book Service or Order Parts">
-        <i class="bi bi-cart" aria-hidden="true"></i> Book Service / Order Parts
+      <a href="/services" class="btn btn-accent" aria-label="Book a service">
+        <i class="bi bi-calendar-check" aria-hidden="true"></i> Book a Service
       </a>
-      <a href="tel:+919462759965" class="btn btn-outline" aria-label="Call +91 94627 59965">
-        <i class="bi bi-telephone" aria-hidden="true"></i> Call +91 94627 59965
+      <a href="/store" class="btn btn-outline" aria-label="Shop spare parts">
+        <i class="bi bi-shop" aria-hidden="true"></i> Shop Spare Parts
       </a>
     </div>
-    
-    <div style="margin-top: 30px;">
-      <p style="font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 8px;">Accepted Payments:</p>
+
+    <div class="hero-payment-block" style="margin-top: 28px;">
+      <p class="hero-payment-label">Accepted Payments</p>
       <%- include('partials/payment_icons') %>
     </div>
   </div>
 
-  <div class="hero-image premium-hero-img" style="position:relative;">
-    <img fetchpriority="high" loading="eager" decoding="sync" src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&auto=format&fit=crop" alt="Plumber working on fixtures" />
-    <div class="stat-badge" aria-hidden="true">
+  <div class="hero-image premium-hero-img" style="position: relative;" aria-hidden="true" data-tilt>
+    <img
+      fetchpriority="high"
+      loading="eager"
+      decoding="sync"
+      src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=900&auto=format&fit=crop&q=80"
+      alt="Professional plumber working on home fixtures"
+      style="width:100%; height:100%; object-fit:cover; object-position:center;"
+    />
+    <div class="stat-badge" aria-label="12 plus years serving Govindgarh">
       <strong>12+</strong>
       <span>Years<br>Serving<br>Govindgarh</span>
     </div>
   </div>
 </section>
 
-<!-- ── TRUST STRIP ─────────────────────────────────────── -->
-<div class="trust-strip blueprint-dark-bg">
+
+<!-- ══════════════════════════════════════════════════════════
+     STATS / TRUST STRIP
+══════════════════════════════════════════════════════════ -->
+<div class="trust-strip blueprint-dark-bg" role="region" aria-label="Key statistics">
   <div class="container">
     <div class="trust-inner">
       <div class="trust-item">
+        <div class="trust-item-icon" aria-hidden="true"><i class="bi bi-house-heart"></i></div>
         <strong>850+</strong>
         <span>Homes Served</span>
       </div>
       <div class="trust-item">
-        <strong>12 yrs</strong>
+        <div class="trust-item-icon" aria-hidden="true"><i class="bi bi-award"></i></div>
+        <strong>12+ Yrs</strong>
         <span>In Business</span>
       </div>
       <div class="trust-item">
+        <div class="trust-item-icon" aria-hidden="true"><i class="bi bi-lightning-charge"></i></div>
         <strong>Same Day</strong>
-        <span>Delivery &amp; Visit</span>
+        <span>Service &amp; Delivery</span>
       </div>
       <div class="trust-item">
-        <strong>4.9 ★</strong>
+        <div class="trust-item-icon" aria-hidden="true"><i class="bi bi-star-half"></i></div>
+        <strong>4.9 / 5</strong>
         <span>Google Rating</span>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ── SERVICES SECTION PREVIEW ────────────────────────── -->
-<section class="services-section" id="services">
+
+<!-- ══════════════════════════════════════════════════════════
+     SERVICES SECTION
+══════════════════════════════════════════════════════════ -->
+<section class="services-section" id="services" aria-labelledby="services-heading">
   <div class="container">
-    <div class="services-header d-flex justify-content-between align-items-end flex-wrap gap-3">
-      <div>
+
+    <div class="services-header">
+      <div class="services-header-left">
         <p class="section-label">What We Offer</p>
-        <h2>Reliable installation and home delivery.</h2>
-        <p>Complete home services and parts delivered right to your doorstep.</p>
+        <h2 id="services-heading">Professional installation &amp; home delivery.</h2>
+        <p>Complete home services and quality parts delivered right to your doorstep.</p>
       </div>
-      <a href="/services" class="btn btn-outline" aria-label="View all services and order parts">View All &amp; Order <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+      <a href="/services" class="btn btn-outline" aria-label="View all services">
+        View All Services <i class="bi bi-arrow-right" aria-hidden="true"></i>
+      </a>
     </div>
 
     <div class="services-grid">
-      <!-- Card 1 -->
-      <div class="service-card">
-        <span class="badge-delivery"><i class="bi bi-truck"></i> Home Delivery</span>
-        <div class="service-icon" style="color: var(--accent); font-size: 2.2rem; display: flex; align-items: center; justify-content: center;">
-          <i class="bi bi-droplet"></i>
+
+      <!-- Service 1 -->
+      <article class="service-card reveal">
+        <div class="service-icon" aria-hidden="true">
+          <i class="bi bi-droplet-fill"></i>
         </div>
         <h3>Leak Detection &amp; Repair</h3>
-        <p>Wall seepage, pipe bursts, hidden leaks. We locate and resolve it fast without unnecessary demolition.</p>
+        <p>Wall seepage, pipe bursts, hidden leaks. We locate and resolve fast — without unnecessary demolition.</p>
         <div class="service-price">₹299 <small>onwards</small></div>
-        <a href="/services" class="btn btn-accent btn-xs" style="margin-top:auto;">Book / Order</a>
-      </div>
+        <span class="service-avail"><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Same Day Available</span>
+        <a href="/services" class="btn btn-accent btn-sm" style="margin-top: 8px;" aria-label="Book leak detection service">
+          <i class="bi bi-calendar-check" aria-hidden="true"></i> Book Service
+        </a>
+      </article>
 
-      <!-- Card 2 -->
-      <div class="service-card">
-        <span class="badge-delivery"><i class="bi bi-truck"></i> Home Delivery</span>
-        <div class="service-icon" style="color: var(--accent); font-size: 2.2rem; display: flex; align-items: center; justify-content: center;">
-          <i class="bi bi-lightning-charge"></i>
+      <!-- Service 2 -->
+      <article class="service-card reveal">
+        <div class="service-icon" aria-hidden="true">
+          <i class="bi bi-lightning-charge-fill"></i>
         </div>
         <h3>Electrical Wiring &amp; Rewiring</h3>
-        <p>Tripping MCBs, sparking switches, points installation. Done to safety standards.</p>
+        <p>Tripping MCBs, sparking switches, points installation — done safely to IS standards.</p>
         <div class="service-price">₹499 <small>onwards</small></div>
-        <a href="/services" class="btn btn-accent btn-xs" style="margin-top:auto;">Book / Order</a>
-      </div>
+        <span class="service-avail"><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Same Day Available</span>
+        <a href="/services" class="btn btn-accent btn-sm" style="margin-top: 8px;" aria-label="Book electrical service">
+          <i class="bi bi-calendar-check" aria-hidden="true"></i> Book Service
+        </a>
+      </article>
 
-      <!-- Card 3 -->
-      <div class="service-card">
-        <span class="badge-delivery"><i class="bi bi-truck"></i> Home Delivery</span>
-        <div class="service-icon" style="color: var(--accent); font-size: 2.2rem; display: flex; align-items: center; justify-content: center;">
+      <!-- Service 3 -->
+      <article class="service-card reveal">
+        <div class="service-icon" aria-hidden="true">
           <i class="bi bi-tools"></i>
         </div>
         <h3>Tap &amp; Sanitary Fitting</h3>
-        <p>New taps, showers, washbasins, cisterns. We carry parts with us to ensure same-day fixes.</p>
+        <p>New taps, showers, washbasins, cisterns. We carry parts to ensure same-day fixes.</p>
         <div class="service-price">₹199 <small>onwards</small></div>
-        <a href="/services" class="btn btn-accent btn-xs" style="margin-top:auto;">Book / Order</a>
-      </div>
+        <span class="service-avail"><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Home Delivery</span>
+        <a href="/services" class="btn btn-accent btn-sm" style="margin-top: 8px;" aria-label="Book tap fitting service">
+          <i class="bi bi-calendar-check" aria-hidden="true"></i> Book Service
+        </a>
+      </article>
+
     </div>
   </div>
 </section>
 
-<!-- ── FEATURED PRODUCTS ───────────────────────────────── -->
-<style>
-  .featured-products-grid {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 16px;
-  }
-  @media (max-width: 991px) {
-    .featured-products-grid {
-      grid-template-columns: repeat(3, 1fr);
-    }
-  }
-  @media (max-width: 767px) {
-    .featured-products-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-    }
-  }
-  .featured-products-grid .service-card {
-    padding: 16px !important;
-  }
-</style>
-<section class="featured-products-section" id="featured-products" style="padding: 80px 0; background-color: var(--white);">
+
+<!-- ══════════════════════════════════════════════════════════
+     SHOP BY CATEGORY  (only shown when categories exist)
+══════════════════════════════════════════════════════════ -->
+<% if (typeof categories !== 'undefined' && categories.length > 0) { %>
+<section class="categories-section" id="categories" aria-labelledby="categories-heading">
   <div class="container">
-    <div class="d-flex justify-content-between align-items-end flex-wrap gap-3" style="margin-bottom: 40px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px;">
+      <div>
+        <p class="section-label">Explore</p>
+        <h2 id="categories-heading">Shop by Category</h2>
+      </div>
+      <a href="/store" class="btn btn-outline" aria-label="Browse all product categories">
+        All Products <i class="bi bi-arrow-right" aria-hidden="true"></i>
+      </a>
+    </div>
+
+    <%
+      const categoryIcons = {
+        'smartphone': 'bi-phone-fill',
+        'mobile': 'bi-phone-fill',
+        'laptop': 'bi-laptop',
+        'computer': 'bi-pc-display',
+        'tablet': 'bi-tablet-fill',
+        'tv': 'bi-tv-fill',
+        'television': 'bi-tv-fill',
+        'monitor': 'bi-display-fill',
+        'audio': 'bi-headphones',
+        'headphone': 'bi-headphones',
+        'earphone': 'bi-headphones',
+        'earbud': 'bi-headphones',
+        'speaker': 'bi-speaker-fill',
+        'gaming': 'bi-controller',
+        'storage': 'bi-hdd-fill',
+        'networking': 'bi-wifi',
+        'router': 'bi-router-fill',
+        'accessories': 'bi-box-seam-fill',
+        'accessory': 'bi-box-seam-fill',
+        'smart home': 'bi-house-heart-fill',
+        'smarthome': 'bi-house-heart-fill',
+        'camera': 'bi-camera-fill',
+        'watch': 'bi-smartwatch',
+        'wearable': 'bi-smartwatch',
+        'electrical': 'bi-lightning-charge-fill',
+        'plumbing': 'bi-droplet-fill',
+        'tools': 'bi-tools',
+        'switches': 'bi-toggle-on',
+        'lighting': 'bi-lightbulb-fill',
+        'fans': 'bi-fan',
+        'fan': 'bi-fan',
+        'cables': 'bi-usb-drive-fill',
+        'cable': 'bi-usb-drive-fill',
+        'appliances': 'bi-plug-fill',
+        'printer': 'bi-printer-fill',
+        'keyboard': 'bi-keyboard-fill',
+        'mouse': 'bi-mouse-fill',
+        'general': 'bi-box-seam',
+      };
+
+      function getCategoryIcon(name) {
+        if (!name) return 'bi-box-seam';
+        const lower = name.toLowerCase();
+        for (const key of Object.keys(categoryIcons)) {
+          if (lower.includes(key)) return categoryIcons[key];
+        }
+        return 'bi-box-seam';
+      }
+    %>
+
+    <div class="categories-grid" style="margin-top: clamp(24px, 4vw, 40px);">
+      <% categories.forEach(cat => {
+        const slug = encodeURIComponent(cat.name);
+        const iconClass = getCategoryIcon(cat.name);
+      %>
+        <a href="/store?category=<%= slug %>" class="category-card reveal" aria-label="Browse <%= cat.name %> — <%= cat.count %> products">
+          <div class="category-icon" aria-hidden="true">
+            <i class="bi <%= iconClass %>"></i>
+          </div>
+          <span class="category-name"><%= cat.name %></span>
+          <span class="category-count"><%= cat.count %> item<%= cat.count !== 1 ? 's' : '' %></span>
+        </a>
+      <% }) %>
+    </div>
+  </div>
+</section>
+<% } %>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     FEATURED PRODUCTS
+══════════════════════════════════════════════════════════ -->
+<section class="products-section" id="featured-products" aria-labelledby="products-heading">
+  <div class="container">
+
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px; margin-bottom: clamp(24px, 4vw, 44px);">
       <div>
         <p class="section-label">Our Catalog</p>
-        <h2 style="font-family: var(--font-display); font-size: 2.2rem; font-weight: 700; color: var(--ink);">Featured Products</h2>
-        <p style="color: var(--ink-light); margin-top: 10px;">High-quality plumbing and electrical supplies delivered right to you.</p>
+        <h2 id="products-heading">Featured Products</h2>
+        <p style="color: var(--ink-light); margin-top: 10px; font-size: var(--fs-base);">
+          High-quality plumbing and electrical supplies — delivered right to you.
+        </p>
       </div>
+      <a href="/store" class="btn btn-outline" aria-label="View all products in the store">
+        View All Products <i class="bi bi-arrow-right" aria-hidden="true"></i>
+      </a>
     </div>
 
     <% if (typeof products !== 'undefined' && products.length > 0) { %>
-      <div class="featured-products-grid">
-        <% products.forEach(p => { %>
-          <div class="premium-card">
-            
-            <div class="premium-badges">
-              <% if (p.discountPrice) { %>
+      <div class="products-grid">
+        <% products.forEach(p => {
+          const hasDiscount = p.discountPrice && p.discountPrice < p.price;
+          const discountPct = hasDiscount ? Math.round(((p.price - p.discountPrice) / p.price) * 100) : 0;
+          const isOOS = p.stock <= 0 || p.status === 'Out Of Stock';
+          const displayPrice = hasDiscount ? p.discountPrice : p.price;
+          const imgSrc = p.images && p.images.length > 0 ? optimizeImage(p.images[0]) : '';
+          const escapedName = escape(p.name || '');
+          const sku = p.sku || 'N/A';
+          const cat = p.category || 'General';
+          const ratingAvg = p.ratings && p.ratings.average ? p.ratings.average : 0;
+          const ratingCount = p.ratings && p.ratings.count ? p.ratings.count : 0;
+        %>
+          <!-- Product Card — clicking image/title/body navigates to product page -->
+          <article
+            class="premium-card reveal"
+            role="article"
+            aria-label="<%= p.name %>"
+            onclick="window.location.href='/product/<%= p.productId %>'"
+            style="cursor: pointer;"
+          >
+            <!-- Badges (max 1–2, meaningful only) -->
+            <div class="premium-badges" onclick="event.stopPropagation();">
+              <% if (isOOS) { %>
+                <span class="premium-badge badge-oos">Out of Stock</span>
+              <% } else if (hasDiscount) { %>
                 <span class="premium-badge badge-sale">Sale</span>
-              <% } %>
-              <% if (p.deliveryAvailable !== false) { %>
-                <span class="premium-badge badge-new"><i class="bi bi-truck"></i> Delivery</span>
-              <% } %>
-            </div>
-            
-            <!-- Product Image -->
-            <div class="premium-card-img">
-              <% if (p.images && p.images.length > 0) { %>
-                <img loading="lazy" decoding="async" src="<%= optimizeImage(p.images[0]) %>" alt="<%= p.name %>" />
-              <% } else { %>
-                <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
-              <% } %>
-            </div>
-            
-            <!-- Product Info -->
-            <h3 class="premium-card-title"><%= p.name %></h3>
-            
-            <p class="premium-card-desc">
-              <%= p.description ? (p.description.length > 50 ? p.description.substring(0, 50) + '...' : p.description) : 'Premium quality product.' %>
-            </p>
-            
-            <div class="premium-price-row">
-              <% if (p.discountPrice) { %>
-                <span class="premium-price-current">₹<%= p.discountPrice %></span>
-                <span class="premium-price-old">₹<%= p.price %></span>
-                <% let discount = Math.round(((p.price - p.discountPrice) / p.price) * 100); %>
-                <span class="premium-discount-percent"><%= discount %>% OFF</span>
-              <% } else { %>
-                <span class="premium-price-current">₹<%= p.price %></span>
               <% } %>
             </div>
 
-            <div class="d-flex flex-column gap-2" style="margin-top: auto;">
-              <% if (p.stock > 0 && p.status !== 'Out Of Stock') { %>
-                <button onclick="buyNowDirect({
-                  name: '<%= escape(p.name) %>',
-                  price: <%= p.discountPrice || p.price %>,
-                  originalPrice: <%= p.price %>,
-                  image: '<%= p.images && p.images.length ? p.images[0] : '' %>',
-                  sku: '<%= p.sku || 'N/A' %>',
-                  category: '<%= p.category || 'General' %>',
-                  type: 'product'
-                })" class="btn btn-accent btn-full"><i class="bi bi-cart-check"></i> Buy Now</button>
+            <!-- Wishlist (independent control) -->
+            <% if (typeof user !== 'undefined' && user) { %>
+              <button
+                class="premium-wishlist-btn"
+                onclick="event.stopPropagation(); toggleWishlist('<%= p.productId %>', this);"
+                aria-label="Add <%= p.name %> to wishlist"
+                title="Add to Wishlist"
+              >
+                <i class="bi bi-heart" aria-hidden="true"></i>
+              </button>
+            <% } %>
+
+            <!-- Product Image -->
+            <div class="premium-card-img">
+              <% if (imgSrc) { %>
+                <img
+                  loading="lazy"
+                  decoding="async"
+                  src="<%= imgSrc %>"
+                  alt="<%= p.name %>"
+                />
               <% } else { %>
-                <button class="btn btn-secondary btn-full disabled" disabled>Sold Out</button>
+                <i class="bi bi-image no-img-icon" aria-hidden="true"></i>
               <% } %>
-              <a href="/product/<%= p.productId %>" class="btn btn-outline btn-full">View Details</a>
             </div>
-          </div>
+
+            <!-- Product Info -->
+            <% if (p.brand && p.brand !== 'Generic') { %>
+              <p class="premium-card-brand"><%= p.brand %></p>
+            <% } %>
+
+            <h3 class="premium-card-title"><%= p.name %></h3>
+
+            <p class="premium-card-desc">
+              <%= p.description ? (p.description.length > 80 ? p.description.substring(0, 80) + '…' : p.description) : 'Premium quality product.' %>
+            </p>
+
+            <% if (ratingAvg > 0) { %>
+              <div class="premium-card-rating" aria-label="Rating: <%= ratingAvg %> out of 5">
+                <%
+                  const stars = Math.round(ratingAvg);
+                  for (let i = 1; i <= 5; i++) {
+                %>
+                  <i class="bi bi-star<%= i <= stars ? '-fill' : '' %>" aria-hidden="true"></i>
+                <% } %>
+                <span>(<%= ratingCount %>)</span>
+              </div>
+            <% } %>
+
+            <!-- Price -->
+            <div class="premium-price-row">
+              <span class="premium-price-current">₹<%= displayPrice.toLocaleString('en-IN') %></span>
+              <% if (hasDiscount) { %>
+                <span class="premium-price-old">₹<%= p.price.toLocaleString('en-IN') %></span>
+                <span class="premium-discount-percent"><%= discountPct %>% OFF</span>
+              <% } %>
+            </div>
+
+            <!-- Actions (stop card navigation) -->
+            <div class="premium-card-actions-row action-row" onclick="event.stopPropagation();">
+              <% if (!isOOS) { %>
+                <button
+                  class="btn btn-accent action-btn-cart add-to-cart"
+                  onclick="event.stopPropagation(); addToCart('<%= escapedName %>', <%= displayPrice %>, <%= p.price %>, '<%= imgSrc %>', '<%= sku %>', '<%= cat %>', this);"
+                  aria-label="Add <%= p.name %> to cart"
+                  title="Add to Cart"
+                >
+                  <i class="bi bi-cart-plus" aria-hidden="true"></i>
+                  <span class="btn-text btn-text-desktop d-none d-md-inline">Add to Cart</span>
+                  <span class="btn-text btn-text-mobile d-inline d-md-none">Add</span>
+                </button>
+                <button
+                  class="btn btn-outline action-btn-buy buy-now"
+                  onclick="event.stopPropagation(); buyNowDirect({
+                    name: '<%= escapedName %>',
+                    price: <%= displayPrice %>,
+                    originalPrice: <%= p.price %>,
+                    image: '<%= imgSrc %>',
+                    sku: '<%= sku %>',
+                    category: '<%= cat %>',
+                    type: 'product'
+                  }, this);"
+                  aria-label="Buy <%= p.name %> now"
+                  title="Buy Now"
+                >
+                  <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>
+                  <span class="btn-text btn-text-desktop d-none d-md-inline">Buy Now</span>
+                  <span class="btn-text btn-text-mobile d-inline d-md-none">Buy</span>
+                </button>
+              <% } else { %>
+                <button class="btn btn-secondary disabled w-100" disabled aria-label="<%= p.name %> is sold out">Sold Out</button>
+              <% } %>
+            </div>
+          </article>
         <% }) %>
       </div>
-      
-      <div class="text-center" style="margin-top: 40px;">
-        <a href="/store" class="btn btn-accent" style="padding: 12px 32px; font-size: 1.1rem; border-radius: 50px; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: all 0.3s ease;">
-          View More Products <i class="bi bi-arrow-right ms-2"></i>
+
+      <div style="text-align: center; margin-top: clamp(32px, 5vw, 52px);">
+        <a href="/store" class="btn btn-accent" style="padding: 14px 40px; font-size: var(--fs-base);" aria-label="Browse the full product store">
+          View Full Store <i class="bi bi-arrow-right ms-2" aria-hidden="true"></i>
         </a>
       </div>
+
     <% } else { %>
+      <!-- Empty state -->
       <div class="premium-empty">
-        <i class="bi bi-shop"></i>
+        <i class="bi bi-shop" aria-hidden="true"></i>
         <h3>Products Coming Soon</h3>
-        <p>We are currently updating our online catalog with premium tools and electronics. Check back shortly!</p>
-        <a href="/store" class="btn btn-accent px-4">
-          Browse Full Store <i class="bi bi-arrow-right ms-2"></i>
+        <p>We're updating our catalog with premium plumbing and electrical supplies. Check back shortly!</p>
+        <a href="/store" class="btn btn-accent" aria-label="Browse full store">
+          Browse Full Store <i class="bi bi-arrow-right ms-2" aria-hidden="true"></i>
         </a>
       </div>
     <% } %>
+
   </div>
 </section>
 
-<!-- ── ABOUT ───────────────────────────────────────────── -->
-<section class="about-section" id="about">
+
+<!-- ══════════════════════════════════════════════════════════
+     TRUST BENEFITS ROW
+══════════════════════════════════════════════════════════ -->
+<section class="trust-benefits blueprint-bg" aria-label="Why choose us">
   <div class="container">
-    <div class="about-inner">
-      <div class="about-left">
-        <div class="owner-avatar" aria-label="Owner initials: HK">HK</div>
-        <p class="section-label">About the Owner</p>
-        <h2>Himanshu Kumawat</h2>
-        <p style="color:var(--ink-light); font-size:.88rem; margin-top:6px;">Expert Technician &amp; Business Owner · Govindgarh</p>
-
-        <div class="differentiators">
-          <div class="diff-item"><span class="diff-dot"></span><span>Certified contractor with years of field experience.</span></div>
-          <div class="diff-item"><span class="diff-dot"></span><span>Pre-stocked tools and replacement parts for fast response.</span></div>
-          <div class="diff-item"><span class="diff-dot"></span><span>Transparent estimates provided before any work starts.</span></div>
-          <div class="diff-item"><span class="diff-dot"></span><span>Home Delivery of plumbing/electrical parts with option for installation.</span></div>
-        </div>
+    <div style="text-align: center; margin-bottom: clamp(24px, 4vw, 40px);">
+      <p class="section-label">Why Choose Us</p>
+      <h2>Trusted by 850+ homes in Govindgarh</h2>
+    </div>
+    <div class="trust-benefits-grid">
+      <div class="trust-benefit reveal">
+        <div class="trust-benefit-icon" aria-hidden="true"><i class="bi bi-patch-check-fill"></i></div>
+        <h4>Genuine Products</h4>
+        <p>Only authentic, quality-tested plumbing and electrical parts — no counterfeits.</p>
       </div>
-
-      <div class="about-right">
-        <p class="section-label" style="margin-bottom:16px;">Our Commitment</p>
-        <p>At Kumawat Plumbing &amp; Electricals, we believe in honesty and high quality. We treat every home with the utmost respect. We don't overcharge, we don't use subpar materials, and we always show up on time.</p>
-        <p>Located in Govindgarh near Station Road, we cover all surrounding areas. Whether you need a small faucet leak repaired, a complete house rewired, or replacement switches delivered directly to your doorstep, we have you covered.</p>
-        <p>All user accounts get a <strong>Digital Customer Card</strong> with a unique QR code. Register today to earn points, track deliveries, and view your complete service history!</p>
-        
-        <div style="margin-top: 30px; border: 1.5px solid var(--rule); border-radius: 8px; padding: 16px; background-color: var(--bg);">
-          <h4 style="font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; margin-bottom: 6px;">Business Card &amp; Payment Support</h4>
-          <p style="font-size: 0.8rem; color: var(--ink-light); margin-bottom: 12px;">We support major online payments and digital billing records. Scan your Digital Customer Card for quick payments at checkout.</p>
-          <%- include('partials/payment_icons') %>
-        </div>
+      <div class="trust-benefit reveal">
+        <div class="trust-benefit-icon" aria-hidden="true"><i class="bi bi-shield-lock-fill"></i></div>
+        <h4>Secure Payments</h4>
+        <p>Pay via UPI, Google Pay, PhonePe, Paytm, card, or cash — always safe.</p>
+      </div>
+      <div class="trust-benefit reveal">
+        <div class="trust-benefit-icon" aria-hidden="true"><i class="bi bi-tools"></i></div>
+        <h4>Warranty Support</h4>
+        <p>Transparent estimates before work starts. Products come with manufacturer warranty.</p>
+      </div>
+      <div class="trust-benefit reveal">
+        <div class="trust-benefit-icon" aria-hidden="true"><i class="bi bi-geo-alt-fill"></i></div>
+        <h4>Local Support</h4>
+        <p>Based right here in Govindgarh — available same day, every day including Sundays.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ── CONTACT ─────────────────────────────────────────── -->
-<section class="contact-section" id="contact">
+
+<!-- ══════════════════════════════════════════════════════════
+     ABOUT SECTION
+══════════════════════════════════════════════════════════ -->
+<section class="about-section" id="about" aria-labelledby="about-heading">
   <div class="container">
-    <p class="section-label">Find Us</p>
-    <h2 style="margin-bottom:48px;">We're right around the corner.</h2>
+    <div class="about-inner">
+
+      <!-- Left: Owner profile -->
+      <div class="about-left">
+        <div class="owner-avatar" role="img" aria-label="Owner initials: HK">HK</div>
+        <p class="section-label">About the Owner</p>
+        <h2 id="about-heading">Himanshu Kumawat</h2>
+        <p style="color: var(--ink-muted); font-size: var(--fs-sm); margin-top: 6px; margin-bottom: 20px;">
+          Expert Technician &amp; Business Owner · Govindgarh
+        </p>
+
+        <div class="differentiators">
+          <div class="diff-item">
+            <span class="diff-dot" aria-hidden="true"></span>
+            <span>Certified contractor with years of field experience.</span>
+          </div>
+          <div class="diff-item">
+            <span class="diff-dot" aria-hidden="true"></span>
+            <span>Pre-stocked tools and replacement parts for fast response.</span>
+          </div>
+          <div class="diff-item">
+            <span class="diff-dot" aria-hidden="true"></span>
+            <span>Transparent estimates provided before any work starts.</span>
+          </div>
+          <div class="diff-item">
+            <span class="diff-dot" aria-hidden="true"></span>
+            <span>Home delivery of plumbing &amp; electrical parts with optional installation.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Commitment + payments -->
+      <div class="about-right">
+        <p class="section-label" style="margin-bottom: 16px;">Our Commitment</p>
+        <p>At Kumawat Plumbing &amp; Electricals, we believe in honesty and high quality. We treat every home with utmost respect — no overcharging, no subpar materials, and we always show up on time.</p>
+        <p>Located in Govindgarh near Station Road, we cover all surrounding areas. Whether you need a small faucet leak repaired, a complete house rewired, or replacement switches delivered to your doorstep — we have you covered.</p>
+        <p>All user accounts get a <strong>Digital Customer Card</strong> with a unique QR code. Register today to earn points, track deliveries, and view your complete service history!</p>
+
+        <!-- Payment support block — integrated naturally -->
+        <div class="about-payment-block">
+          <h4>Payment &amp; Billing Support</h4>
+          <p>We support all major digital payments and maintain digital billing records. Scan your Customer Card QR for quick checkout.</p>
+          <%- include('partials/payment_icons') %>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     CONTACT / LOCATION
+══════════════════════════════════════════════════════════ -->
+<section class="contact-section" id="contact" aria-labelledby="contact-heading">
+  <div class="container">
+    <div style="margin-bottom: clamp(32px, 5vw, 56px);">
+      <p class="section-label">Find Us</p>
+      <h2 id="contact-heading">We're right around the corner.</h2>
+    </div>
 
     <div class="contact-grid">
+
+      <!-- Map -->
       <div>
         <div class="map-wrap">
-          <!-- Govindgarh location map -->
           <iframe
             src="https://maps.google.com/maps?q=Govindgarh+Rajasthan+India&output=embed"
             allowfullscreen=""
             loading="lazy"
-            title="Kumawat Plumbing & Electricals location on map"
+            title="Kumawat Plumbing & Electricals location on Google Maps"
+            referrerpolicy="no-referrer-when-downgrade"
           ></iframe>
         </div>
       </div>
 
+      <!-- Contact Details -->
       <div class="contact-details">
+
+        <!-- Hours -->
         <div>
-          <h3 style="margin-bottom:12px;">Working Hours</h3>
+          <h3 style="margin-bottom: 14px; font-size: var(--fs-xl);">Working Hours</h3>
           <div class="hours-grid">
-            <span class="day">Monday – Saturday</span><span class="time">8:00 am – 9:00 pm</span>
-            <span class="day">Sunday</span><span class="time">9:00 am – 6:00 pm</span>
-            <span class="day">Emergency Calls</span><span class="time">24/7 Available</span>
+            <span class="day">Monday – Saturday</span>
+            <span class="time">8:00 am – 9:00 pm</span>
+            <span class="day">Sunday</span>
+            <span class="time">9:00 am – 6:00 pm</span>
+            <span class="day">Emergency Calls</span>
+            <span class="time" style="color: var(--accent);">24 / 7</span>
           </div>
         </div>
 
+        <!-- Contact methods -->
         <div class="contact-methods">
           <div class="contact-method">
-            <i class="bi bi-telephone" style="color: var(--accent); font-size: 1.15rem;"></i>
-            <a href="tel:+919462759965">+91 94627 59965</a>
+            <div class="contact-method-icon" aria-hidden="true"><i class="bi bi-telephone-fill"></i></div>
+            <a href="tel:+919462759965" aria-label="Call us at +91 94627 59965">+91 94627 59965</a>
           </div>
           <div class="contact-method">
-            <i class="bi bi-envelope" style="color: var(--accent); font-size: 1.15rem;"></i>
-            <a href="https://mail.google.com/mail/?view=cm&fs=1&to=kumawathimanshu309@gmail.com" target="_blank">kumawathimanshu309@gmail.com</a>
+            <div class="contact-method-icon" aria-hidden="true"><i class="bi bi-envelope-fill"></i></div>
+            <a href="https://mail.google.com/mail/?view=cm&fs=1&to=kumawathimanshu309@gmail.com" target="_blank" rel="noopener" aria-label="Email kumawathimanshu309@gmail.com">kumawathimanshu309@gmail.com</a>
           </div>
           <div class="contact-method">
-            <i class="bi bi-geo-alt" style="color: var(--accent); font-size: 1.15rem;"></i>
+            <div class="contact-method-icon" aria-hidden="true"><i class="bi bi-geo-alt-fill"></i></div>
             <span>Adda Ball, Kui Ke Pass, Station Road, Govindgarh</span>
           </div>
         </div>
 
-        <a href="https://wa.me/919462759965?text=Hi%20Himanshu%2C%20I%20want%20to%20book%20a%20service%20or%20order%20parts." target="_blank" class="btn btn-whatsapp" aria-label="Chat on WhatsApp">
+        <!-- WhatsApp CTA -->
+        <a
+          href="https://wa.me/919462759965?text=Hi%20Himanshu%2C%20I%20want%20to%20book%20a%20service%20or%20order%20parts."
+          target="_blank"
+          rel="noopener"
+          class="btn btn-whatsapp"
+          style="align-self: flex-start; padding: 14px 28px; font-size: var(--fs-base);"
+          aria-label="Chat on WhatsApp to book a service"
+        >
           <i class="bi bi-whatsapp" aria-hidden="true"></i> Chat on WhatsApp
         </a>
+
       </div>
     </div>
   </div>
 </section>
 
 
-
 </main>
+
 <%- include('partials/footer') %>
+
+<!-- ── SCROLL REVEAL SCRIPT ─────────────────────────────────── -->
+<script>
+(function() {
+  var revealEls = document.querySelectorAll('.reveal');
+  if (!revealEls.length) return;
+
+  var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersReduced) {
+    revealEls.forEach(function(el) { el.classList.add('visible'); });
+    return;
+  }
+
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+
+  revealEls.forEach(function(el) { observer.observe(el); });
+})();
+
+// Wishlist toggle
+async function toggleWishlist(productId, btn) {
+  try {
+    const res = await fetch('/api/wishlist/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId })
+    });
+    const data = await res.json();
+    if (data.success) {
+      const icon = btn.querySelector('i');
+      if (data.added) {
+        if (icon) { icon.classList.remove('bi-heart'); icon.classList.add('bi-heart-fill'); }
+        btn.classList.add('active');
+        if (typeof showToast === 'function') showToast('❤️ Added to Wishlist');
+      } else {
+        if (icon) { icon.classList.remove('bi-heart-fill'); icon.classList.add('bi-heart'); }
+        btn.classList.remove('active');
+        if (typeof showToast === 'function') showToast('Removed from Wishlist');
+      }
+    }
+  } catch (e) {
+    if (typeof showToast === 'function') showToast('Login to save to wishlist');
+  }
+}
+</script>

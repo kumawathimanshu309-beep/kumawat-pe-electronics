@@ -35,6 +35,10 @@ const productSchema = new mongoose.Schema({
     type: Number,
     min: 0
   },
+  costPrice: {
+    type: Number,
+    min: 0
+  },
   stock: {
     type: Number,
     required: true,
@@ -50,9 +54,29 @@ const productSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  subcategory: {
+    type: String,
+    default: ''
+  },
+  lowStockThreshold: {
+    type: Number,
+    default: 5
+  },
+  isBestseller: {
+    type: Boolean,
+    default: false
+  },
+  isNewArrival: {
+    type: Boolean,
+    default: false
+  },
+  isDeal: {
+    type: Boolean,
+    default: false
+  },
   status: {
     type: String,
-    enum: ['Active', 'Out Of Stock', 'Hidden', 'Deleted'],
+    enum: ['Active', 'Out Of Stock', 'Hidden', 'Disabled', 'Deleted'],
     default: 'Active'
   },
   video: { type: String, default: '' },

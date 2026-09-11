@@ -32,6 +32,7 @@ const { randomUUID } = require('crypto');
 const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
+const MongoStore = require('connect-mongo').default || require('connect-mongo').MongoStore;
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const QRCode = require('qrcode');
@@ -59,6 +60,11 @@ app.set('io', io);
 // COMPRESSION, LOGGING & SECURITY MIDDLEWARE
 // -----------------------------------------------------------------------------------------
 app.use(compression()); 
+
+// Helmet Security Headers are centrally configured with Razorpay CSP support below.
+
+// MongoDB Query Sanitizer (prevents operator injection $gt, $ne, etc.)
+app.use(mongoSanitize());
 
 const morganFormat = process.env.NODE_ENV === 'production' ? 'combined' : 'dev';
 app.use(morgan(morganFormat, { stream: { write: message => logger.info(message.trim()) } }));
@@ -95,6 +101,11 @@ const OrderLog = require('./models/OrderLog');
 const Notification = require('./models/Notification');
 const Coupon = require('./models/Coupon');
 const Review = require('./models/Review');
+const Category = require('./models/Category');
+const Brand = require('./models/Brand');
+const AdminLog = require('./models/AdminLog');
+const financeService = require('./services/financeService');
+const csvHandler = require('./utils/csvHandler');
 
 // In-Memory Simulated Database (Fallback for testing if local Mongo is not running)
 const mockDB = {
@@ -108,6 +119,10 @@ const mockDB = {
   products: [],
   orderLogs: [],
   notifications: [],
+  categories: [],
+  brands: [],
+  reviews: [],
+  adminLogs: [],
   storeEnabled: true
 };
 
@@ -115,6 +130,39 @@ const mockDB = {
 const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'kumawathimanshu309@gmail.com';
 const DEFAULT_ADMIN_PHONE = process.env.ADMIN_PHONE || '+919462759965';
 const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'HIMANSHU@2005';
+
+async function logAdminActivity(req, action, resource, resourceId = '', details = '') {
+  try {
+    const adminUser = req.user || (req.session ? req.session.user : null) || { userId: 'ADMIN_001', name: 'Admin' };
+    const ipAddress = req.ip || '0.0.0.0';
+    
+    if (isMongoConnected) {
+      const log = new AdminLog({
+        adminId: adminUser.userId || adminUser._id || 'ADMIN_001',
+        adminName: adminUser.name || 'Admin',
+        action,
+        resource,
+        resourceId,
+        details,
+        ipAddress
+      });
+      await log.save();
+    } else {
+      mockDB.adminLogs.unshift({
+        adminId: adminUser.userId || 'ADMIN_001',
+        adminName: adminUser.name || 'Admin',
+        action,
+        resource,
+        resourceId,
+        details,
+        ipAddress,
+        createdAt: new Date()
+      });
+    }
+  } catch (err) {
+    logger.error('Failed to log admin activity:', err);
+  }
+}
 
 function registerCouponRoutes() {
   console.log("Coupon Routes Registered");
@@ -390,6 +438,137 @@ async function seedMongoDatabase() {
       
       logger.info('✓ Seeded MongoDB default admin account successfully.');
     }
+
+    const prodCount = await Product.countDocuments();
+    if (prodCount === 0) {
+      const initialProducts = [
+        {
+          productId: 'PRD-SW-16A',
+          name: 'Havells 16A Heavy Duty Modular Switch',
+          category: 'Electrical',
+          brand: 'Havells',
+          price: 299,
+          discountPrice: 249,
+          stock: 50,
+          sku: 'HAV-SW-16A',
+          description: 'High durability flame-retardant 16 Amp switch designed for heavy home appliances.',
+          images: ['https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800'],
+          badges: ['Bestseller', 'Original'],
+          features: ['Heavy Duty', 'Flame Retardant', 'Silver Contacts'],
+          deliveryAvailable: true,
+          status: 'Active'
+        },
+        {
+          productId: 'PRD-CW-25M',
+          name: 'Polycab 2.5 sq mm Copper Wire 90m Roll',
+          category: 'Electrical',
+          brand: 'Polycab',
+          price: 2499,
+          discountPrice: 2199,
+          stock: 30,
+          sku: 'POL-CW-2.5',
+          description: 'Premium quality 90-meter red copper wire roll for house wiring and safety.',
+          images: ['https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?w=800'],
+          badges: ['Certified', '100% Copper'],
+          features: ['High Conductivity', '90m Roll', 'FR Grade PVC'],
+          deliveryAvailable: true,
+          status: 'Active'
+        },
+        {
+          productId: 'PRD-PUMP-1HP',
+          name: 'Crompton 1HP Submersible Water Pump',
+          category: 'Motors & Pumps',
+          brand: 'Crompton',
+          price: 8500,
+          discountPrice: 7999,
+          stock: 15,
+          sku: 'CRM-PUMP-1HP',
+          description: 'Energy-efficient 1HP single-phase borewell submersible pump with control panel.',
+          images: ['https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800'],
+          badges: ['Heavy Duty', 'Energy Saving'],
+          features: ['Copper Winding', 'Anti-Corrosive', 'High Discharge'],
+          deliveryAvailable: true,
+          status: 'Active'
+        },
+        {
+          productId: 'PRD-PIPE-1IN',
+          name: 'Finolex 1 Inch PVC Heavy Pipe Fitting Set (Pack of 5)',
+          category: 'Plumbing',
+          brand: 'Finolex',
+          price: 450,
+          discountPrice: 399,
+          stock: 40,
+          sku: 'FIN-PIPE-1IN',
+          description: 'Durable leak-proof PVC elbow and socket fittings for home plumbing systems.',
+          images: ['https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=800'],
+          badges: ['Leak Proof'],
+          features: ['High Pressure Resistant', 'Lead Free PVC'],
+          deliveryAvailable: true,
+          status: 'Active'
+        },
+        {
+          productId: 'PRD-SMART-BULB',
+          name: 'Wipro 12W Smart LED Bulb WiFi B22',
+          category: 'AC & Appliances',
+          brand: 'Wipro',
+          price: 699,
+          discountPrice: 499,
+          stock: 60,
+          sku: 'WIP-LED-12W',
+          description: 'Multi-color smart WiFi LED bulb compatible with Alexa and Google Assistant.',
+          images: ['https://images.unsplash.com/photo-1550985616-10810253b84d?w=800'],
+          badges: ['Smart Choice'],
+          features: ['16 Million Colors', 'Voice Control', 'Energy Efficient'],
+          deliveryAvailable: true,
+          status: 'Active'
+        },
+        {
+          productId: 'PRD-PLIER-8IN',
+          name: 'Taparia Heavy Duty Combination Pliers 8 Inch',
+          category: 'Tools',
+          brand: 'Taparia',
+          price: 380,
+          discountPrice: 320,
+          stock: 25,
+          sku: 'TAP-PLIER-8',
+          description: 'High tensile steel combination pliers with insulated rubber grip.',
+          images: ['https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=800'],
+          badges: ['Insulated'],
+          features: ['Insulated Handle', 'Drop Forged Steel'],
+          deliveryAvailable: true,
+          status: 'Active'
+        }
+      ];
+      await Product.insertMany(initialProducts);
+      logger.info('✓ Seeded initial sample products successfully.');
+    }
+
+    const couponCount = await Coupon.countDocuments();
+    if (couponCount === 0) {
+      const initialCoupons = [
+        {
+          code: 'WELCOME10',
+          type: 'percentage',
+          discount: 10,
+          minOrderValue: 200,
+          maxDiscount: 500,
+          perUserLimit: 5,
+          expiryDate: new Date('2030-12-31'),
+          status: 'Active'
+        },
+        {
+          code: 'KUMAWAT50',
+          type: 'fixed',
+          discount: 50,
+          minOrderValue: 300,
+          perUserLimit: 5,
+          expiryDate: new Date('2030-12-31'),
+          status: 'Active'
+        }
+      ];
+      await Coupon.insertMany(initialCoupons);
+      logger.info('✓ Seeded initial coupons successfully.');
+    }
   } catch (error) {
     logger.error('Failed to seed MongoDB:', error);
   }
@@ -430,11 +609,26 @@ async function seedInMemoryDatabase() {
 }
 
 // ── EXPRESS MIDDLEWARES ──────────────────────────────────────────
-// Cloudinary Image Optimization Helper
-app.locals.optimizeImage = (url) => {
+// Cloudinary & Unsplash Image Optimization Helper
+app.locals.optimizeImage = (url, width = 400) => {
   if (!url || typeof url !== 'string') return url;
-  if (url.includes('res.cloudinary.com') && !url.includes('f_auto') && !url.includes('q_auto')) {
-    return url.replace('/image/upload/', '/image/upload/f_auto,q_auto/');
+  if (url.includes('res.cloudinary.com')) {
+    if (!url.includes('f_auto') && !url.includes('q_auto')) {
+      return url.replace('/image/upload/', `/image/upload/w_${width},c_scale,f_auto,q_auto/`);
+    }
+    return url;
+  }
+  if (url.includes('images.unsplash.com')) {
+    try {
+      const u = new URL(url);
+      u.searchParams.set('w', width.toString());
+      u.searchParams.set('auto', 'format');
+      u.searchParams.set('fit', 'crop');
+      u.searchParams.set('q', '80');
+      return u.toString();
+    } catch(e) {
+      return url;
+    }
   }
   return url;
 };
@@ -445,14 +639,82 @@ app.use(helmet({
     directives: {
       scriptSrcAttr: null,
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://maps.googleapis.com", "https://maps.gstatic.com", "https://googleapis.com", "https://gstatic.com"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com", "https://googleapis.com", "https://gstatic.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com", "data:", "https://cdn.jsdelivr.net"],
-      imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com", "https://images.unsplash.com", "https://checkout.razorpay.com", "https://maps.gstatic.com", "https://maps.googleapis.com", "https://googleapis.com", "https://gstatic.com"],
-      frameSrc: ["'self'", "https://www.google.com", "https://google.com", "https://maps.google.com", "https://www.google.com/maps", "https://checkout.razorpay.com"],
-      connectSrc: ["'self'", "https://lumberjack-cx.razorpay.com", "https://maps.googleapis.com", "https://googleapis.com", "https://gstatic.com", "https://cdn.jsdelivr.net"]
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "'unsafe-eval'",
+        "https://checkout.razorpay.com",
+        "https://cdn.razorpay.com",
+        "https://api.razorpay.com",
+        "https://*.razorpay.com",
+        "https://cdn.jsdelivr.net",
+        "https://cdnjs.cloudflare.com",
+        "https://maps.googleapis.com",
+        "https://maps.gstatic.com",
+        "https://googleapis.com",
+        "https://gstatic.com"
+      ],
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://checkout.razorpay.com",
+        "https://cdn.razorpay.com",
+        "https://*.razorpay.com",
+        "https://cdn.jsdelivr.net",
+        "https://cdnjs.cloudflare.com",
+        "https://fonts.googleapis.com",
+        "https://googleapis.com",
+        "https://gstatic.com"
+      ],
+      fontSrc: [
+        "'self'",
+        "https://fonts.gstatic.com",
+        "https://cdnjs.cloudflare.com",
+        "data:",
+        "https://cdn.jsdelivr.net",
+        "https://checkout.razorpay.com",
+        "https://cdn.razorpay.com"
+      ],
+      imgSrc: [
+        "'self'",
+        "data:",
+        "blob:",
+        "https://res.cloudinary.com",
+        "https://images.unsplash.com",
+        "https://checkout.razorpay.com",
+        "https://cdn.razorpay.com",
+        "https://*.razorpay.com",
+        "https://maps.gstatic.com",
+        "https://maps.googleapis.com",
+        "https://googleapis.com",
+        "https://gstatic.com"
+      ],
+      frameSrc: [
+        "'self'",
+        "https://www.google.com",
+        "https://google.com",
+        "https://maps.google.com",
+        "https://www.google.com/maps",
+        "https://checkout.razorpay.com",
+        "https://api.razorpay.com",
+        "https://*.razorpay.com"
+      ],
+      connectSrc: [
+        "'self'",
+        "https://checkout.razorpay.com",
+        "https://api.razorpay.com",
+        "https://lumberjack.razorpay.com",
+        "https://lumberjack-cx.razorpay.com",
+        "https://*.razorpay.com",
+        "wss://*.razorpay.com",
+        "https://maps.googleapis.com",
+        "https://googleapis.com",
+        "https://gstatic.com",
+        "https://cdn.jsdelivr.net"
+      ]
     }
   },
+  crossOriginResourcePolicy: { policy: "cross-origin" },
   hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
   frameguard: { action: 'deny' },
   xssFilter: true,
@@ -539,12 +801,21 @@ if (!fs.existsSync(qrPlaceholder)) {
 
 // Sessions
 app.set('trust proxy', 1); // Trust first proxy (Railway/Vercel load balancer)
+const mongoSessionStore = (process.env.MONGO_URI || isMongoConnected)
+  ? MongoStore.create({
+      mongoUrl: process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/kumawat_pe',
+      ttl: 24 * 60 * 60,
+      autoRemove: 'native'
+    })
+  : undefined;
+
 app.use(
   session({
     name: 'sessionId', // Obfuscate session cookie name
     secret: process.env.SESSION_SECRET || 'supersecretsessionkey',
     resave: false,
     saveUninitialized: false,
+    store: mongoSessionStore,
     proxy: true, // Required for secure cookies behind Railway reverse proxy
     cookie: {
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
@@ -755,10 +1026,11 @@ app.set('views', path.join(__dirname, 'views'));
 // Rate Limiters
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 mins
-  limit: 100, // Limit each IP to 100 requests per window
+  limit: 2000, // Limit each IP per window
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  message: 'Too many requests from this IP. Please try again after 15 minutes.'
+  message: { success: false, message: 'Too many requests from this IP. Please try again after 15 minutes.' },
+  skip: (req) => req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1'
 });
 
 // Apply globally to all API routes
@@ -824,40 +1096,103 @@ function isAuthenticated(req, res, next) {
   if (req.isAuthenticated && req.isAuthenticated()) {
     return next();
   }
-  if (req.xhr || (req.headers.accept && req.headers.accept.indexOf('json') > -1)) {
-    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  const isApi = req.xhr || 
+                (req.originalUrl && (req.originalUrl.startsWith('/api/') || req.originalUrl.includes('/api/'))) ||
+                (req.headers.accept && req.headers.accept.indexOf('json') > -1);
+  if (isApi) {
+    return res.status(401).json({ success: false, message: 'Authentication required' });
   }
-  res.redirect('/login');
+  const redirectUrl = req.originalUrl && req.originalUrl !== '/login' ? encodeURIComponent(req.originalUrl) : '';
+  res.redirect(`/login${redirectUrl ? '?redirect=' + redirectUrl : ''}`);
 }
 
+const requireAuth = isAuthenticated;
+
 function isAdmin(req, res, next) {
+  const isApi = req.xhr || 
+                (req.originalUrl && (req.originalUrl.startsWith('/api/') || req.originalUrl.includes('/api/'))) ||
+                (req.headers.accept && req.headers.accept.indexOf('json') > -1);
+
   if (!req.isAuthenticated || !req.isAuthenticated()) {
+    if (isApi) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
     return res.redirect('/login');
   }
-  if (req.user && (req.user.role === 'admin' || req.user.role === 'super_admin')) {
+
+  const user = req.user;
+  const isRoleAdmin = user && (user.role === 'admin' || user.role === 'super_admin');
+
+  const adminEmailEnv = process.env.ADMIN_EMAIL;
+  const adminUserIdEnv = process.env.ADMIN_USER_ID;
+
+  let isAllowlisted = true;
+  if (adminUserIdEnv && user.userId !== adminUserIdEnv) {
+    isAllowlisted = false;
+  }
+  if (adminEmailEnv && user.email && user.email.toLowerCase() !== adminEmailEnv.toLowerCase()) {
+    isAllowlisted = false;
+  }
+
+  if (isRoleAdmin && isAllowlisted) {
     return next();
   }
-  res.status(403).send('403 Access Denied');
+
+  logger.warn(`[SECURITY ALERT] Unauthorized admin access attempt by userId=${user ? user.userId : 'unknown'}, role=${user ? user.role : 'none'}, IP=${req.ip}`);
+
+  if (isApi) {
+    return res.status(403).json({ success: false, message: 'Admin authorization required' });
+  }
+  res.status(403).send('403 Access Denied: Admin authorization required');
 }
+
+const requireAdmin = isAdmin;
+
+// Top-level namespace protection for all Admin routes
+app.use(['/admin', '/api/admin'], requireAuth, requireAdmin);
 
 
 // ── PUBLIC PAGES ROUTES ──────────────────────────────────────────
 app.get('/', async (req, res) => {
   try {
     let featuredProducts = [];
+    let categories = [];
+
     if (mockDB.storeEnabled) {
       if (isMongoConnected) {
+        // Fetch featured products (newest first)
         featuredProducts = await Product.find({ $or: [{ status: 'Active' }, { status: { $exists: false } }, { status: null }, { status: '' }] })
                                         .sort({ _id: -1 })
                                         .limit(12)
                                         .lean();
+
+        // Build category list from all active products
+        const catAgg = await Product.aggregate([
+          { $match: { $or: [{ status: 'Active' }, { status: { $exists: false } }, { status: null }, { status: '' }] } },
+          { $group: { _id: '$category', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+          { $limit: 10 }
+        ]);
+        categories = catAgg.map(c => ({ name: c._id, count: c.count })).filter(c => c.name);
       } else {
         const productsList = mockDB.products.filter(p => p.status !== 'Deleted');
         featuredProducts = productsList.filter(p => p.status === 'Active' || !p.status).reverse().slice(0, 12);
+
+        // Derive categories from mock products
+        const catMap = {};
+        productsList.forEach(p => {
+          if (p.category) {
+            catMap[p.category] = (catMap[p.category] || 0) + 1;
+          }
+        });
+        categories = Object.entries(catMap)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10)
+          .map(([name, count]) => ({ name, count }));
       }
     }
-    
-    res.render('index', { activePage: 'home', products: featuredProducts });
+
+    res.render('index', { activePage: 'home', products: featuredProducts, categories });
   } catch (error) {
     res.status(500).render('500', { error });
   }
@@ -981,15 +1316,18 @@ app.get('/auth/google/failure', (req, res) => {
 });
 
 app.post('/auth/login', loginLimiter, async (req, res) => {
-  const { username, password, rememberMe, redirect } = req.body;
+  const inputIdentifier = (req.body.username || req.body.email || '').toString().trim();
+  const username = inputIdentifier;
+  const password = (req.body.password || '').toString();
+  const { rememberMe, redirect } = req.body;
   const ip = req.ip || req.connection.remoteAddress;
   const userAgent = req.headers['user-agent'] || 'Unknown';
 
   let user = null;
-  const cleanedUsername = username.toLowerCase().trim();
+  const cleanedUsername = inputIdentifier.toLowerCase();
   const cleanedPassword = password.trim();
   const isEmail = cleanedUsername.includes('@');
-  const cleanedMobile = username.replace(/\D/g, '').slice(-10);
+  const cleanedMobile = inputIdentifier.replace(/\D/g, '').slice(-10);
   
   try {
     if (isMongoConnected) {
@@ -1197,11 +1535,23 @@ app.post('/auth/register', async (req, res) => {
 });
 
 app.get('/auth/logout', (req, res) => {
-  req.session.destroy(err => {
-    if (err) logger.error('[AUTH ERROR] Session destroy error:', err);
-    res.clearCookie('connect.sid'); // Clear session cookie securely
-    res.redirect('/');
-  });
+  const doDestroy = () => {
+    req.session.destroy(err => {
+      if (err) logger.error('[AUTH ERROR] Session destroy error:', err);
+      res.clearCookie('sessionId');
+      res.clearCookie('connect.sid');
+      res.redirect('/');
+    });
+  };
+
+  if (typeof req.logout === 'function') {
+    req.logout((err) => {
+      if (err) logger.error('[AUTH ERROR] req.logout error:', err);
+      doDestroy();
+    });
+  } else {
+    doDestroy();
+  }
 });
 
 // Security Login Log helpers
@@ -1693,7 +2043,7 @@ app.post('/checkout', isAuthenticated, validateCsrf, async (req, res) => {
     let transactionId = '';
     let finalPaymentRecordId = null;
 
-    if (paymentMethod === 'Cash On Delivery' || paymentMethod === 'Cash') {
+    if (paymentMethod === 'Cash On Delivery' || paymentMethod === 'Cash' || paymentMethod === 'COD' || paymentMethod === 'cod') {
       finalPaymentStatus = 'COD Pending';
       if (isMongoConnected) {
         for (let item of items) {
@@ -1784,8 +2134,8 @@ app.post('/checkout', isAuthenticated, validateCsrf, async (req, res) => {
         deliveryAddress: parsedAddress,
         deliveryStatus: 'Pending',
         notes,
-        preferredDate: new Date(preferredDate),
-        timeSlot
+        preferredDate: (preferredDate && !isNaN(new Date(preferredDate).getTime())) ? new Date(preferredDate) : new Date(),
+        timeSlot: timeSlot || 'Standard Delivery'
       });
       await order.save();
 
@@ -1901,16 +2251,29 @@ app.get('/api/cart', isAuthenticated, async (req, res) => {
   }
 });
 
+function normalizeCartItem(item) {
+  return {
+    productId: String(item.productId || item.id || ''),
+    name: String(item.name || item.title || 'Product'),
+    price: Number(item.price) || 0,
+    originalPrice: item.originalPrice ? Number(item.originalPrice) : (Number(item.price) || 0),
+    quantity: Math.max(1, Number(item.quantity) || 1),
+    image: String(item.image || ''),
+    sku: String(item.sku || ''),
+    category: String(item.category || '')
+  };
+}
+
 app.post('/api/cart/sync', isAuthenticated, async (req, res) => {
   try {
-    const localCart = req.body.cart || [];
+    const rawCart = req.body.cart || [];
+    const localCart = rawCart.map(normalizeCartItem);
     
     if (!isMongoConnected) {
       const userIdx = mockDB.users.findIndex(u => u.userId === req.user.userId);
       if (userIdx === -1) return res.status(404).json({ success: false, message: 'User not found' });
       
       let dbCart = mockDB.users[userIdx].cart || [];
-      // Merge logic: Add new items, ignore duplicates by name
       localCart.forEach(localItem => {
         const exists = dbCart.find(dbItem => dbItem.name === localItem.name);
         if (!exists) {
@@ -1921,7 +2284,7 @@ app.post('/api/cart/sync', isAuthenticated, async (req, res) => {
       return res.json({ success: true, cart: dbCart });
     }
 
-    const user = req.user;
+    const user = await User.findOne({ userId: req.user.userId });
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     let dbCart = user.cart || [];
@@ -1934,7 +2297,7 @@ app.post('/api/cart/sync', isAuthenticated, async (req, res) => {
 
     user.cart = dbCart;
     await user.save();
-    
+    req.user = user;
     
     res.json({ success: true, cart: dbCart });
   } catch (err) {
@@ -1944,7 +2307,8 @@ app.post('/api/cart/sync', isAuthenticated, async (req, res) => {
 
 app.post('/api/cart/overwrite', isAuthenticated, async (req, res) => {
   try {
-    const localCart = req.body.cart || [];
+    const rawCart = req.body.cart || [];
+    const localCart = rawCart.map(normalizeCartItem);
     
     if (!isMongoConnected) {
       const userIdx = mockDB.users.findIndex(u => u.userId === req.user.userId);
@@ -1954,11 +2318,12 @@ app.post('/api/cart/overwrite', isAuthenticated, async (req, res) => {
       return res.json({ success: true, cart: localCart });
     }
 
-    const user = req.user;
+    const user = await User.findOne({ userId: req.user.userId });
     if (!user) return res.status(404).json({ success: false });
 
     user.cart = localCart;
     await user.save();
+    req.user = user;
     res.json({ success: true, cart: localCart });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -2025,21 +2390,25 @@ app.post('/api/reviews', isAuthenticated, async (req, res) => {
     const userId = req.user.userId;
     const userName = req.user.name;
 
-    const product = await Product.findById(productId);
+    let product = (mongoose.Types.ObjectId.isValid(productId))
+      ? await Product.findById(productId)
+      : await Product.findOne({ productId });
+
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
 
     // Verify purchase
     const hasBought = await Order.exists({ userId, "items.name": product.name, deliveryStatus: 'Delivered' });
 
+    const targetProdId = product.productId || productId;
     const review = new Review({
-      productId, userId, userName, rating, title, text, verifiedBuyer: !!hasBought
+      productId: targetProdId, userId, userName, rating, title, text, verifiedBuyer: !!hasBought
     });
     await review.save();
 
-    const reviews = await Review.find({ productId });
+    const reviews = await Review.find({ productId: targetProdId });
     const count = reviews.length;
-    const average = reviews.reduce((a, b) => a + b.rating, 0) / count;
-    await Product.findByIdAndUpdate(productId, { ratings: { average: average.toFixed(1), count } });
+    const average = reviews.reduce((a, b) => a + Number(b.rating), 0) / count;
+    await Product.updateOne({ _id: product._id }, { $set: { ratings: { average: Number(average.toFixed(1)), count } } });
 
     res.json({ success: true, message: 'Review submitted successfully' });
   } catch (error) {
@@ -2051,7 +2420,7 @@ app.post('/api/reviews', isAuthenticated, async (req, res) => {
 app.get('/api/reviews/:productId', async (req, res) => {
   if (!isMongoConnected) return res.json({ success: true, reviews: [] });
   try {
-    const reviews = await Review.find({ productId: req.params.productId }).sort({ createdAt: -1 }).lean();
+    const reviews = await Review.find({ productId: req.params.productId, status: 'Approved' }).sort({ createdAt: -1 }).lean();
     res.json({ success: true, reviews });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -2128,6 +2497,9 @@ app.get('/api/wishlist/count', isAuthenticated, async (req, res) => {
 
 app.post('/api/user/address', isAuthenticated, async (req, res) => {
   try {
+    req.body.fullName = req.body.fullName || req.user.name || 'Customer';
+    req.body.mobile = req.body.mobile || req.user.mobile || '9999999999';
+
     if (!isMongoConnected) {
       const userIdx = mockDB.users.findIndex(u => u.userId === req.user.userId);
       if (userIdx === -1) return res.status(404).json({ success: false, message: 'User not found' });
@@ -2433,6 +2805,418 @@ app.get('/invoice/:id', isAuthenticated, async (req, res) => {
 
 // ── ADMIN PANEL & MANAGEMENT ───────────────────────────────────────
 
+// ── CATEGORY MANAGEMENT APIs ──────────────────────────────────────
+app.get('/api/admin/categories', isAdmin, async (req, res) => {
+  try {
+    let categories = [];
+    if (isMongoConnected) {
+      categories = await Category.find({}).sort({ displayOrder: 1, createdAt: -1 }).lean();
+      for (let cat of categories) {
+        cat.productCount = await Product.countDocuments({ category: cat.name, status: { $ne: 'Deleted' } });
+      }
+    } else {
+      categories = mockDB.categories || [];
+      categories.forEach(cat => {
+        cat.productCount = (mockDB.products || []).filter(p => p.category === cat.name && p.status !== 'Deleted').length;
+      });
+    }
+    res.json({ success: true, categories });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/admin/category', isAdmin, express.json(), async (req, res) => {
+  try {
+    const { categoryId, name, slug, image, parentCategory, status, displayOrder } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ success: false, message: 'Category Name is required.' });
+
+    const cleanSlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const catId = categoryId || ('CAT-' + Date.now());
+
+    let categoryObj = {
+      categoryId: catId,
+      name: name.trim(),
+      slug: cleanSlug,
+      image: image || '',
+      parentCategory: parentCategory || null,
+      status: status || 'Active',
+      displayOrder: parseInt(displayOrder) || 0
+    };
+
+    if (isMongoConnected) {
+      await Category.updateOne({ categoryId: catId }, { $set: categoryObj }, { upsert: true });
+    } else {
+      const idx = mockDB.categories.findIndex(c => c.categoryId === catId);
+      if (idx !== -1) mockDB.categories[idx] = { ...mockDB.categories[idx], ...categoryObj };
+      else mockDB.categories.push(categoryObj);
+    }
+
+    await logAdminActivity(req, 'SAVE_CATEGORY', 'Category', catId, `Saved category "${name}"`);
+    res.json({ success: true, category: categoryObj });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.delete('/api/admin/category/:id', isAdmin, async (req, res) => {
+  try {
+    const catId = req.params.id;
+    if (isMongoConnected) {
+      await Category.deleteOne({ categoryId: catId });
+    } else {
+      mockDB.categories = mockDB.categories.filter(c => c.categoryId !== catId);
+    }
+    await logAdminActivity(req, 'DELETE_CATEGORY', 'Category', catId, 'Deleted category');
+    res.json({ success: true, message: 'Category deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── BRAND MANAGEMENT APIs ─────────────────────────────────────────
+app.get('/api/admin/brands', isAdmin, async (req, res) => {
+  try {
+    let brands = [];
+    if (isMongoConnected) {
+      brands = await Brand.find({}).sort({ createdAt: -1 }).lean();
+      for (let b of brands) {
+        b.productCount = await Product.countDocuments({ brand: b.name, status: { $ne: 'Deleted' } });
+      }
+    } else {
+      brands = mockDB.brands || [];
+      brands.forEach(b => {
+        b.productCount = (mockDB.products || []).filter(p => p.brand === b.name && p.status !== 'Deleted').length;
+      });
+    }
+    res.json({ success: true, brands });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/admin/brand', isAdmin, express.json(), async (req, res) => {
+  try {
+    const { brandId, name, slug, logo, description, status } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ success: false, message: 'Brand Name is required.' });
+
+    const cleanSlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const bId = brandId || ('BRD-' + Date.now());
+
+    let brandObj = {
+      brandId: bId,
+      name: name.trim(),
+      slug: cleanSlug,
+      logo: logo || '',
+      description: description || '',
+      status: status || 'Active'
+    };
+
+    if (isMongoConnected) {
+      await Brand.updateOne({ brandId: bId }, { $set: brandObj }, { upsert: true });
+    } else {
+      const idx = mockDB.brands.findIndex(b => b.brandId === bId);
+      if (idx !== -1) mockDB.brands[idx] = { ...mockDB.brands[idx], ...brandObj };
+      else mockDB.brands.push(brandObj);
+    }
+
+    await logAdminActivity(req, 'SAVE_BRAND', 'Brand', bId, `Saved brand "${name}"`);
+    res.json({ success: true, brand: brandObj });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.delete('/api/admin/brand/:id', isAdmin, async (req, res) => {
+  try {
+    const bId = req.params.id;
+    if (isMongoConnected) {
+      await Brand.deleteOne({ brandId: bId });
+    } else {
+      mockDB.brands = mockDB.brands.filter(b => b.brandId !== bId);
+    }
+    await logAdminActivity(req, 'DELETE_BRAND', 'Brand', bId, 'Deleted brand');
+    res.json({ success: true, message: 'Brand deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── REVIEWS MODERATION APIs ───────────────────────────────────────
+app.get('/api/admin/reviews', isAdmin, async (req, res) => {
+  try {
+    let reviews = [];
+    if (isMongoConnected) {
+      reviews = await Review.find({}).sort({ createdAt: -1 }).lean();
+      const productIds = [...new Set(reviews.map(r => r.productId).filter(Boolean))];
+      const products = await Product.find({ productId: { $in: productIds } }, 'productId name sku images').lean();
+      const productMap = new Map();
+      products.forEach(p => productMap.set(String(p.productId), p));
+
+      reviews = reviews.map(rev => {
+        const prod = productMap.get(String(rev.productId)) || {};
+        return {
+          ...rev,
+          customerName: rev.userName || rev.customerName || 'Anonymous Customer',
+          comment: rev.text || rev.comment || '',
+          productName: rev.productName || prod.name || ('Product #' + rev.productId),
+          sku: rev.sku || prod.sku || 'N/A',
+          productImage: (prod.images && prod.images.length > 0) ? prod.images[0] : '/uploads/products/placeholder.jpg',
+          verifiedBuyer: rev.verifiedBuyer !== undefined ? rev.verifiedBuyer : (rev.isVerified || false),
+          status: rev.status || 'Approved'
+        };
+      });
+    } else {
+      reviews = mockDB.reviews || [];
+    }
+    res.json({ success: true, reviews });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/admin/review/:id/status', isAdmin, express.json(), async (req, res) => {
+  try {
+    const reviewId = req.params.id;
+    const { status } = req.body; // Approved or Rejected
+    
+    if (isMongoConnected) {
+      const rev = await Review.findById(reviewId);
+      if (!rev) return res.status(404).json({ success: false, message: 'Review not found' });
+      rev.status = status;
+      await rev.save();
+
+      // Recalculate rating
+      const allApproved = await Review.find({ productId: rev.productId, status: 'Approved' });
+      const count = allApproved.length;
+      const avg = count > 0 ? (allApproved.reduce((sum, r) => sum + r.rating, 0) / count) : 0;
+      await Product.updateOne({ productId: rev.productId }, { $set: { ratings: { average: Number(avg.toFixed(1)), count } } });
+    } else {
+      const rev = mockDB.reviews.find(r => r._id === reviewId || r.id === reviewId);
+      if (rev) rev.status = status;
+    }
+
+    await logAdminActivity(req, 'MODERATE_REVIEW', 'Review', reviewId, `Updated review status to ${status}`);
+    res.json({ success: true, message: `Review status updated to ${status}` });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.delete('/api/admin/review/:id', isAdmin, async (req, res) => {
+  try {
+    const reviewId = req.params.id;
+    if (isMongoConnected) {
+      await Review.findByIdAndDelete(reviewId);
+    } else {
+      mockDB.reviews = mockDB.reviews.filter(r => r._id !== reviewId && r.id !== reviewId);
+    }
+    await logAdminActivity(req, 'DELETE_REVIEW', 'Review', reviewId, 'Deleted review');
+    res.json({ success: true, message: 'Review deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── ADVANCED PRODUCT ACTIONS & STOCK ADJUSTMENTS ─────────────────
+app.post('/api/admin/product/stock-adjust', isAdmin, express.json(), async (req, res) => {
+  try {
+    const { productId, newStock, stockChange } = req.body;
+    let updatedStock = 0;
+    
+    if (isMongoConnected) {
+      const product = await Product.findOne({ productId });
+      if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+      
+      if (newStock !== undefined && newStock !== null) {
+        updatedStock = Math.max(0, parseInt(newStock, 10));
+      } else if (stockChange !== undefined) {
+        updatedStock = Math.max(0, product.stock + parseInt(stockChange, 10));
+      }
+      
+      product.stock = updatedStock;
+      product.status = updatedStock === 0 ? 'Out Of Stock' : (product.status === 'Out Of Stock' ? 'Active' : product.status);
+      await product.save();
+    } else {
+      const prod = mockDB.products.find(p => p.productId === productId);
+      if (!prod) return res.status(404).json({ success: false, message: 'Product not found' });
+      if (newStock !== undefined) prod.stock = Math.max(0, parseInt(newStock, 10));
+      else if (stockChange !== undefined) prod.stock = Math.max(0, prod.stock + parseInt(stockChange, 10));
+      updatedStock = prod.stock;
+    }
+
+    await logAdminActivity(req, 'ADJUST_STOCK', 'Product', productId, `Set stock to ${updatedStock}`);
+    io.emit('product_updated', { action: 'stock_update', productId, stock: updatedStock });
+    res.json({ success: true, stock: updatedStock });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/admin/product/toggle-badge', isAdmin, express.json(), async (req, res) => {
+  try {
+    const { productId, badge, value } = req.body; // badge: 'isBestseller' | 'isNewArrival' | 'isDeal'
+    if (isMongoConnected) {
+      await Product.updateOne({ productId }, { $set: { [badge]: value === true } });
+    } else {
+      const prod = mockDB.products.find(p => p.productId === productId);
+      if (prod) prod[badge] = value === true;
+    }
+    await logAdminActivity(req, 'TOGGLE_BADGE', 'Product', productId, `Set ${badge} to ${value}`);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/admin/product/toggle-status', isAdmin, express.json(), async (req, res) => {
+  try {
+    const { productId, status } = req.body; // 'Active' | 'Disabled'
+    if (isMongoConnected) {
+      await Product.updateOne({ productId }, { $set: { status } });
+    } else {
+      const prod = mockDB.products.find(p => p.productId === productId);
+      if (prod) prod.status = status;
+    }
+    await logAdminActivity(req, 'TOGGLE_PRODUCT_STATUS', 'Product', productId, `Set status to ${status}`);
+    res.json({ success: true, status });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/admin/product/duplicate/:productId', isAdmin, async (req, res) => {
+  try {
+    const sourceId = req.params.productId;
+    let newProduct = null;
+
+    if (isMongoConnected) {
+      const source = await Product.findOne({ productId: sourceId }).lean();
+      if (!source) return res.status(404).json({ success: false, message: 'Source product not found' });
+      
+      delete source._id;
+      delete source.createdAt;
+      delete source.updatedAt;
+
+      source.productId = 'PRD-' + Date.now() + '-' + Math.floor(Math.random() * 100);
+      source.name = source.name + ' (Copy)';
+      source.sku = source.sku ? (source.sku + '-COPY') : ('SKU-' + Date.now());
+
+      newProduct = new Product(source);
+      await newProduct.save();
+    } else {
+      const source = mockDB.products.find(p => p.productId === sourceId);
+      if (!source) return res.status(404).json({ success: false, message: 'Source product not found' });
+      newProduct = JSON.parse(JSON.stringify(source));
+      newProduct.productId = 'PRD-' + Date.now();
+      newProduct.name = source.name + ' (Copy)';
+      mockDB.products.push(newProduct);
+    }
+
+    await logAdminActivity(req, 'DUPLICATE_PRODUCT', 'Product', newProduct.productId, `Duplicated from ${sourceId}`);
+    res.json({ success: true, product: newProduct });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── BULK CSV IMPORT & EXPORT APIs ──────────────────────────────────
+app.get('/admin/products/csv-template', isAdmin, (req, res) => {
+  const csvText = csvHandler.getStrictTemplateCSV();
+  res.header('Content-Type', 'text/csv');
+  res.attachment('kumawat_product_import_template.csv');
+  return res.send(csvText);
+});
+
+app.post('/api/admin/products/preview-csv', isAdmin, express.text({ limit: '10mb' }), async (req, res) => {
+  try {
+    const csvContent = req.body;
+    if (!csvContent || typeof csvContent !== 'string' || csvContent.trim().length === 0) {
+      return res.status(400).json({ success: false, message: 'CSV payload is empty or invalid.' });
+    }
+    const result = await csvHandler.previewProductImport(csvContent, isMongoConnected, mockDB);
+    res.json(result);
+  } catch (err) {
+    logger.error('CSV Preview error:', err);
+    res.status(500).json({ success: false, message: err.message || 'Preview processing error' });
+  }
+});
+
+app.post('/api/admin/products/bulk-import', isAdmin, express.text({ limit: '10mb' }), async (req, res) => {
+  try {
+    const csvContent = req.body;
+    if (!csvContent || typeof csvContent !== 'string' || csvContent.trim().length === 0) {
+      return res.status(400).json({ success: false, message: 'CSV payload is empty or invalid.' });
+    }
+
+    const result = await csvHandler.processProductImport(csvContent, isMongoConnected, mockDB);
+    await logAdminActivity(req, 'BULK_IMPORT', 'Product', '', `Imported ${result.successCount} products, ${result.failCount} failed.`);
+    res.json(result);
+  } catch (err) {
+    logger.error('Bulk import error:', err);
+    res.status(500).json({ success: false, message: err.message || 'Import processing error' });
+  }
+});
+
+app.get('/admin/products/export-csv', isAdmin, async (req, res) => {
+  try {
+    let products = [];
+    if (isMongoConnected) {
+      products = await Product.find({ status: { $ne: 'Deleted' } }).lean();
+    } else {
+      products = mockDB.products.filter(p => p.status !== 'Deleted');
+    }
+
+    const headers = [
+      'productId', 'name', 'category', 'subcategory', 'brand',
+      'price', 'discountPrice', 'costPrice', 'stock', 'sku',
+      'status', 'deliveryAvailable', 'description', 'images'
+    ];
+
+    let csvText = headers.join(',') + '\n';
+    products.forEach(p => {
+      const row = [
+        p.productId || '',
+        `"${(p.name || '').replace(/"/g, '""')}"`,
+        `"${(p.category || '').replace(/"/g, '""')}"`,
+        `"${(p.subcategory || '').replace(/"/g, '""')}"`,
+        `"${(p.brand || '').replace(/"/g, '""')}"`,
+        p.price || 0,
+        p.discountPrice || p.price || 0,
+        p.costPrice || 0,
+        p.stock || 0,
+        p.sku || '',
+        p.status || 'Active',
+        p.deliveryAvailable !== false,
+        `"${(p.description || '').replace(/"/g, '""')}"`,
+        `"${(Array.isArray(p.images) ? p.images.join(';') : '').replace(/"/g, '""')}"`
+      ];
+      csvText += row.join(',') + '\n';
+    });
+
+    res.header('Content-Type', 'text/csv');
+    res.attachment(`kumawat_products_export_${Date.now()}.csv`);
+    return res.send(csvText);
+  } catch (err) {
+    res.status(500).send('CSV Export Error');
+  }
+});
+
+// ── AUDIT LOGS API ────────────────────────────────────────────────
+app.get('/api/admin/audit-logs', isAdmin, async (req, res) => {
+  try {
+    let logs = [];
+    if (isMongoConnected) {
+      logs = await AdminLog.find({}).sort({ createdAt: -1 }).limit(100).lean();
+    } else {
+      logs = mockDB.adminLogs || [];
+    }
+    res.json({ success: true, logs });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 app.post('/admin/api/toggle-store', isAdmin, async (req, res) => {
   try {
     const { enabled } = req.body;
@@ -2587,6 +3371,11 @@ app.get('/admin', isAdmin, async (req, res) => {
     let loginLogsList = [];
     let productsList = [];
     let paymentsList = [];
+    let categoriesList = [];
+    let brandsList = [];
+    let reviewsList = [];
+    let auditLogsList = [];
+    let couponsList = [];
     
     // Stats calculation variables
     let totalUsers = 0;
@@ -2602,6 +3391,11 @@ app.get('/admin', isAdmin, async (req, res) => {
         loginLogsListRes,
         productsListRes,
         paymentsListRes,
+        categoriesListRes,
+        brandsListRes,
+        reviewsListRes,
+        auditLogsListRes,
+        couponsListRes,
         stRes,
         totalUsersRes,
         totalOrdersRes,
@@ -2609,11 +3403,16 @@ app.get('/admin', isAdmin, async (req, res) => {
         pendingDeliveriesRes
       ] = await Promise.all([
         User.find({}).lean(),
-        Order.find({}).lean(),
-        OtpLog.find({}).lean(),
-        LoginLog.find({}).lean(),
-        Product.find({}).lean(),
+        Order.find({}).sort({ createdAt: -1 }).lean(),
+        OtpLog.find({}).sort({ createdAt: -1 }).lean(),
+        LoginLog.find({}).sort({ createdAt: -1 }).lean(),
+        Product.find({}).sort({ createdAt: -1 }).lean(),
         PaymentRecord.find({}).sort({ transactionTime: -1 }).lean(),
+        Category.find({}).sort({ displayOrder: 1 }).lean(),
+        Brand.find({}).sort({ createdAt: -1 }).lean(),
+        Review.find({}).sort({ createdAt: -1 }).lean(),
+        AdminLog.find({}).sort({ createdAt: -1 }).limit(100).lean(),
+        Coupon.find({}).sort({ createdAt: -1 }).lean(),
         Product.findOne({ productId: '__STORE_SETTINGS__' }).lean(),
         User.countDocuments({ role: 'user' }),
         Order.countDocuments({}),
@@ -2630,6 +3429,11 @@ app.get('/admin', isAdmin, async (req, res) => {
       loginLogsList = loginLogsListRes;
       productsList = productsListRes;
       paymentsList = paymentsListRes;
+      categoriesList = categoriesListRes;
+      brandsList = brandsListRes;
+      reviewsList = reviewsListRes;
+      auditLogsList = auditLogsListRes;
+      couponsList = couponsListRes;
       
       if (stRes) { mockDB.storeEnabled = stRes.deliveryAvailable; }
       
@@ -2644,9 +3448,14 @@ app.get('/admin', isAdmin, async (req, res) => {
       loginLogsList = mockDB.loginLogs;
       productsList = mockDB.products;
       paymentsList = mockDB.paymentRecords || [];
+      categoriesList = mockDB.categories || [];
+      brandsList = mockDB.brands || [];
+      reviewsList = mockDB.reviews || [];
+      auditLogsList = mockDB.adminLogs || [];
+      couponsList = mockDB.coupons || [];
       
       totalUsers = usersList.filter(u => u.role === 'user').length;
-      
+      totalOrders = ordersList.length;
       totalRevenue = (mockDB.paymentRecords || [])
         .filter(p => p.status === 'Paid' || p.status === 'COD Completed')
         .reduce((sum, p) => sum + p.amount, 0);
@@ -2664,6 +3473,11 @@ app.get('/admin', isAdmin, async (req, res) => {
       loginLogs: loginLogsList,
       products: productsList,
       payments: paymentsList,
+      categories: categoriesList,
+      brands: brandsList,
+      reviews: reviewsList,
+      auditLogs: auditLogsList,
+      coupons: couponsList,
       stats: {
         totalUsers,
         totalOrders,
@@ -2830,6 +3644,82 @@ app.get('/admin/api/export-payments', isAdmin, async (req, res) => {
   }
 });
 
+// ── ADMIN FINANCE & PAYMENT ANALYTICS V2 API ENDPOINTS ────────────
+app.get('/admin/finance', isAdmin, (req, res) => {
+  res.redirect('/admin?tab=payments');
+});
+
+app.get('/api/admin/finance/summary', isAdmin, async (req, res) => {
+  try {
+    const { range = '30days', customStart, customEnd, status = 'all', method = 'all' } = req.query;
+    const summary = await financeService.getFinanceSummary(isMongoConnected, mockDB, { range, customStart, customEnd, status, method });
+    const trend = financeService.buildRevenueTrend(summary.filteredPayments, 7);
+
+    res.json({
+      success: true,
+      summary,
+      trend
+    });
+  } catch (error) {
+    logger.error('Admin finance summary error:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve financial summary' });
+  }
+});
+
+app.get('/api/admin/finance/payments', isAdmin, async (req, res) => {
+  try {
+    const { page = 1, limit = 20, range = 'all', status = 'all', method = 'all', search = '' } = req.query;
+    const summary = await financeService.getFinanceSummary(isMongoConnected, mockDB, { range, status, method });
+    
+    let filtered = summary.filteredPayments;
+    if (search && search.trim()) {
+      const q = search.toLowerCase().trim();
+      filtered = filtered.filter(p => 
+        (p.orderId && p.orderId.toLowerCase().includes(q)) ||
+        (p.paymentId && p.paymentId.toLowerCase().includes(q)) ||
+        (p.razorpayOrderId && p.razorpayOrderId.toLowerCase().includes(q)) ||
+        (p.razorpayPaymentId && p.razorpayPaymentId.toLowerCase().includes(q)) ||
+        (p.userId && p.userId.toLowerCase().includes(q))
+      );
+    }
+
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 20;
+    const totalCount = filtered.length;
+    const totalPages = Math.ceil(totalCount / limitNum) || 1;
+    const paginated = filtered.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+
+    res.json({
+      success: true,
+      payments: paginated,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        totalCount,
+        totalPages
+      }
+    });
+  } catch (error) {
+    logger.error('Admin finance payments error:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve payment transactions' });
+  }
+});
+
+app.get('/api/admin/finance/export', isAdmin, async (req, res) => {
+  try {
+    const { range = 'all', status = 'all', method = 'all' } = req.query;
+    const summary = await financeService.getFinanceSummary(isMongoConnected, mockDB, { range, status, method });
+    const csv = financeService.generatePaymentsCSV(summary.filteredPayments);
+    
+    res.header('Content-Type', 'text/csv');
+    res.attachment(`kumawat_payments_export_${Date.now()}.csv`);
+    return res.send(csv);
+  } catch (err) {
+    logger.error('Error generating finance export:', err);
+    res.status(500).send("Error generating payment export");
+  }
+});
+
 app.post('/admin/api/refund', isAdmin, express.json(), async (req, res) => {
   try {
     const { paymentId } = req.body;
@@ -2933,11 +3823,11 @@ app.get('/store', (req, res) => {
 });
 
 // Advanced Store API
-app.get('/api/store/products', async (req, res) => {
+app.get(['/api/store/products', '/api/products'], async (req, res) => {
   try {
     if (!mockDB.storeEnabled) return res.json({ success: false, message: 'Store is disabled' });
 
-    let { q, category, brand, minPrice, maxPrice, sort, page, limit } = req.query;
+    let { q, category, brand, minPrice, maxPrice, sort, page, limit, inStock } = req.query;
     
     page = parseInt(page) || 1;
     limit = parseInt(limit) || 12;
@@ -2949,19 +3839,24 @@ app.get('/api/store/products', async (req, res) => {
       query.$or = [
         { name: { $regex: q, $options: 'i' } },
         { category: { $regex: q, $options: 'i' } },
-        { brand: { $regex: q, $options: 'i' } }
+        { brand: { $regex: q, $options: 'i' } },
+        { description: { $regex: q, $options: 'i' } }
       ];
     }
     
     if (category) {
       // support multiple categories separated by comma
-      const categories = category.split(',').map(c => c.trim());
-      query.category = { $in: categories };
+      const categories = category.split(',').map(c => c.trim()).filter(Boolean);
+      if (categories.length > 0) query.category = { $in: categories };
     }
     
     if (brand) {
-      const brands = brand.split(',').map(b => b.trim());
-      query.brand = { $in: brands };
+      const brands = brand.split(',').map(b => b.trim()).filter(Boolean);
+      if (brands.length > 0) query.brand = { $in: brands };
+    }
+
+    if (inStock === 'true') {
+      query.stock = { $gt: 0 };
     }
 
     if (minPrice || maxPrice) {
@@ -3029,6 +3924,20 @@ app.get('/api/store/products', async (req, res) => {
     }
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Single Product API for Quick View Modal
+app.get('/api/products/:productId', async (req, res) => {
+  try {
+    let product = isMongoConnected 
+      ? await Product.findOne({ productId: req.params.productId, status: { $ne: 'Deleted' } }).lean()
+      : mockDB.products.find(p => p.productId === req.params.productId && p.status !== 'Deleted');
+      
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+    res.json({ success: true, product });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

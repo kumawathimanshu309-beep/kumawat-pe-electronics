@@ -24,8 +24,8 @@ const UserSchema = new mongoose.Schema({
     trim: true
   },
   addresses: [{
-    fullName: { type: String, required: true },
-    mobile: { type: String, required: true },
+    fullName: { type: String, required: true, default: 'Customer' },
+    mobile: { type: String, required: true, default: '9999999999' },
     altMobile: { type: String, default: '' },
     house: { type: String, required: true },
     street: { type: String, required: true },
