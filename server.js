@@ -464,106 +464,18 @@ async function seedMongoDatabase() {
 
     const prodCount = await Product.countDocuments();
     if (prodCount === 0) {
-      const initialProducts = [
-        {
-          productId: 'PRD-SW-16A',
-          name: 'Havells 16A Heavy Duty Modular Switch',
-          category: 'Electrical',
-          brand: 'Havells',
-          price: 299,
-          discountPrice: 249,
-          stock: 50,
-          sku: 'HAV-SW-16A',
-          description: 'High durability flame-retardant 16 Amp switch designed for heavy home appliances.',
-          images: ['https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800'],
-          badges: ['Bestseller', 'Original'],
-          features: ['Heavy Duty', 'Flame Retardant', 'Silver Contacts'],
-          deliveryAvailable: true,
-          status: 'Active'
-        },
-        {
-          productId: 'PRD-CW-25M',
-          name: 'Polycab 2.5 sq mm Copper Wire 90m Roll',
-          category: 'Electrical',
-          brand: 'Polycab',
-          price: 2499,
-          discountPrice: 2199,
-          stock: 30,
-          sku: 'POL-CW-2.5',
-          description: 'Premium quality 90-meter red copper wire roll for house wiring and safety.',
-          images: ['https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?w=800'],
-          badges: ['Certified', '100% Copper'],
-          features: ['High Conductivity', '90m Roll', 'FR Grade PVC'],
-          deliveryAvailable: true,
-          status: 'Active'
-        },
-        {
-          productId: 'PRD-PUMP-1HP',
-          name: 'Crompton 1HP Submersible Water Pump',
-          category: 'Motors & Pumps',
-          brand: 'Crompton',
-          price: 8500,
-          discountPrice: 7999,
-          stock: 15,
-          sku: 'CRM-PUMP-1HP',
-          description: 'Energy-efficient 1HP single-phase borewell submersible pump with control panel.',
-          images: ['https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800'],
-          badges: ['Heavy Duty', 'Energy Saving'],
-          features: ['Copper Winding', 'Anti-Corrosive', 'High Discharge'],
-          deliveryAvailable: true,
-          status: 'Active'
-        },
-        {
-          productId: 'PRD-PIPE-1IN',
-          name: 'Finolex 1 Inch PVC Heavy Pipe Fitting Set (Pack of 5)',
-          category: 'Plumbing',
-          brand: 'Finolex',
-          price: 450,
-          discountPrice: 399,
-          stock: 40,
-          sku: 'FIN-PIPE-1IN',
-          description: 'Durable leak-proof PVC elbow and socket fittings for home plumbing systems.',
-          images: ['https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=800'],
-          badges: ['Leak Proof'],
-          features: ['High Pressure Resistant', 'Lead Free PVC'],
-          deliveryAvailable: true,
-          status: 'Active'
-        },
-        {
-          productId: 'PRD-SMART-BULB',
-          name: 'Wipro 12W Smart LED Bulb WiFi B22',
-          category: 'AC & Appliances',
-          brand: 'Wipro',
-          price: 699,
-          discountPrice: 499,
-          stock: 60,
-          sku: 'WIP-LED-12W',
-          description: 'Multi-color smart WiFi LED bulb compatible with Alexa and Google Assistant.',
-          images: ['https://images.unsplash.com/photo-1550985616-10810253b84d?w=800'],
-          badges: ['Smart Choice'],
-          features: ['16 Million Colors', 'Voice Control', 'Energy Efficient'],
-          deliveryAvailable: true,
-          status: 'Active'
-        },
-        {
-          productId: 'PRD-PLIER-8IN',
-          name: 'Taparia Heavy Duty Combination Pliers 8 Inch',
-          category: 'Tools',
-          brand: 'Taparia',
-          price: 380,
-          discountPrice: 320,
-          stock: 25,
-          sku: 'TAP-PLIER-8',
-          description: 'High tensile steel combination pliers with insulated rubber grip.',
-          images: ['https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=800'],
-          badges: ['Insulated'],
-          features: ['Insulated Handle', 'Drop Forged Steel'],
-          deliveryAvailable: true,
-          status: 'Active'
+      try {
+        const seed100 = require('./scripts/seed_100_products');
+        const initialProducts = seed100.productsData || [];
+        if (initialProducts.length > 0) {
+          for (const pData of initialProducts) {
+            await Product.updateOne({ productId: pData.productId }, { $set: pData }, { upsert: true });
+          }
+          logger.info(`✓ Seeded ${initialProducts.length} rich catalog products into MongoDB successfully.`);
         }
-      ];
-      await Product.insertMany(initialProducts);
-      logger.info('✓ Seeded initial sample products successfully.');
+      } catch (seedErr) {
+        logger.error('Failed to seed catalog products:', seedErr.message);
+      }
     }
 
     const couponCount = await Coupon.countDocuments();

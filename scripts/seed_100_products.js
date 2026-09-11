@@ -3364,11 +3364,17 @@ async function seed100Products() {
     console.log(`\n✅ SUCCESSFULLY UPSERTED ${upsertCount} PRODUCTS!`);
     console.log(`Total Active Products in Database: ${totalCount}`);
 
-    mongoose.connection.close();
+    if (require.main === module) {
+      mongoose.connection.close();
+    }
   } catch (err) {
     console.error("Seeding Error:", err);
-    process.exit(1);
+    if (require.main === module) process.exit(1);
   }
 }
 
-seed100Products();
+if (require.main === module) {
+  seed100Products();
+}
+
+module.exports = { productsData, seed100Products };
