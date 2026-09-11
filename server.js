@@ -25,42 +25,46 @@ if (missingEnv.length > 0) {
 }
 
 function getValidatedMongoUri() {
-  let rawUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+  const getCleaned = (val) => {
+    if (!val || typeof val !== 'string') return null;
+    let s = val.trim();
+    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+      s = s.slice(1, -1).trim();
+    }
+    if (s.startsWith('MONGO_URI=')) {
+      s = s.replace(/^MONGO_URI=/, '').trim();
+    } else if (s.startsWith('MONGODB_URI=')) {
+      s = s.replace(/^MONGODB_URI=/, '').trim();
+    }
+    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+      s = s.slice(1, -1).trim();
+    }
+    return s || null;
+  };
 
-  if (rawUri) {
-    rawUri = String(rawUri).trim();
-    if ((rawUri.startsWith('"') && rawUri.endsWith('"')) || (rawUri.startsWith("'") && rawUri.endsWith("'"))) {
-      rawUri = rawUri.slice(1, -1).trim();
-    }
-    if (rawUri.startsWith('MONGO_URI=')) {
-      rawUri = rawUri.replace(/^MONGO_URI=/, '').trim();
-    } else if (rawUri.startsWith('MONGODB_URI=')) {
-      rawUri = rawUri.replace(/^MONGODB_URI=/, '').trim();
-    }
-    if ((rawUri.startsWith('"') && rawUri.endsWith('"')) || (rawUri.startsWith("'") && rawUri.endsWith("'"))) {
-      rawUri = rawUri.slice(1, -1).trim();
-    }
-  }
+  const cleanMongoUri = getCleaned(process.env.MONGO_URI);
+  const cleanMongodbUri = getCleaned(process.env.MONGODB_URI);
+  const rawUri = cleanMongoUri || cleanMongodbUri;
+  const sourceVar = cleanMongoUri ? 'MONGO_URI' : (cleanMongodbUri ? 'MONGODB_URI' : null);
 
   if (rawUri) {
     const isStandard = rawUri.startsWith('mongodb://');
     const isSrv = rawUri.startsWith('mongodb+srv://');
     if (!isStandard && !isSrv) {
-      const errMsg = '[MONGODB CONFIG ERROR] Invalid connection string scheme. Expected scheme starting with "mongodb://" or "mongodb+srv://".';
-      logger.error(errMsg);
+      const errMsg = 'Invalid MongoDB URI scheme. Expected mongodb:// or mongodb+srv://';
+      logger.error(`[MONGODB CONFIG ERROR] ${errMsg}`);
       if (isVercelRuntime) {
         throw new Error(errMsg);
       }
       return null;
     }
-    const sourceVar = process.env.MONGO_URI ? 'MONGO_URI' : 'MONGODB_URI';
     const scheme = isSrv ? 'mongodb+srv' : 'mongodb';
     logger.info(`[MONGODB CONFIG] Validated MongoDB URI from ${sourceVar} (scheme: ${scheme}, mode: ${isVercelRuntime ? 'Vercel Production' : 'Local'}).`);
     return rawUri;
   }
 
   if (isVercelRuntime) {
-    const errMsg = 'MONGO_URI/MONGODB_URI is not configured for production in Vercel Environment Variables.';
+    const errMsg = 'Production MongoDB URI is missing. Configure MONGO_URI in Vercel.';
     logger.error(`[VERCEL MONGO ERROR] ${errMsg}`);
     throw new Error(errMsg);
   }
