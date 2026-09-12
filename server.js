@@ -5,7 +5,7 @@ const logger = require('./utils/logger');
 // ----------------------------------------------------
 // ENVIRONMENT VALIDATION & DEFAULTS
 // ----------------------------------------------------
-const isVercelRuntime = !!process.env.VERCEL || process.env.NOW_BUILD === '1';
+const isVercelRuntime = !!process.env.VERCEL || process.env.NOW_BUILD === '1' || !!process.env.VERCEL_ENV;
 
 if (!process.env.PORT) process.env.PORT = '3000';
 if (!process.env.NODE_ENV) process.env.NODE_ENV = 'production';
@@ -46,6 +46,7 @@ function getValidatedMongoUri() {
   const cleanMongodbUri = getCleaned(process.env.MONGODB_URI);
   const rawUri = cleanMongoUri || cleanMongodbUri;
   const sourceVar = cleanMongoUri ? 'MONGO_URI' : (cleanMongodbUri ? 'MONGODB_URI' : null);
+  const isProductionMode = isVercelRuntime || process.env.NODE_ENV === 'production';
 
   if (rawUri) {
     const isStandard = rawUri.startsWith('mongodb://');
@@ -53,17 +54,17 @@ function getValidatedMongoUri() {
     if (!isStandard && !isSrv) {
       const errMsg = 'Invalid MongoDB URI scheme. Expected mongodb:// or mongodb+srv://';
       logger.error(`[MONGODB CONFIG ERROR] ${errMsg}`);
-      if (isVercelRuntime) {
+      if (isProductionMode) {
         throw new Error(errMsg);
       }
       return null;
     }
     const scheme = isSrv ? 'mongodb+srv' : 'mongodb';
-    logger.info(`[MONGODB CONFIG] Validated MongoDB URI from ${sourceVar} (scheme: ${scheme}, mode: ${isVercelRuntime ? 'Vercel Production' : 'Local'}).`);
+    logger.info(`[MONGODB CONFIG] Validated MongoDB URI from ${sourceVar} (scheme: ${scheme}, mode: ${isProductionMode ? 'Vercel Production' : 'Local'}).`);
     return rawUri;
   }
 
-  if (isVercelRuntime) {
+  if (isProductionMode) {
     const errMsg = 'Production MongoDB URI is missing. Configure MONGO_URI in Vercel.';
     logger.error(`[VERCEL MONGO ERROR] ${errMsg}`);
     throw new Error(errMsg);
